@@ -942,8 +942,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     rmssem = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
 
     # integrals and polarity balance:
-    pos_area = np.sum(meod[meod[:,1] > 0,1])*dt
-    neg_area = np.sum(meod[meod[:,1] < 0,1])*dt
+    pos_area = np.sum(meod[meod[:,1] > 0, 1])*dt
+    neg_area = np.sum(meod[meod[:,1] < 0, 1])*dt
     total_area = pos_area - neg_area
     polarity_balance = (pos_area + neg_area)/total_area
     
@@ -982,11 +982,16 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         # peak areas:
         peak_areas = np.zeros(len(peak_list))
         for i in range(len(peak_list)):
-            sign_fac = np.sign(meod[peak_list[i],1])
+            sign_fac = np.sign(meod[peak_list[i], 1])
             i0 = peak_list[i - 1] if i > 0 else 0
             i1 = peak_list[i + 1] if i + 1 < len(peak_list) else len(meod)
-            snippet = sign_fac*meod[i0:i1,1]
-            peak_areas[i] = sign_fac*np.sum(snippet[snippet > 0])*dt
+            if i0 > 0 and sign_fac*meod[i0, 1] > 0 and \
+               i1 < len(meod) and sign_fac*meod[i1, 1] > 0:
+                peak_areas[i] = 0
+            else:
+                snippet = sign_fac*meod[i0:i1, 1]
+                peak_areas[i] = np.sum(snippet[snippet > 0])*dt
+                peak_areas[i] *= sign_fac
         # store peaks:
         peaks = np.zeros((len(peak_list), 7))
         for i, pi in enumerate(peak_list):
@@ -1879,7 +1884,8 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_wave()` and `analyze_pulse()`.
     peaks: 2_D arrays or None
-        List of peak properties (index, time, and amplitude) of a EOD pulse
+        List of peak properties (index, time, amplitude,
+        relative amplitude, width, area) of a EOD pulse
         as returned by `analyze_pulse()`.
     unit: string
         Optional unit of the data used for y-label.
@@ -1928,11 +1934,14 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=-10, **sstyle)
     # ax height dimensions:
-    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
+    dxu = (time[-1] - time[0])/pixelx
+    xfs = plt.rcParams['font.size']*dxu
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:, 1]))[0]
     ymin, ymax = ax.get_ylim()
     unity = ymax - ymin
     dyu = np.abs(unity)/pixely
-    font_size = plt.rcParams['font.size']*dyu
+    yfs = plt.rcParams['font.size']*dyu
     # annotate fit:
     tau = None if props is None else props.get('tau', None)
     ty = 0.0
@@ -1943,9 +1952,9 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
             label = f'\u03c4={1.e3*tau:.2f}ms'
         inx = np.argmin(np.isnan(eod_waveform[:,3]))
         x = eod_waveform[inx,0] + 1.5*tau
-        ty = 0.7*eod_waveform[inx,3]
-        if np.abs(ty) < 0.5*font_size:
-            ty = 0.5*font_size*np.sign(ty)
+        ty = 0.7*eod_waveform[inx, 3]
+        if np.abs(ty) < 0.5*yfs:
+            ty = 0.5*yfs*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
         ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
     # annotate peaks:
@@ -1967,51 +1976,61 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
                 else:
                     ps = f'{100*p[3]:.0f}%'
                 label += f'({ps} @ {ts})'
+            left_text = (p[2] > 0 and p[1] >= 0.0) or \
+                (p[2] < 0 and p[1] >= peaks[np.argmin(peaks[:, 2]), 1])
             va = 'baseline'
-            dy = 0.4*font_size
+            dy = 0.6*yfs
             sign = np.sign(p[2])
-            if sign < 0:
+            if i > 0 and i < len(peaks) - 1:
+                if peaks[i - 1][2] > p[2] and peaks[i + 1][2] > p[2]:
+                    va = 'top'
+                    dy = -dy
+            elif sign < 0:
                 va = 'top'
                 dy = -dy
             if p[0] == 1:
                 dy = 0.0
-            """
-            if p[2] <= np.min(peaks[:,2]):
-                dy = -0.8*font_size
-                va = 'baseline'
-            """
-            if p[2] + dy < ymin + 1.3*font_size:
-                dy = ymin + 1.3*font_size - p[2]
+            if p[2] + dy < ymin + 1.3*yfs:
+                dy = ymin + 1.3*yfs - p[2]
             if p[0] == np.max(peaks[:,0]) and ty*p[2] > 0.0 and \
-               sign*p[2]+dy < sign*ty+1.2*font_size:
-                dy = ty + sign*1.2*font_size - p[2]
-            dx = 0.05*time[-1]
-            if p[1] >= 0.0:
-                ax.text(1000*p[1]+dx, p[2]+dy, label,
+               sign*p[2] + dy < sign*ty + 1.2*yfs:
+                dy = ty + sign*1.2*yfs - p[2]
+            dx = 0.5*xfs
+            if left_text:
+                ax.text(1000*p[1] + dx, p[2] + dy, label,
                         ha='left', va=va, zorder=20)
             else:
-                ax.text(1000*p[1]-dx, p[2]+dy, label,
+                ax.text(1000*p[1] - dx, p[2] + dy, label,
                         ha='right', va=va, zorder=20)
             # area:
             if len(p) > 6:
-                if np.abs(p[6]) < 0.05:
+                if np.abs(p[6]) < 1e-8:
+                    continue
+                elif np.abs(p[6]) < 0.05:
                     label = f'{100*p[6]:.1f}%'
                 else:
                     label = f'{100*p[6]:.0f}%'
-                dxl = p[1] - peaks[i - 1][1] if i > 0 else np.inf
-                dxr = peaks[i + 1][1] - p[1] if i < len(peaks) - 1 else np.inf
-                dx = 0
-                if dxl < dxr:
-                    dx = +1000*0.2*dxl
-                elif dxr < dxl:
-                    dx = -1000*0.2*dxr
+                x = 1000*p[1]
+                if i > 0 and i < len(peaks) - 1:
+                    xl = 1000*peaks[i - 1][1]
+                    xr = 1000*peaks[i + 1][1]
+                    tsnippet = time[(time > xl) & (time < xr)]
+                    snippet = mean_eod[(time > xl) & (time < xr)]
+                    tsnippet = tsnippet[np.sign(p[2])*snippet > 0]
+                    snippet = snippet[np.sign(p[2])*snippet > 0]
+                    xc = np.sum(tsnippet*snippet)/np.sum(snippet)
+                    x = xc
                 if abs(p[3]) > 0.5:
-                    ax.text(1000*p[1] + dx, sign*0.6*font_size, label,
+                    ax.text(x, sign*0.6*yfs, label,
                             rotation='vertical',
                             va='top' if sign < 0 else 'bottom',
                             ha='center', zorder=20)
+                elif abs(p[3]) > 0.25:
+                    ax.text(x, sign*0.6*yfs, label,
+                            va='top' if sign < 0 else 'baseline',
+                            ha='center', zorder=20)
                 else:
-                    ax.text(1000*p[1] + dx, -sign*0.4*font_size, label,
+                    ax.text(x, -sign*0.4*yfs, label,
                             va='baseline' if sign < 0 else 'top',
                             ha='center', zorder=20)
     # annotate plot:
@@ -2200,10 +2219,12 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     --------
     load_eod_waveform()
     """
-    td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'sem'],
-                   ['ms', unit, unit], ['%.3f', '%.6g', '%.6g'])
+    td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0],
+                   ['time', 'mean', 'sem'],
+                   ['ms', unit, unit],
+                   ['%.3f', '%.6g', '%.6g'])
     if mean_eod.shape[1] > 3:
-        td.append('fit', unit, '%.5f', mean_eod[:,3])
+        td.append('fit', unit, '%.5f', value=mean_eod[:,3])
     _, ext = os.path.splitext(basename)
     fp = ''
     if not ext:
@@ -2278,9 +2299,11 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     eodfs = fundamental_freqs_and_power(wave_eodfs)
     td = TableData()
     if wave_indices is not None:
-        td.append('index', '', '%d', [wi if wi >= 0 else np.nan for wi in wave_indices])
-    td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
-    td.append('datapower', 'dB', '%7.2f', eodfs[:,1])
+        td.append('index', '', '%d',
+                  value=[wi if wi >= 0 else np.nan
+                         for wi in wave_indices])
+    td.append('EODf', 'Hz', '%7.2f', value=eodfs[:,0])
+    td.append('datapower', 'dB', '%7.2f', value=eodfs[:,1])
     _, ext = os.path.splitext(basename)
     fp = '-waveeodfs' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
@@ -2362,43 +2385,46 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
        'nfft' in wave_props[0]:
         td.append_section('recording')
     if 'twin' in wave_props[0]:
-        td.append('twin', 's', '%7.2f', wave_props)
-        td.append('window', 's', '%7.2f', wave_props)
-        td.append('winclipped', '%', '%.2f', wave_props, 100.0)
+        td.append('twin', 's', '%7.2f', value=wave_props)
+        td.append('window', 's', '%7.2f', value=wave_props)
+        td.append('winclipped', '%', '%.2f',
+                  value=wave_props, fac=100.0)
     if 'samplerate' in wave_props[0]:
-        td.append('samplerate', 'kHz', '%.3f', wave_props, 0.001)
+        td.append('samplerate', 'kHz', '%.3f',
+                  value=wave_props, fac=0.001)
     if 'nfft' in wave_props[0]:
-        td.append('nfft', '', '%d', wave_props)
-        td.append('dfreq', 'Hz', '%.2f', wave_props)
+        td.append('nfft', '', '%d', value=wave_props)
+        td.append('dfreq', 'Hz', '%.2f', value=wave_props)
     td.append_section('waveform')
-    td.append('index', '', '%d', wave_props)
-    td.append('EODf', 'Hz', '%7.2f', wave_props)
-    td.append('p-p-amplitude', unit, '%.5f', wave_props)
-    td.append('power', 'dB', '%7.2f', wave_props)
+    td.append('index', '', '%d', value=wave_props)
+    td.append('EODf', 'Hz', '%7.2f', value=wave_props)
+    td.append('p-p-amplitude', unit, '%.5f', value=wave_props)
+    td.append('power', 'dB', '%7.2f', value=wave_props)
     if 'datapower' in wave_props[0]:
-        td.append('datapower', 'dB', '%7.2f', wave_props)
-    td.append('thd', '%', '%.2f', wave_props, 100.0)
-    td.append('dbdiff', 'dB', '%7.2f', wave_props)
-    td.append('maxdb', 'dB', '%7.2f', wave_props)
+        td.append('datapower', 'dB', '%7.2f', value=wave_props)
+    td.append('thd', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('dbdiff', 'dB', '%7.2f', value=wave_props)
+    td.append('maxdb', 'dB', '%7.2f', value=wave_props)
     if 'noise' in wave_props[0]:
-        td.append('noise', '%', '%.1f', wave_props, 100.0)
-    td.append('rmserror', '%', '%.2f', wave_props, 100.0)
+        td.append('noise', '%', '%.1f', value=wave_props, fac=100.0)
+    td.append('rmserror', '%', '%.2f', value=wave_props, fac=100.0)
     if 'clipped' in wave_props[0]:
-        td.append('clipped', '%', '%.1f', wave_props, 100.0)
-    td.append('flipped', '', '%d', wave_props)
-    td.append('n', '', '%5d', wave_props)
+        td.append('clipped', '%', '%.1f', value=wave_props, fac=100.0)
+    td.append('flipped', '', '%d', value=wave_props)
+    td.append('n', '', '%5d', value=wave_props)
     td.append_section('timing')
-    td.append('ncrossings', '', '%d', wave_props)
-    td.append('peakwidth', '%', '%.2f', wave_props, 100.0)
-    td.append('troughwidth', '%', '%.2f', wave_props, 100.0)
-    td.append('minwidth', '%', '%.2f', wave_props, 100.0)
-    td.append('leftpeak', '%', '%.2f', wave_props, 100.0)
-    td.append('rightpeak', '%', '%.2f', wave_props, 100.0)
-    td.append('lefttrough', '%', '%.2f', wave_props, 100.0)
-    td.append('righttrough', '%', '%.2f', wave_props, 100.0)
-    td.append('p-p-distance', '%', '%.2f', wave_props, 100.0)
-    td.append('min-p-p-distance', '%', '%.2f', wave_props, 100.0)
-    td.append('relpeakampl', '%', '%.2f', wave_props, 100.0)
+    td.append('ncrossings', '', '%d', value=wave_props)
+    td.append('peakwidth', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('troughwidth', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('minwidth', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('leftpeak', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('rightpeak', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('lefttrough', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('righttrough', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('p-p-distance', '%', '%.2f', value=wave_props, fac=100.0)
+    td.append('min-p-p-distance', '%', '%.2f',
+              value=wave_props, fac=100.0)
+    td.append('relpeakampl', '%', '%.2f', value=wave_props, fac=100.0)
     _, ext = os.path.splitext(basename)
     fp = '-wavefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
@@ -2500,44 +2526,51 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
        'nfft' in pulse_props[0]:
         td.append_section('recording')
     if 'twin' in pulse_props[0]:
-        td.append('twin', 's', '%7.2f', pulse_props)
-        td.append('window', 's', '%7.2f', pulse_props)
-        td.append('winclipped', '%', '%.2f', pulse_props, 100.0)
+        td.append('twin', 's', '%7.2f', value=pulse_props)
+        td.append('window', 's', '%7.2f', value=pulse_props)
+        td.append('winclipped', '%', '%.2f',
+                  value=pulse_props, fac=100.0)
     if 'samplerate' in pulse_props[0]:
-        td.append('samplerate', 'kHz', '%.3f', pulse_props, 0.001)
+        td.append('samplerate', 'kHz', '%.3f', value=pulse_props,
+                  fac=0.001)
     if 'nfft' in pulse_props[0]:
-        td.append('nfft', '', '%d', pulse_props)
-        td.append('dfreq', 'Hz', '%.2f', pulse_props)
+        td.append('nfft', '', '%d', value=pulse_props)
+        td.append('dfreq', 'Hz', '%.2f', value=pulse_props)
     td.append_section('waveform')
-    td.append('index', '', '%d', pulse_props)
-    td.append('EODf', 'Hz', '%7.2f', pulse_props)
-    td.append('period', 'ms', '%7.2f', pulse_props, 1000.0)
-    td.append('max-ampl', unit, '%.5f', pulse_props)
-    td.append('min-ampl', unit, '%.5f', pulse_props)
-    td.append('p-p-amplitude', unit, '%.5f', pulse_props)
+    td.append('index', '', '%d', value=pulse_props)
+    td.append('EODf', 'Hz', '%7.2f', value=pulse_props)
+    td.append('period', 'ms', '%7.2f', value=pulse_props, fac=1000.0)
+    td.append('max-ampl', unit, '%.5f', value=pulse_props)
+    td.append('min-ampl', unit, '%.5f', value=pulse_props)
+    td.append('p-p-amplitude', unit, '%.5f', value=pulse_props)
     if 'noise' in pulse_props[0]:
-        td.append('noise', '%', '%.2f', pulse_props, 100.0)
+        td.append('noise', '%', '%.2f', value=pulse_props, fac=100.0)
     if 'clipped' in pulse_props[0]:
-        td.append('clipped', '%', '%.2f', pulse_props, 100.0)
-    td.append('flipped', '', '%d', pulse_props)
-    td.append('tstart', 'ms', '%.3f', pulse_props, 1000.0)
-    td.append('tend', 'ms', '%.3f', pulse_props, 1000.0)
-    td.append('width', 'ms', '%.3f', pulse_props, 1000.0)
-    td.append('P2-P1-dist', 'ms', '%.3f', pulse_props, 1000.0)
-    td.append('tau', 'ms', '%.3f', pulse_props, 1000.0)
-    td.append('firstpeak', '', '%d', pulse_props)
-    td.append('lastpeak', '', '%d', pulse_props)
-    td.append('totalarea', f'{unit}*ms', '%.4f', pulse_props, 1000.0)
-    td.append('positivearea', '%', '%.2f', pulse_props, 100.0)
-    td.append('negativearea', '%', '%.2f', pulse_props, 100.0)
-    td.append('polaritybalance', '%', '%.2f', pulse_props, 100.0)
-    td.append('n', '', '%d', pulse_props)
+        td.append('clipped', '%', '%.2f', value=pulse_props, fac=100.0)
+    td.append('flipped', '', '%d', value=pulse_props)
+    td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000.0)
+    td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000.0)
+    td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000.0)
+    td.append('P2-P1-dist', 'ms', '%.3f',
+              value=pulse_props, fac=1000.0)
+    td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000.0)
+    td.append('firstpeak', '', '%d', value=pulse_props)
+    td.append('lastpeak', '', '%d', value=pulse_props)
+    td.append('totalarea', f'{unit}*ms', '%.4f',
+              value=pulse_props, fac=1000.0)
+    td.append('positivearea', '%', '%.2f',
+              value=pulse_props, fac=100.0)
+    td.append('negativearea', '%', '%.2f',
+              value=pulse_props, fac=100.0)
+    td.append('polaritybalance', '%', '%.2f',
+              value=pulse_props, fac=100.0)
+    td.append('n', '', '%d', value=pulse_props)
     td.append_section('power spectrum')
-    td.append('peakfreq', 'Hz', '%.2f', pulse_props)
-    td.append('peakpower', 'dB', '%.2f', pulse_props)
-    td.append('poweratt5', 'dB', '%.2f', pulse_props)
-    td.append('poweratt50', 'dB', '%.2f', pulse_props)
-    td.append('lowcutoff', 'Hz', '%.2f', pulse_props)
+    td.append('peakfreq', 'Hz', '%.2f', value=pulse_props)
+    td.append('peakpower', 'dB', '%.2f', value=pulse_props)
+    td.append('poweratt5', 'dB', '%.2f', value=pulse_props)
+    td.append('poweratt50', 'dB', '%.2f', value=pulse_props)
+    td.append('lowcutoff', 'Hz', '%.2f', value=pulse_props)
     _, ext = os.path.splitext(basename)
     fp = '-pulsefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
@@ -2640,7 +2673,8 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
                    ['', 'Hz', unit, '%', 'dB', 'rad'],
                    ['%.0f', '%.2f', '%.6f', '%10.2f', '%6.2f', '%8.4f'])
     if spec_data.shape[1] > 6:
-        td.append('datapower', '%s^2/Hz' % unit, '%11.4e', spec_data[:,6])
+        td.append('datapower', '%s^2/Hz' % unit, '%11.4e',
+                  value=spec_data[:,6])
     _, ext = os.path.splitext(basename)
     fp = ''
     if not ext:
@@ -2869,7 +2903,7 @@ def save_pulse_times(pulse_times, idx, basename, **kwargs):
     if len(pulse_times) == 0:
         return None
     td = TableData()
-    td.append('time', 's', '%.4f', pulse_times)
+    td.append('time', 's', '%.4f', value=pulse_times)
     _, ext = os.path.splitext(basename)
     fp = ''
     if not ext:
