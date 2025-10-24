@@ -21,13 +21,14 @@ Select the best region within a recording with the most stable signal of largest
 """
 
 import numpy as np
-from thunderlab.eventdetection import percentile_threshold, detect_peaks, trim_to_peak
-from audioio import unwrap
 try:
     import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker
 except ImportError:
     pass
+
+from thunderlab.eventdetection import percentile_threshold, detect_peaks, trim_to_peak
+from audioio import unwrap
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,

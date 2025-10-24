@@ -7,15 +7,15 @@ import sys
 import ntpath
 import time
 import copy
+import numpy as np
+#from fish import ProgressFish
+import matplotlib.pyplot as plt
+
 from shutil import copy2
 from collections import deque
-import numpy as np
 from scipy import stats
 from scipy import signal
 from scipy import optimize
-import matplotlib
-#from fish import ProgressFish
-import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -23,6 +23,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.cluster import AgglomerativeClustering
 from thunderlab.dataloader import DataLoader
 from thunderlab.eventdetection import detect_peaks
+
 
 def makeeventlist(main_event_positions,side_event_positions,data,event_width=20):
     """

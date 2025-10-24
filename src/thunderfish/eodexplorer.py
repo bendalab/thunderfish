@@ -9,6 +9,7 @@ import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+
 from multiprocessing import Pool, freeze_support, cpu_count
 from thunderlab.configfile import ConfigFile
 from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
@@ -18,6 +19,7 @@ from thunderlab.multivariateexplorer import select_features, select_coloring
 from thunderlab.multivariateexplorer import list_available_features
 from thunderlab.multivariateexplorer import PrintHelp
 from thunderlab.powerspectrum import decibel
+
 from .version import __version__, __year__
 from .harmonics import add_harmonic_groups_config
 from .eodanalysis import add_species_config

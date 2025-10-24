@@ -4,9 +4,10 @@ Plot and save key steps in pulses.py for visualizing the alorithm.
 
 import glob
 import numpy as np
+import matplotlib.pyplot as plt
+
 from scipy import stats
 from matplotlib import gridspec, ticker
-import matplotlib.pyplot as plt
 try:
     from matplotlib.colors import colorConverter as cc
 except ImportError:
@@ -17,6 +18,7 @@ except ImportError:
     from matplotlib.colors import rgb2hex as to_hex
 from matplotlib.patches import ConnectionPatch, Rectangle
 from matplotlib.lines import Line2D
+
 import warnings
 def warn(*args, **kwargs):
     """

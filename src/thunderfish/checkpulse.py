@@ -15,6 +15,7 @@ Check whether a pulse-type or a wave-type weakly electric fish is present in a r
 """
 
 import numpy as np
+
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, trim
 
 

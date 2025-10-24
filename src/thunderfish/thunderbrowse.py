@@ -3,11 +3,13 @@ import os
 import warnings
 import argparse
 import numpy as np
-from scipy.signal import butter, sosfiltfilt
 import matplotlib.pyplot as plt
+
+from scipy.signal import butter, sosfiltfilt
 from audioio import PlayAudio, fade, write_audio
 from thunderlab.dataloader import DataLoader
 from thunderlab.eventdetection import detect_peaks, median_std_threshold
+
 from .version import __version__, __year__
 from .pulses import detect_pulses
 

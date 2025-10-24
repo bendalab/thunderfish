@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 import matplotlib.lines as ml
+
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
@@ -38,6 +39,7 @@ from thunderlab.dataloader import load_data
 from thunderlab.powerspectrum import decibel, plot_decibel_psd, multi_psd
 from thunderlab.powerspectrum import add_multi_psd_config, multi_psd_args
 from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
+
 from .version import __version__, __year__
 from .bestwindow import add_clip_config, add_best_window_config
 from .bestwindow import clip_args, best_window_args

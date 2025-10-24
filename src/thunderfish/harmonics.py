@@ -56,13 +56,14 @@ Extract and analyze harmonic frequencies from power spectra.
 import math as m
 import numpy as np
 import scipy.signal as sig
-from thunderlab.eventdetection import detect_peaks, trim, hist_threshold
-from thunderlab.powerspectrum import decibel, power, plot_decibel_psd
 try:
     import matplotlib.cm as cm
     import matplotlib.colors as mc
 except ImportError:
     pass
+
+from thunderlab.eventdetection import detect_peaks, trim, hist_threshold
+from thunderlab.powerspectrum import decibel, power, plot_decibel_psd
 
 
 def group_candidate(good_freqs, all_freqs, freq, divisor,

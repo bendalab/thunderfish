@@ -8,8 +8,10 @@ Detection of chirps in weakly electric fish recordings.
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from thunderlab.powerspectrum import spectrogram
 from thunderlab.eventdetection import std_threshold, detect_peaks, trim_to_peak
+
 from .harmonics import harmonic_groups
 
 

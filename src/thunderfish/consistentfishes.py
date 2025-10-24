@@ -7,6 +7,7 @@ fishes present in all fishlists.
 """
 
 import numpy as np
+
 from .harmonics import fundamental_freqs
 
 

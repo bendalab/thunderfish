@@ -66,9 +66,10 @@ files in order to assemble fish shapes for this module. See
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.transforms as mpt
+
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch, Circle, Rectangle
-import matplotlib.transforms as mpt
 
 
 Alepto_top = dict(body=np.array([

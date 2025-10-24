@@ -25,6 +25,7 @@ and perturbed by objects, first generate monopoles and charges:
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from matplotlib.patches import FancyArrowPatch
 
 

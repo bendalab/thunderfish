@@ -79,6 +79,11 @@ import io
 import glob
 import zipfile
 import numpy as np
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
+
 from scipy.optimize import curve_fit
 from numba import jit
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
@@ -86,11 +91,8 @@ from thunderlab.eventdetection import threshold_crossings, threshold_crossing_ti
 from thunderlab.powerspectrum import next_power_of_two, nfft, decibel
 from thunderlab.tabledata import TableData
 from thunderlab.dataloader import load_data
+
 from .harmonics import fundamental_freqs_and_power
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    pass
 
 
 def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,

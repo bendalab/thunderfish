@@ -11,14 +11,16 @@ import traceback
 import datetime as dt
 import numpy as np
 import pandas as pd
-from scipy.signal import butter, lfilter
-from types import SimpleNamespace
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+
+from scipy.signal import butter, lfilter
+from types import SimpleNamespace
 from thunderlab.configfile import ConfigFile
 from thunderlab.dataloader import DataLoader
 from thunderlab.tabledata import TableData, write_table_args
 from thunderlab.eventdetection import hist_threshold
+
 from .version import __version__, __year__
 from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
