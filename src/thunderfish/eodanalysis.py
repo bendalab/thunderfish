@@ -898,10 +898,10 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
 
     # minimum threshold for peak detection:
     n = len(meod[:,1])//10 if len(meod) >= 20 else 2
-    thl_max = np.max(meod[:n,1])
-    thl_min = np.min(meod[:n,1])
-    thr_max = np.max(meod[-n:,1])
-    thr_min = np.min(meod[-n:,1])
+    thl_max = np.max(meod[:n, 1])
+    thl_min = np.min(meod[:n, 1])
+    thr_max = np.max(meod[-n:, 1])
+    thr_min = np.min(meod[-n:, 1])
     min_thresh = 2*np.max([thl_max, thr_max]) - np.min([thl_min, thr_min])
     if min_thresh > 0.5*(max_ampl + min_ampl):
         min_thresh = 0.5*(max_ampl + min_ampl)
@@ -914,6 +914,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         return meod, {}, [], []
         
     # cut out relevant signal:
+    # TODO: this needs to be improved!
+    # more to the right in case of a shallow decay to baseline!
     lidx = np.argmax(np.abs(meod[:,1]) > threshold)
     ridx = len(meod) - 1 - np.argmax(np.abs(meod[::-1,1]) > threshold)
     t0 = meod[lidx,0]
@@ -921,7 +923,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     width = t1 - t0
     if width < min_pulse_win:
         width = min_pulse_win
-    dt = meod[1,0] - meod[0,0]
+    dt = meod[1, 0] - meod[0, 0]
     width_idx = int(np.round(width/dt))
     # expand width:
     leidx = lidx - width_idx//2
@@ -1056,27 +1058,34 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
                 meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
     # power spectrum of single pulse:
-    rate = 1.0/(meod[1,0]-meod[0,0])
+    rate = 1.0/(meod[1,0] - meod[0,0])
     n_fft = nfft(rate, freq_resolution)
-
+    # zero padding:
     n0 = max_idx
-    n1 = len(meod)-max_idx
+    n1 = len(meod) - max_idx
     n = 2*max(n0, n1)
     if n_fft < n:
         n_fft = next_power_of_two(n)
     data = np.zeros(n_fft)
-    data[n_fft//2-n0:n_fft//2+n1] = meod[:,1]
-    nr = n//4
-    data[n_fft//2-n0:n_fft//2-n0+nr] *= np.arange(nr)/nr
-    data[n_fft//2+n1-nr:n_fft//2+n1] *= np.arange(nr)[::-1]/nr
+    data[n_fft//2 - n0:n_fft//2 + n1] = meod[:, 1]
+    # fade in and out:
+    nl = lidx // 2
+    data[n_fft//2 - n0:n_fft//2 - n0 + nl] *= np.arange(nl)/nl
+    nr = (len(meod) - ridx) // 2
+    data[n_fft//2 + n1 - nr:n_fft//2 + n1] *= np.arange(nr)[::-1]/nr
+    # power spectrum:
     freqs = np.fft.rfftfreq(n_fft, 1.0/rate)
     fourier = np.fft.rfft(data)/n_fft/freqs[1]
     power = np.abs(fourier)**2.0
+    # store spectrum:
     ppower = np.zeros((len(power), 2))
-
-    ppower[:,0] = freqs
-    ppower[:,1] = power
-    maxpower = np.max(power)
+    ppower[:, 0] = freqs
+    ppower[:, 1] = power
+    # analyse spectrum:
+    ip = np.argmax(power)
+    peak_freq = freqs[ip]
+    print(f'    peak frequency:{peak_freq:6.1f}Hz')
+    maxpower = power[ip]
     att5 = decibel(np.mean(power[freqs<5.0]), maxpower)
     att50 = decibel(np.mean(power[freqs<50.0]), maxpower)
     lowcutoff = freqs[decibel(power, maxpower) > 0.5*att5][0]
@@ -1121,7 +1130,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     props['positivearea'] = pos_area/total_area
     props['negativearea'] = neg_area/total_area
     props['polaritybalance'] = polarity_balance
-    props['peakfreq'] = freqs[np.argmax(power)]
+    props['peakfreq'] = peak_freq
     props['peakpower'] = decibel(maxpower)
     props['poweratt5'] = att5
     props['poweratt50'] = att50
