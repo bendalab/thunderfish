@@ -29,8 +29,9 @@
 - `export_pulsefish()`: serialize pulsefish parameter to file.
 
 
-## Interactive waveform generation
+## Waveform generation
 
+- `generate_testfiles()`: generate recordings of various pulse EODs and their spectrum.
 - `generate_waveform()`: interactively generate audio file with simulated EOD waveforms.
 """
 
@@ -837,6 +838,124 @@ def generate_waveform(filename):
     print(f'\nWrote fakefish data to file "{filename}".')
             
 
+def generate_testfiles():
+    """Generate recordings of various pulse EODs and their spectrum.
+
+    The spectrum is analytically computed and thus can be used to test
+    analyis tools.
+
+    Three files are generated for each pulse waveform:
+
+    1. A wav file with the simulated recording.
+    2. A csv file with the spectra (see below for details).
+    3. A pdf file with a plot showing a single EOD pulse and the power spectrum.
+
+    The csv file contains 8 columns separated by semicolons of the
+    single pulse spectra:
+
+    1. `f`: the frequency components in Hertz
+    2- `real`: real part of the Fourier spectrum
+    3. `imag`: imaginary part of the Fourier spectrum
+    4. `ampl`: amplitude spectrum, i.e. magnitude of Fourier spectrum
+    5. `power`: power spectrum, i.e. squared amplitude
+    6. `level`: power sepctrum in decibel relative to maximum power
+    7. `gauss`: amplitude spectrum of the monophasic Gaussian pulse
+    8. `shift`: magnitude of the shift term modulating the spectrum of the monophasic pulse.
+
+    """
+    from audioio import write_audio
+    import matplotlib.pyplot as plt
+
+    np.seterr(all="ignore")
+    rng = np.random.default_rng()
+    rate = 50000.0
+    duration = 20.0
+    sigmat = 0.0002
+    monophasic = dict(name='monophasic',
+                      times=(0,),
+                      amplitudes=(1.0,),
+                      stdevs=(sigmat,))
+    biphasic30 = dict(name='biphasic30',
+                      times=(0, 2*sigmat),
+                      amplitudes=(1.0, -0.3),
+                      stdevs=(sigmat, sigmat))
+    biphasic60 = dict(name='biphasic60',
+                      times=(0, 2*sigmat),
+                      amplitudes=(1.0, -0.6),
+                      stdevs=(sigmat, sigmat))
+    biphasic100 = dict(name='biphasic100',
+                       times=(0, 2*sigmat),
+                       amplitudes=(1.0, -1.0),
+                       stdevs=(sigmat, sigmat))
+    for pulse in [monophasic, biphasic30, biphasic60, biphasic100]:
+        print(pulse['name'], '...')
+        # fake recording:
+        eodf = rng.uniform(40.0, 120.0)
+        eoda = rng.uniform(0.8, 8.0)
+        data = eoda*pulsefish_eods(pulse, eodf, rate, duration,
+                                   jitter_cv=0.01, noise_std=0.002)
+        maxdata = np.max(np.abs(data))
+        fac = 0.9/maxdata
+        metadata = dict(gain=f'{1/fac:.3f}mV')
+        write_audio(pulse['name'] + '.wav', fac*data, rate, metadata)
+        print(f'   wrote {pulse['name']}.wav')
+        # spectra:
+        freqs = np.arange(0, rate/2, 0.2)
+        gauss = eoda*np.sqrt(2*np.pi)*sigmat*np.exp(-0.5*(2*np.pi*sigmat*freqs)**2)
+        times = pulse['times']
+        ampls = pulse['amplitudes']
+        if len(times) > 1:
+            shift = 1 + np.exp(-2j*np.pi*freqs*(times[1] - times[0]))*ampls[1]/ampls[0]
+        else:
+            shift = np.ones(len(freqs))
+        spec = eoda*gauss*shift
+        ampl = np.abs(spec)
+        power = ampl**2
+        level = 10*np.log10(power/np.max(power))
+        spec_data = np.zeros((len(freqs), 8))
+        spec_data[:, 0] = freqs
+        spec_data[:, 1] = np.real(spec)
+        spec_data[:, 2] = np.imag(spec)
+        spec_data[:, 3] = ampl
+        spec_data[:, 4] = power
+        spec_data[:, 5] = level
+        spec_data[:, 6] = gauss
+        spec_data[:, 7] = np.abs(shift)
+        np.savetxt(pulse['name'] + '.csv', spec_data, fmt='%g', delimiter=';',
+                   header='f/Hz;real;imag;ampl;power;level/dB;gauss;shift')
+        print(f'   wrote {pulse['name']}.csv')
+        # EOD pulse:
+        time = np.arange(len(data))/rate
+        idx = np.argmax(data)
+        i0 = idx - int(0.002*rate)
+        i1 = idx + int(0.002*rate)
+        cut_time = time[i0:i1] - time[idx]
+        cut_pulse = data[i0:i1]
+        # plot:
+        fig, (ax1, ax2) = plt.subplots(1, 2, layout='constrained')
+        fig.suptitle(pulse['name'])
+        ax1.axhline(0, color='gray')
+        ax1.plot(1000*cut_time, cut_pulse)
+        ax1.set_xlabel('time [ms]')
+        ip = np.argmax(level)
+        fmax = freqs[ip]
+        pmax = level[ip]
+        ax2.plot(freqs, level, color='C0')
+        ax2.plot(fmax, pmax, 'o', color='C0')
+        ax2.set_xlim(1, 1e4)
+        ax2.set_ylim(-60, 10)
+        ax2.set_xscale('log')
+        ax2.set_xlabel('frequency [Hz]')
+        ax2.set_ylabel('power [dB]')
+        dc = level[0]
+        ax2.text(2, dc - 4, f'{dc:.0f}dB')
+        ax2.text(fmax*1.05, pmax + 1, f'{fmax:.0f}Hz')
+        fig.savefig(pulse['name'] + '.pdf')
+        #plt.show()
+        plt.close(fig)
+        print(f'   wrote {pulse['name']}.pdf')
+        
+
 def demo():
     import matplotlib.pyplot as plt
     rate = 40000.0 # in Hz
@@ -933,16 +1052,19 @@ def main(args=[]):
     from .version import __year__
     
     if len(args) > 0:
-        if len(args) == 1 or args[0] != '-s':
-            print('usage: fakefish [-h|--help] [-s audiofile]')
+        if (len(args) == 1 and args[0] != '-t') and args[0] != '-s':
+            print('usage: fakefish [-h|--help] [-s audiofile] [-t]')
             print('')
             print('Without arguments, run a demo for illustrating fakefish functionality.')
             print('')
             print('-s audiofile: writes audiofile with user defined simulated electric fishes.')
+            print('-t: write audiofiles for a number of pulse waveforms and corresponding analytic spectra in csv files for testing.')
             print('')
             print(f'by bendalab ({__year__})')
-        else:
+        elif args[0] == '-s':
             generate_waveform(args[1])
+        elif args[0] == '-t':
+            generate_testfiles()
     else:
         demo()
 
