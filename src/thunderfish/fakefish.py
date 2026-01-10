@@ -863,8 +863,10 @@ def generate_testfiles():
     8. `shift`: magnitude of the shift term modulating the spectrum of the monophasic pulse.
 
     """
-    from audioio import write_audio
     import matplotlib.pyplot as plt
+    from scipy.signal import find_peaks
+    from audioio import write_audio
+    from thunderlab.eventdetection import snippets
 
     np.seterr(all="ignore")
     rng = np.random.default_rng()
@@ -900,7 +902,7 @@ def generate_testfiles():
         write_audio(pulse['name'] + '.wav', fac*data, rate, metadata)
         print(f'   wrote {pulse['name']}.wav')
         # spectra:
-        freqs = np.arange(0, rate/2, 0.2)
+        freqs = np.arange(0, rate/2, 1.0)
         gauss = eoda*np.sqrt(2*np.pi)*sigmat*np.exp(-0.5*(2*np.pi*sigmat*freqs)**2)
         times = pulse['times']
         ampls = pulse['amplitudes']
@@ -910,46 +912,57 @@ def generate_testfiles():
             shift = np.ones(len(freqs))
         spec = eoda*gauss*shift
         ampl = np.abs(spec)
-        power = ampl**2
-        level = 10*np.log10(power/np.max(power))
+        energy = ampl**2
+        level = 10*np.log10(energy/np.max(energy))
         spec_data = np.zeros((len(freqs), 8))
         spec_data[:, 0] = freqs
         spec_data[:, 1] = np.real(spec)
         spec_data[:, 2] = np.imag(spec)
         spec_data[:, 3] = ampl
-        spec_data[:, 4] = power
+        spec_data[:, 4] = energy
         spec_data[:, 5] = level
-        spec_data[:, 6] = gauss
+        spec_data[:, 6] = eoda*gauss
         spec_data[:, 7] = np.abs(shift)
         np.savetxt(pulse['name'] + '.csv', spec_data, fmt='%g', delimiter=';',
-                   header='f/Hz;real;imag;ampl;power;level/dB;gauss;shift')
+                   header='f/Hz;real;imag;ampl;energy;level/dB;gauss;shift')
         print(f'   wrote {pulse['name']}.csv')
-        # EOD pulse:
-        time = np.arange(len(data))/rate
-        idx = np.argmax(data)
-        i0 = idx - int(0.002*rate)
-        i1 = idx + int(0.002*rate)
-        cut_time = time[i0:i1] - time[idx]
-        cut_pulse = data[i0:i1]
-        # plot:
-        fig, (ax1, ax2) = plt.subplots(1, 2, layout='constrained')
+        # average EOD pulse:
+        tmax = 0.002
+        idxs, _ = find_peaks(data, prominence=0.9*eoda)
+        iw = int(tmax*rate)
+        snips = snippets(data, idxs, start=-iw, stop=iw)
+        eod_data = np.mean(snips, 0)
+        eod_time = (np.arange(len(eod_data)) - iw)/rate
+        # plot waveform:
+        pa = np.sum(eod_data[eod_data >= 0])/rate
+        na = np.sum(-eod_data[eod_data <= 0])/rate
+        balance = (pa - na)/(pa + na)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3),
+                                       layout='constrained')
         fig.suptitle(pulse['name'])
         ax1.axhline(0, color='gray')
-        ax1.plot(1000*cut_time, cut_pulse)
+        ax1.plot(1000*eod_time, eod_data, color='C0')
+        ax1.text(0.1, 0.05, f'polarity balance = {100*balance:.0f}%',
+                 transform=ax1.transAxes)
+        ax1.set_xlim(-1000*tmax, 1000*tmax)
+        ax1.set_ylim(-1.1*eoda, 1.1*eoda)
         ax1.set_xlabel('time [ms]')
+        ax1.set_ylabel('averaged EOD')
+        # plot spectrum:
         ip = np.argmax(level)
         fmax = freqs[ip]
         pmax = level[ip]
-        ax2.plot(freqs, level, color='C0')
-        ax2.plot(fmax, pmax, 'o', color='C0')
+        fmaxpos = fmax if fmax > 1 else 1
+        ax2.plot(freqs, level, color='C3')
+        ax2.plot(fmaxpos, pmax, 'o', color='C3')
         ax2.set_xlim(1, 1e4)
         ax2.set_ylim(-60, 10)
         ax2.set_xscale('log')
         ax2.set_xlabel('frequency [Hz]')
-        ax2.set_ylabel('power [dB]')
+        ax2.set_ylabel('energy [dB]')
         dc = level[0]
         ax2.text(2, dc - 4, f'{dc:.0f}dB')
-        ax2.text(fmax*1.05, pmax + 1, f'{fmax:.0f}Hz')
+        ax2.text(fmaxpos*1.05, pmax + 1, f'{fmax:.0f}Hz')
         fig.savefig(pulse['name'] + '.pdf')
         #plt.show()
         plt.close(fig)
