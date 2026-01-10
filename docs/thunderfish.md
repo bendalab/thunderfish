@@ -850,7 +850,7 @@ Properties of each pulse-type fish detected in the recording.
   <tr>
     <th align="left" colspan="6">recording</th>
     <th align="left" colspan="21">waveform</th>
-    <th align="left" colspan="5">power spectrum</th>
+    <th align="left" colspan="6">spectrum</th>
   </tr>
   <tr>
     <th align="left">twin</th>
@@ -881,10 +881,11 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">polaritybalance</th>
     <th align="left">n</th>
     <th align="left">peakfreq</th>
-    <th align="left">peakpower</th>
-    <th align="left">poweratt5</th>
-    <th align="left">poweratt50</th>
+    <th align="left">peakenergy</th>
+    <th align="left">energyatt5</th>
+    <th align="left">energyatt50</th>
     <th align="left">lowcutoff</th>
+    <th align="left">highcutoff</th>
   </tr>
   <tr>
     <th align="left">s</th>
@@ -915,9 +916,10 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">%</th>
     <th align="left">-</th>
     <th align="left">Hz</th>
+    <th align="left">a.u.^2s/Hz</th>
     <th align="left">dB</th>
     <th align="left">dB</th>
-    <th align="left">dB</th>
+    <th align="left">Hz</th>
     <th align="left">Hz</th>
   </tr>
 </thead>
@@ -927,34 +929,35 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">131072</td>
-    <td align="right">0.24</td>
     <td align="right">0</td>
-    <td align="right">32.29</td>
-    <td align="right">30.97</td>
-    <td align="right">0.27713</td>
-    <td align="right">0.21288</td>
-    <td align="right">0.49001</td>
-    <td align="right">0.13</td>
+    <td align="right">-</td>
+    <td align="right">0</td>
+    <td align="right">32.23</td>
+    <td align="right">31.03</td>
+    <td align="right">0.26548</td>
+    <td align="right">0.21925</td>
+    <td align="right">0.48473</td>
+    <td align="right">0.10</td>
     <td align="right">0.00</td>
     <td align="right">0</td>
-    <td align="right">-0.375</td>
-    <td align="right">0.969</td>
-    <td align="right">1.344</td>
+    <td align="right">-0.344</td>
+    <td align="right">1.438</td>
+    <td align="right">1.781</td>
     <td align="right">0.250</td>
-    <td align="right">0.082</td>
+    <td align="right">0.087</td>
     <td align="right">1</td>
     <td align="right">2</td>
-    <td align="right">0.1167</td>
-    <td align="right">57.31</td>
-    <td align="right">-42.69</td>
-    <td align="right">14.61</td>
-    <td align="right">155</td>
-    <td align="right">1130.00</td>
-    <td align="right">-81.47</td>
-    <td align="right">-14.08</td>
-    <td align="right">-13.85</td>
-    <td align="right">258.30</td>
+    <td align="right">0.1218</td>
+    <td align="right">50.61</td>
+    <td align="right">-49.39</td>
+    <td align="right">1.21</td>
+    <td align="right">237</td>
+    <td align="right">1130.86</td>
+    <td align="right">0.00</td>
+    <td align="right">-33.19</td>
+    <td align="right">-23.15</td>
+    <td align="right">64.94</td>
+    <td align="right">1857.67</td>
   </tr>
 </tbody>
 </table>
@@ -989,12 +992,12 @@ The columns contain:
 25. `negativearea` Area under negative peaks relative to total area.
 26. `polaritybalance` Contrast between areas under positive and negative peak.
 27. `n` Number of EODs used for computing the averaged EOD waveform.
-28. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
-29. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
-30. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-31. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-32. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
-
+28. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
+29. `peakenergy` Peak energy of the single pulse spectrum.
+30. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
+31. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
+32. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
+33. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
 ### RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT
 
@@ -1102,17 +1105,17 @@ The columns contain:
 
 ### RECORDING-CHANNEL-TIME-pulsespectrum-N.EXT
 
-The power spectrum of a single EOD pulse of a pulse-type fish:
+The energy spectrum of a single EOD pulse of a pulse-type fish:
 
 <table>
 <thead>
   <tr>
     <th align="left">frequency</th>
-    <th align="left">power</th>
+    <th align="left">energy</th>
   </tr>
   <tr>
     <th align="left">Hz</th>
-    <th align="left">a.u.^2/Hz</th>
+    <th align="left">a.u.^2s/Hz</th>
   </tr>
 </thead>
 <tbody>

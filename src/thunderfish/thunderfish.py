@@ -131,10 +131,11 @@ def configuration():
     cfg.add('unwrapData', False, '', 'Unwrap clipped voltage traces.')
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
     add_check_pulse_config(cfg)
-    add_eod_analysis_config(cfg, min_pulse_win=0.004)
+    add_eod_analysis_config(cfg, min_pulse_win=0.004, fade_frac=0.05)
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     del cfg['eodMinSem']
+    del cfg['eodPulseFrequencyResolution']
     add_eod_quality_config(cfg)
     add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
