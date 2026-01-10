@@ -867,6 +867,7 @@ def generate_testfiles():
     from scipy.signal import find_peaks
     from audioio import write_audio
     from thunderlab.eventdetection import snippets
+    from .eodanalysis import pulse_spectrum
 
     np.seterr(all="ignore")
     rng = np.random.default_rng()
@@ -900,8 +901,15 @@ def generate_testfiles():
         fac = 0.9/maxdata
         metadata = dict(gain=f'{1/fac:.3f}mV')
         write_audio(pulse['name'] + '.wav', fac*data, rate, metadata)
-        print(f'   wrote {pulse['name']}.wav')
-        # spectra:
+        print(f'  wrote {pulse['name']}.wav')
+        # average EOD pulse:
+        tmax = 0.002
+        idxs, _ = find_peaks(data, prominence=0.9*eoda)
+        iw = int(tmax*rate)
+        snips = snippets(data, idxs, start=-iw, stop=iw)
+        eod_data = np.mean(snips, 0)
+        eod_time = (np.arange(len(eod_data)) - iw)/rate
+        # analytic spectra:
         freqs = np.arange(0, rate/2, 1.0)
         gauss = eoda*np.sqrt(2*np.pi)*sigmat*np.exp(-0.5*(2*np.pi*sigmat*freqs)**2)
         times = pulse['times']
@@ -910,7 +918,7 @@ def generate_testfiles():
             shift = 1 + np.exp(-2j*np.pi*freqs*(times[1] - times[0]))*ampls[1]/ampls[0]
         else:
             shift = np.ones(len(freqs))
-        spec = eoda*gauss*shift
+        spec = gauss*shift*np.sqrt(2)    # because of one-sided spectrum
         ampl = np.abs(spec)
         energy = ampl**2
         level = 10*np.log10(energy/np.max(energy))
@@ -925,14 +933,14 @@ def generate_testfiles():
         spec_data[:, 7] = np.abs(shift)
         np.savetxt(pulse['name'] + '.csv', spec_data, fmt='%g', delimiter=';',
                    header='f/Hz;real;imag;ampl;energy;level/dB;gauss;shift')
-        print(f'   wrote {pulse['name']}.csv')
-        # average EOD pulse:
-        tmax = 0.002
-        idxs, _ = find_peaks(data, prominence=0.9*eoda)
-        iw = int(tmax*rate)
-        snips = snippets(data, idxs, start=-iw, stop=iw)
-        eod_data = np.mean(snips, 0)
-        eod_time = (np.arange(len(eod_data)) - iw)/rate
+        print(f'  wrote {pulse['name']}.csv')
+        # numerical spectrum:
+        nfreqs, nenergy = pulse_spectrum(eod_data, rate, 1.0, 0.05)
+        nlevel = 10*np.log10(nenergy/np.max(energy))
+        # check normalization:
+        print(f'  integral over analytic energy spectrum: {np.sum(energy)*freqs[1]:9.3e}')
+        print(f'  integral over numeric energy spectrum : {np.sum(nenergy)*nfreqs[1]:9.3e}')
+        print(f'  integral over squared signal          : {np.sum(eod_data**2)/rate:9.3e}')
         # plot waveform:
         pa = np.sum(eod_data[eod_data >= 0])/rate
         na = np.sum(-eod_data[eod_data <= 0])/rate
@@ -953,20 +961,22 @@ def generate_testfiles():
         fmax = freqs[ip]
         pmax = level[ip]
         fmaxpos = fmax if fmax > 1 else 1
-        ax2.plot(freqs, level, color='C3')
+        ax2.plot(nfreqs, nlevel + 0.5, color='C1', label='numeric')
+        ax2.plot(freqs, level, color='C3', label='analytic')
         ax2.plot(fmaxpos, pmax, 'o', color='C3')
         ax2.set_xlim(1, 1e4)
         ax2.set_ylim(-60, 10)
         ax2.set_xscale('log')
         ax2.set_xlabel('frequency [Hz]')
         ax2.set_ylabel('energy [dB]')
+        ax2.legend(loc='lower left', frameon=False)
         dc = level[0]
         ax2.text(2, dc - 4, f'{dc:.0f}dB')
         ax2.text(fmaxpos*1.05, pmax + 1, f'{fmax:.0f}Hz')
         fig.savefig(pulse['name'] + '.pdf')
         #plt.show()
         plt.close(fig)
-        print(f'   wrote {pulse['name']}.pdf')
+        print(f'  wrote {pulse['name']}.pdf')
         
 
 def demo():

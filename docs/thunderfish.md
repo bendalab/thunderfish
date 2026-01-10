@@ -1121,27 +1121,27 @@ The energy spectrum of a single EOD pulse of a pulse-type fish:
 <tbody>
   <tr>
     <td align="right">0.00</td>
-    <td align="right">4.7637e-10</td>
+    <td align="right">8.4498e-11</td>
   </tr>
   <tr>
-    <td align="right">0.34</td>
-    <td align="right">9.5284e-10</td>
+    <td align="right">0.98</td>
+    <td align="right">8.4563e-11</td>
   </tr>
   <tr>
-    <td align="right">0.67</td>
-    <td align="right">9.5314e-10</td>
+    <td align="right">1.95</td>
+    <td align="right">8.4758e-11</td>
   </tr>
   <tr>
-    <td align="right">1.01</td>
-    <td align="right">9.5363e-10</td>
+    <td align="right">2.93</td>
+    <td align="right">8.5083e-11</td>
   </tr>
   <tr>
-    <td align="right">1.35</td>
-    <td align="right">9.5432e-10</td>
+    <td align="right">3.91</td>
+    <td align="right">8.5539e-11</td>
   </tr>
   <tr>
-    <td align="right">1.68</td>
-    <td align="right">9.5522e-10</td>
+    <td align="right">4.88</td>
+    <td align="right">8.6124e-11</td>
   </tr>
 </tbody>
 </table>
@@ -1149,5 +1149,5 @@ The energy spectrum of a single EOD pulse of a pulse-type fish:
 The columns contain:
 
 1. `frequency` Frequency in Hertz.
-2. `power` Power spectral density.
+2. `energy` Energy spectral density in x^2 s/Hz.
 

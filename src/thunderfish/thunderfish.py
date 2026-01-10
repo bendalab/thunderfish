@@ -135,7 +135,6 @@ def configuration():
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     del cfg['eodMinSem']
-    del cfg['eodPulseFrequencyResolution']
     add_eod_quality_config(cfg)
     add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
@@ -281,14 +280,12 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 print('no pulsefish EODs found')
 
         # analyse eod waveform of pulse-fish:
-        min_freq_res = cfg.value('frequencyResolution')
         for k, (eod_ts, eod_pts) in enumerate(zip(eod_times, eod_peaktimes)):
             mean_eod, eod_times0 = \
                 eod_waveform(data, rate, eod_ts, win_fac=0.8,
                              min_win=cfg.value('eodMinPulseSnippet'),
                              min_sem=False, **eod_waveform_args(cfg))
             mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
-                                                          freq_resolution=min_freq_res,
                                                           **analyze_pulse_args(cfg))
             if len(peaks) == 0:
                 print('error: no peaks in pulse EOD detected')

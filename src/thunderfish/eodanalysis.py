@@ -742,12 +742,23 @@ def pulse_spectrum(eod, rate=None, freq_resolution=1.0, fade_frac=0.0):
     freqs: 1-D array of float
         The frequency components of the energy spectrum.
     energy: 1-D array of float
-        The energy spectrum of the single pulse EOD.
+        The energy spectrum of the single pulse EOD
+        with unit (x s)^2 = x^2 s/Hz.
+        The integral over the energy spectrum `np.sum(energy)*freqs[1]`
+        equals the integral over the squared eod, `np.sum(eod**2)/rate`.
+        That is, by making the energy spectrum a power sepctrum
+        (dividing the energy by the FFT window duration), the integral
+        over the power spectrum equals the mean-squared signal
+        (variance). But the single-pulse spectrum is not a power-spectrum.
+        because in the limit to infinitely long window, the power vanishes!
     """
     if eod.ndim == 2:
         rate = 1.0/(eod[1, 0] - eod[0, 0])
         eod = eod[:, 1]
     n_fft = nfft(rate, freq_resolution)
+    # subtract mean computed from the ends of the EOD snippet:
+    n = len(eod)//20 if len(eod) >= 20 else 1
+    eod = eod - 0.5*(np.mean(eod[:n]) + np.mean(eod[-n:]))
     # zero padding:
     max_idx = np.argmax(eod)
     n0 = max_idx
@@ -756,7 +767,6 @@ def pulse_spectrum(eod, rate=None, freq_resolution=1.0, fade_frac=0.0):
     if n_fft < n:
         n_fft = next_power_of_two(n)
     data = np.zeros(n_fft)
-    # TODO subtract offset!!!!
     data[n_fft//2 - n0:n_fft//2 + n1] = eod
     # fade in and out:
     if fade_frac > 0:
@@ -764,9 +774,10 @@ def pulse_spectrum(eod, rate=None, freq_resolution=1.0, fade_frac=0.0):
         data[n_fft//2 - n0:n_fft//2 - n0 + fn] *= np.arange(fn)/fn
         data[n_fft//2 + n1 - fn:n_fft//2 + n1] *= np.arange(fn)[::-1]/fn
     # spectrum:
-    freqs = np.fft.rfftfreq(n_fft, 1.0/rate)
-    fourier = np.fft.rfft(data)/n_fft/freqs[1]   # TODO fix unit!!! and output file docu
-    energy = np.abs(fourier)**2.0
+    dt = 1/rate
+    freqs = np.fft.rfftfreq(n_fft, dt)
+    fourier = np.fft.rfft(data)*dt
+    energy = 2*np.abs(fourier)**2     # one-sided spectrum!
     return freqs, energy
 
 
@@ -927,9 +938,9 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
 
     """
     # storage:
-    meod = np.zeros((eod.shape[0], eod.shape[1]+1))
-    meod[:,:eod.shape[1]] = eod
-    meod[:,-1] = np.nan
+    meod = np.zeros((eod.shape[0], eod.shape[1] + 1))
+    meod[:, :eod.shape[1]] = eod
+    meod[:, -1] = np.nan
     toffs = 0
     
     # cut out stable estimate if standard deviation is available:
@@ -2264,12 +2275,11 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     ax.plot([highcutoff, highcutoff], [-60.0, -3.0], zorder=3, **cstyle)
     ax.text(1.2*highcutoff, -3.0, f'{highcutoff:.0f} Hz',
             ha='left', va='center', zorder=10)
-    db = decibel(energy[:,1])
-    smax = np.nanmax(db)
-    ax.plot(energy[:,0], db - smax, zorder=4, **sstyle)
+    db = decibel(energy[:, 1], np.max(energy[:, 1]))
+    ax.plot(energy[:, 0], db, zorder=4, **sstyle)
     peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
-        ax.plot([peakfreq], [0.0], zorder=5, **pstyle)
+        ax.plot([peakfreq], [0], zorder=5, **pstyle)
         ax.text(peakfreq*1.2, 1.0, f'{peakfreq:.0f} Hz', va='bottom', zorder=10)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
