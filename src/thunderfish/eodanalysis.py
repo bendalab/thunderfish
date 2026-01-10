@@ -4,13 +4,20 @@ Analysis of EOD waveforms.
 ## EOD waveform analysis
 
 - `eod_waveform()`: compute an averaged EOD waveform.
+- `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
+
+## Analysis of wave-type EODs
+
 - `waveeod_waveform()`: retrieve average EOD waveform via Fourier transform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
+
+## Analysis of pulse-type EODs
+
 - `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
 - `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
+- `analyze_pulse_tail()`: fit exponential to last peak/trough of pulse EOD.
 - `analyze_pulse_intervals()`: basic statistics of interpulse intervals.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
-- `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
 ## Similarity of EOD waveforms
 
@@ -212,6 +219,33 @@ def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
     mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / rate
     
     return mean_eod, eod_times
+
+
+def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
+    """Adjust EOD frequencies to a standard temperature using Q10.
+
+    Parameters
+    ----------
+    eodf: float or ndarray
+        EOD frequencies.
+    temp: float
+        Temperature in degree celsisus at which EOD frequencies in
+        `eodf` were measured.
+    temp_adjust: float
+        Standard temperature in degree celsisus to which EOD
+        frequencies are adjusted.
+    q10: float
+        Q10 value describing temperature dependence of EOD
+        frequencies.  The default of 1.62 is from Dunlap, Smith, Yetka
+        (2000) Brain Behav Evol, measured for Apteronotus
+        lepthorhynchus in the lab.
+
+    Returns
+    -------
+    eodf_corrected: float or array
+        EOD frequencies adjusted to `temp_adjust` using `q10`.
+    """
+    return eodf*q10**((temp_adjust - temp) / 10.0)
 
 
 def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
@@ -820,6 +854,100 @@ def analyze_pulse_spectrum(freqs, energy):
     return peak_freq, peak_energy, att5, att50, low_cutoff, high_cutoff
 
 
+def analyze_pulse_tail(peak_index, eod, rate=None,
+                       threshold=0.0, fit_frac=0.5):
+    """ Fit exponential to last peak/trough of pulse EOD.
+    
+    Parameters
+    ----------
+    peak_index: int
+        Index of last peak in `eod`.
+    eod: 1-D or 2-D array
+        The eod waveform of which the spectrum is computed.
+        If an 1-D array, then this is the waveform and you
+        need to also pass a sampling rate in `rate`.
+        If a 2-D array, then first column is time in seconds and second
+        column is the eod waveform. Further columns are ignored.
+    rate: None or float
+        The sampling rate in Hertz if a 1-D array is passed on to `eod`.
+    threshold: float
+        Minimum size of peaks of the pulse waveform.
+    fit_frac: float or None
+        An exponential is fitted to the tail of the last peak/trough
+        starting where the waveform falls below this fraction of the
+        peak's height (0-1).
+    
+    Returns
+    -------
+    tau: float
+        Time constant of pulse tail in seconds.
+    fit: 1-D array of float
+        Time trace of the fit corresponding to `eod`.
+    """
+    if eod.ndim == 2:
+        time = eod[:, 0]
+        eod = eod[:, 1]
+    else:
+        time = np.arange(len(eod))/rate
+    pi = peak_index
+    # positive or negative decay:
+    sign = 1.0
+    if np.sum(eod[pi:] < -0.5*threshold) > np.sum(eod[pi:] > 0.5*threshold):
+        sign = -1.0
+    if sign*eod[pi] < 0.0:
+        pi += np.argmax(sign*eod[pi:])
+    pi_ampl = np.abs(eod[pi])
+    n = len(eod[pi:])
+    # no sufficiently large initial value:
+    if fit_frac and pi_ampl*fit_frac <= 0.5*threshold:
+        fit_frac = False
+    # no sufficiently long decay:
+    if n < 10:
+        fit_frac = False
+    # not decaying towards zero:
+    max_line = pi_ampl - (pi_ampl - threshold)*np.arange(n)/n + 1e-8
+    if np.any(np.abs(eod[pi + 2:]) > max_line[2:]):
+        fit_frac = False
+    if not fit_frac:
+        return None, None
+    thresh = eod[pi]*fit_frac
+    inx = pi + np.argmax(sign*eod[pi:] < sign*thresh)
+    thresh = eod[inx]*np.exp(-1.0)
+    tau_inx = np.argmax(sign*eod[inx:] < sign*thresh)
+    if tau_inx < 2:
+        tau_inx = 2
+    rridx = inx + 6*tau_inx
+    if rridx > len(eod) - 1:
+        tau = None
+    else:
+        tau = time[inx + tau_inx] - time[inx]
+        params = [tau, eod[inx] - eod[rridx], eod[rridx]]
+        try:
+            popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
+                                   eod[inx:rridx], params,
+                                   bounds=([0.0, -np.inf, -np.inf], np.inf))
+        except TypeError:
+            popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
+                                   eod[inx:rridx], params)
+        if popt[0] > 1.2*tau:
+            tau_inx = int(np.round(popt[0]/dt))
+            rridx = inx + 6*tau_inx
+            if rridx > len(eod) - 1:
+                rridx = len(eod) - 1
+            try:
+                popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
+                                       eod[inx:rridx], popt,
+                                       bounds=([0.0, -np.inf, -np.inf], np.inf))
+            except TypeError:
+                popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
+                                       eod[inx:rridx], popt)
+        tau = popt[0]
+        fit = np.zeros(len(eod))
+        fit[:] = np.nan
+        fit[inx:rridx] = exp_decay(time[inx:rridx] - time[inx], *popt)
+        return tau, fit
+
+
 def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
                             ipi_percentile=30.0):
     """ Basic statistics of interpulse intervals.
@@ -867,7 +995,7 @@ def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
             
 def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
-                  width_frac=0.5, fit_frac = 0.5,
+                  width_frac=0.5, fit_frac=0.5,
                   freq_resolution=1.0, fade_frac=0.0,
                   flip_pulse='none', ipi_cv_thresh=0.5,
                   ipi_percentile=30.0):
@@ -1150,63 +1278,17 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         # store peaks:
         peaks = np.zeros((len(peak_list), 7))
         for i, pi in enumerate(peak_list):
-            peaks[i,:] = [i+1-p1i, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i], peak_areas[i], peak_areas[i]/total_area]
+            peaks[i, :] = [i + 1 - p1i, meod[pi, 0], meod[pi, 1],
+                           meod[pi, 1]/max_ampl, width_list[i],
+                           peak_areas[i], peak_areas[i]/total_area]
         # P2 - P1 distance:
-        dist = peaks[p1i+1,1] - peaks[p1i,1] if p1i+1 < len(peaks) else 0.0
+        dist = peaks[p1i + 1, 1] - peaks[p1i, 1] if p1i + 1 < len(peaks) else 0.0
+
         # fit exponential to last peak/trough:
-        pi = peak_list[-1]
-        # positive or negative decay:
-        sign = 1.0
-        if np.sum(meod[pi:,1] < -0.5*threshold) > np.sum(meod[pi:,1] > 0.5*threshold):
-            sign = -1.0
-        if sign*meod[pi,1] < 0.0:
-            pi += np.argmax(sign*meod[pi:,1])
-        pi_ampl = np.abs(meod[pi,1])
-        n = len(meod[pi:])
-        # no sufficiently large initial value:
-        if fit_frac and pi_ampl*fit_frac <= 0.5*threshold:
-            fit_frac = False
-        # no sufficiently long decay:
-        if n < 10:
-            fit_frac = False
-        # not decaying towards zero:
-        max_line = pi_ampl - (pi_ampl-threshold)*np.arange(n)/n + 1e-8
-        if np.any(np.abs(meod[pi+2:,1]) > max_line[2:]):
-            fit_frac = False
-        if fit_frac:
-            thresh = meod[pi,1]*fit_frac
-            inx = pi + np.argmax(sign*meod[pi:,1] < sign*thresh)
-            thresh = meod[inx,1]*np.exp(-1.0)
-            tau_inx = np.argmax(sign*meod[inx:,1] < sign*thresh)
-            if tau_inx < 2:
-                tau_inx = 2
-            rridx = inx + 6*tau_inx
-            if rridx > len(meod)-1:
-                tau = None
-            else:
-                tau = meod[inx+tau_inx,0]-meod[inx,0]
-                params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
-                try:
-                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                           meod[inx:rridx,1], params,
-                                           bounds=([0.0, -np.inf, -np.inf], np.inf))
-                except TypeError:
-                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                           meod[inx:rridx,1], params)
-                if popt[0] > 1.2*tau:
-                    tau_inx = int(np.round(popt[0]/dt))
-                    rridx = inx + 6*tau_inx
-                    if rridx > len(meod)-1:
-                        rridx = len(meod)-1
-                    try:
-                        popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                               meod[inx:rridx,1], popt,
-                                               bounds=([0.0, -np.inf, -np.inf], np.inf))
-                    except TypeError:
-                        popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                               meod[inx:rridx,1], popt)
-                tau = popt[0]
-                meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
+        tau, fit = analyze_pulse_tail(peak_list[-1], meod, None,
+                                      threshold, fit_frac)
+        if fit is not None:
+            meod[:, -1] = fit
 
     # energy spectrum of single pulse:
     freqs, energy = pulse_spectrum(meod, None, freq_resolution, fade_frac)
@@ -1260,33 +1342,6 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         props['times'] = eod_times + toffs
     
     return meod, props, peaks, eenergy
-
-
-def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
-    """Adjust EOD frequencies to a standard temperature using Q10.
-
-    Parameters
-    ----------
-    eodf: float or ndarray
-        EOD frequencies.
-    temp: float
-        Temperature in degree celsisus at which EOD frequencies in
-        `eodf` were measured.
-    temp_adjust: float
-        Standard temperature in degree celsisus to which EOD
-        frequencies are adjusted.
-    q10: float
-        Q10 value describing temperature dependence of EOD
-        frequencies.  The default of 1.62 is from Dunlap, Smith, Yetka
-        (2000) Brain Behav Evol, measured for Apteronotus
-        lepthorhynchus in the lab.
-
-    Returns
-    -------
-    eodf_corrected: float or array
-        EOD frequencies adjusted to `temp_adjust` using `q10`.
-    """
-    return eodf*q10**((temp_adjust - temp) / 10.0)
 
 
 def load_species_waveforms(species_file='none'):
