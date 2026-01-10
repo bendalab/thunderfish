@@ -8,6 +8,7 @@ Analysis of EOD waveforms.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 - `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
 - `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
+- `analyze_pulse_intervals()`: basic statistics of interpulse intervals.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
@@ -796,7 +797,7 @@ def analyze_pulse_spectrum(freqs, energy):
     peak_freq: float
         Frequency at peak energy of the spectrum in Hertz.
     peak_energy: float
-        Peak energy of the pulse spectrum.
+        Peak energy of the pulse spectrum in x^2 s/Hz.
     att5: float
         Attenuation of average energy below 5 Hz relative to
         peak energy in decibel.
@@ -819,6 +820,51 @@ def analyze_pulse_spectrum(freqs, energy):
     return peak_freq, peak_energy, att5, att50, low_cutoff, high_cutoff
 
 
+def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
+                            ipi_percentile=30.0):
+    """ Basic statistics of interpulse intervals.
+    
+    Parameters
+    ----------
+    eod_times: 1-D array or None
+        List of times of detected EODs.
+    ipi_cv_thresh: float
+        If the coefficient of variation of the interpulse intervals
+        (IPIs) is smaller than this threshold, then the statistics of
+        IPIs is estimated from all IPIs. Otherwise only intervals
+        smaller than a certain percentile are used.
+    ipi_percentile: float
+        When computing the statistics of IPIs from a subset of the
+        IPIs, only intervals smaller than this percentile (between 0
+        and 100) are used.
+
+    Returns
+    -------
+    ipi_median: float
+        Median inter-pulse interval.
+    ipi_mean: float
+        Mean inter-pulse interval.
+    ipi_std: float
+        Standard deviation of inter-pulse intervals.
+
+    """
+    if eod_times is None:
+        return None, None, None
+    inter_pulse_intervals = np.diff(eod_times)
+    ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
+    if ipi_cv < ipi_cv_thresh:
+        ipi_median = np.median(inter_pulse_intervals)
+        ipi_mean = np.mean(inter_pulse_intervals)
+        ipi_std = np.std(inter_pulse_intervals)
+    else:
+        intervals = inter_pulse_intervals[inter_pulse_intervals <
+                                np.percentile(inter_pulse_intervals, ipi_percentile)]
+        ipi_median = np.median(intervals)
+        ipi_mean = np.mean(intervals)
+        ipi_std = np.std(intervals)
+    return ipi_median, ipi_mean, ipi_std
+
+            
 def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac=0.5, fit_frac = 0.5,
@@ -861,15 +907,13 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - 'none' do not flip waveform.
     ipi_cv_thresh: float
         If the coefficient of variation of the interpulse intervals
-        are smaller than this threshold, then the EOD frequency is
-        computed as the inverse of the mean of all interpulse
-        intervals. Otherwise only intervals smaller than a certain
-        quantile are used.
+        (IPIs) is smaller than this threshold, then the statistics of
+        IPIs is estimated from all IPIs. Otherwise only intervals
+        smaller than a certain percentile are used.
     ipi_percentile: float
-        When computing the EOD frequency, period, mean and standard
-        deviation of interpulse intervals from a subset of the
-        interpulse intervals, only intervals smaller than this
-        percentile (between 0 and 100) are used.
+        When computing the statistics of IPIs from a subset of the
+        IPIs, only intervals smaller than this percentile (between 0
+        and 100) are used.
     
     Returns
     -------
@@ -1174,27 +1218,17 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     peakfreq, peakenergy, att5, att50, lowcutoff, highcutoff = \
         analyze_pulse_spectrum(freqs, energy)
 
-    # analyze pulse timing:
-    if eod_times is not None:
-        inter_pulse_intervals = np.diff(eod_times)
-        ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
-        if ipi_cv < ipi_cv_thresh:
-            period = np.median(inter_pulse_intervals)
-            ipi_mean = np.mean(inter_pulse_intervals)
-            ipi_std = np.std(inter_pulse_intervals)
-        else:
-            intervals = inter_pulse_intervals[inter_pulse_intervals <
-                                    np.percentile(inter_pulse_intervals, ipi_percentile)]
-            period = np.median(intervals)
-            ipi_mean = np.mean(intervals)
-            ipi_std = np.std(intervals)
+    # analyze pulse intervals:
+    ipi_median, ipi_mean, ipi_std = analyze_pulse_intervals(eod_times,
+                                                            ipi_cv_thresh,
+                                                            ipi_percentile)
     
     # store properties:
     props = {}
     props['type'] = 'pulse'
     if eod_times is not None:
-        props['EODf'] = 1.0/period
-        props['period'] = period
+        props['EODf'] = 1.0/ipi_median
+        props['period'] = ipi_median
         props['IPI-mean'] = ipi_mean
         props['IPI-std'] = ipi_std
     props['max-ampl'] = max_ampl
