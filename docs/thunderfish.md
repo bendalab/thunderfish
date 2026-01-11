@@ -850,7 +850,7 @@ Properties of each pulse-type fish detected in the recording.
   <tr>
     <th align="left" colspan="6">recording</th>
     <th align="left" colspan="21">waveform</th>
-    <th align="left" colspan="6">spectrum</th>
+    <th align="left" colspan="8">spectrum</th>
   </tr>
   <tr>
     <th align="left">twin</th>
@@ -882,6 +882,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">n</th>
     <th align="left">peakfreq</th>
     <th align="left">peakenergy</th>
+    <th align="left">troughfreq</th>
+    <th align="left">troughenergy</th>
     <th align="left">energyatt5</th>
     <th align="left">energyatt50</th>
     <th align="left">lowcutoff</th>
@@ -915,6 +917,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">%</th>
     <th align="left">%</th>
     <th align="left">-</th>
+    <th align="left">Hz</th>
+    <th align="left">a.u.^2s/Hz</th>
     <th align="left">Hz</th>
     <th align="left">a.u.^2s/Hz</th>
     <th align="left">dB</th>
@@ -952,12 +956,14 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">-49.39</td>
     <td align="right">1.21</td>
     <td align="right">237</td>
-    <td align="right">1130.86</td>
+    <td align="right">1125.98</td>
+    <td align="right">1.4e-08</td>
     <td align="right">0.00</td>
-    <td align="right">-33.19</td>
-    <td align="right">-23.15</td>
-    <td align="right">64.94</td>
-    <td align="right">1857.67</td>
+    <td align="right">8.45e-11</td>
+    <td align="right">-22.17</td>
+    <td align="right">-19.99</td>
+    <td align="right">135.74</td>
+    <td align="right">1858.40</td>
   </tr>
 </tbody>
 </table>
@@ -994,10 +1000,12 @@ The columns contain:
 27. `n` Number of EODs used for computing the averaged EOD waveform.
 28. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
 29. `peakenergy` Peak energy of the single pulse spectrum.
-30. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
-31. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
-32. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
-33. `high_cutoff`: 3dB roll-off frequency in Hertz.
+20. `troughfreq` Frequency at trough before peak in Hertz.
+31. `troughenergy` Energy of trough before peak in x^2 s/Hz.
+32. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
+33. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
+34. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
+35. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
 ### RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT
 

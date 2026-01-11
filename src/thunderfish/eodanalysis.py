@@ -832,6 +832,10 @@ def analyze_pulse_spectrum(freqs, energy):
         Frequency at peak energy of the spectrum in Hertz.
     peak_energy: float
         Peak energy of the pulse spectrum in x^2 s/Hz.
+    trough_freq: float
+        Frequency at trough before peak in Hertz.
+    trough_energy: float
+        Energy of trough before peak in x^2 s/Hz.
     att5: float
         Attenuation of average energy below 5 Hz relative to
         peak energy in decibel.
@@ -847,11 +851,15 @@ def analyze_pulse_spectrum(freqs, energy):
     ip = np.argmax(energy)
     peak_freq = freqs[ip]
     peak_energy = energy[ip]
+    it = np.argmin(energy[:ip])
+    trough_freq = freqs[it]
+    trough_energy = energy[it]
     att5 = decibel(np.mean(energy[freqs<5.0]), peak_energy)
     att50 = decibel(np.mean(energy[freqs<50.0]), peak_energy)
     low_cutoff = freqs[decibel(energy, peak_energy) > 0.5*att5][0]
     high_cutoff = freqs[decibel(energy, peak_energy) > -3.0][-1]
-    return peak_freq, peak_energy, att5, att50, low_cutoff, high_cutoff
+    return peak_freq, peak_energy, trough_freq, trough_energy, \
+        att5, att50, low_cutoff, high_cutoff
 
 
 def analyze_pulse_tail(peak_index, eod, rate=None,
@@ -1081,6 +1089,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - peakfreq: frequency at peak energy of the single pulse spectrum
           in Hertz.
         - peakenergy: peak energy of the single pulse spectrum.
+        - troughfreq: frequency at trough before peak in Hertz.
+        - troughenergy: energy of trough before peak in x^2 s/Hz.
         - energyatt5: attenuation of average energy below 5 Hz relative to
           peak energy in decibel.
         - energyatt50: attenuation of average energy below 50 Hz relative to
@@ -1297,7 +1307,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     eenergy[:, 0] = freqs
     eenergy[:, 1] = energy
     # analyse spectrum:
-    peakfreq, peakenergy, att5, att50, lowcutoff, highcutoff = \
+    peakfreq, peakenergy, troughfreq, troughenergy, \
+        att5, att50, lowcutoff, highcutoff = \
         analyze_pulse_spectrum(freqs, energy)
 
     # analyze pulse intervals:
@@ -1332,6 +1343,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     props['polaritybalance'] = polarity_balance
     props['peakfreq'] = peakfreq
     props['peakenergy'] = peakenergy
+    props['troughfreq'] = troughfreq
+    props['troughenergy'] = troughenergy
     props['energyatt5'] = att5
     props['energyatt50'] = att50
     props['lowcutoff'] = lowcutoff
@@ -2345,31 +2358,44 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     ax.axvspan(1, 50, color=att50_color, zorder=1)
     att = props['energyatt50']
     if att < -5.0:
-        ax.text(10.0, att+1.0, f'{att:.0f} dB', ha='left', va='bottom', zorder=10)
+        ax.text(10.0, att+1.0, f'{att:.0f}dB',
+                ha='left', va='bottom', zorder=10)
     else:
-        ax.text(10.0, att-1.0, f'{att:.0f} dB', ha='left', va='top', zorder=10)
+        ax.text(10.0, att-1.0, f'{att:.0f}dB',
+                ha='left', va='top', zorder=10)
     ax.axvspan(1, 5, color=att5_color, zorder=2)
     att = props['energyatt5']
     if att < -5.0:
-        ax.text(4.0, att+1.0, f'{att:.0f} dB', ha='right', va='bottom', zorder=10)
+        ax.text(4.0, att+1.0, f'{att:.0f}dB',
+                ha='right', va='bottom', zorder=10)
     else:
-        ax.text(4.0, att-1.0, f'{att:.0f} dB', ha='right', va='top', zorder=10)
+        ax.text(4.0, att-1.0, f'{att:.0f}dB',
+                ha='right', va='top', zorder=10)
     lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
         ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att],
                 zorder=3, **cstyle)
-        ax.text(1.2*lowcutoff, 0.5*att-1.0, f'{lowcutoff:.0f} Hz',
+        ax.text(1.2*lowcutoff, 0.5*att-1.0, f'{lowcutoff:.0f}Hz',
                 ha='left', va='top', zorder=10)
     highcutoff = props['highcutoff']
     ax.plot([highcutoff, highcutoff], [-60.0, -3.0], zorder=3, **cstyle)
-    ax.text(1.2*highcutoff, -3.0, f'{highcutoff:.0f} Hz',
+    ax.text(1.2*highcutoff, -3.0, f'{highcutoff:.0f}Hz',
             ha='left', va='center', zorder=10)
-    db = decibel(energy[:, 1], np.max(energy[:, 1]))
+    ref_energy = np.max(energy[:, 1])
+    db = decibel(energy[:, 1], ref_energy)
     ax.plot(energy[:, 0], db, zorder=4, **sstyle)
     peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
-        ax.plot([peakfreq], [0], zorder=5, **pstyle)
-        ax.text(peakfreq*1.2, 1.0, f'{peakfreq:.0f} Hz', va='bottom', zorder=10)
+        ax.plot(peakfreq, 0, zorder=5, **pstyle)
+        ax.text(peakfreq*1.2, 1.0, f'{peakfreq:.0f}Hz',
+                va='bottom', zorder=10)
+    troughfreq = props['troughfreq']
+    if troughfreq >= min_freq:
+        troughenergy = decibel(props['troughenergy'], ref_energy)
+        ax.plot(troughfreq, troughenergy, zorder=5, **pstyle)
+        ax.text(troughfreq*0.9, troughenergy - 1,
+                f'{troughenergy:.1f}dB @ {troughfreq:.0f}Hz',
+                ha='right', va='top', zorder=10)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
     ax.set_ylim(-60.0, 2.0)
@@ -2756,7 +2782,9 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('n', '', '%d', value=pulse_props)
     td.append_section('spectrum')
     td.append('peakfreq', 'Hz', '%.2f', value=pulse_props)
-    td.append('peakenergy', f'{unit}^2s/Hz', '%.2f', value=pulse_props)
+    td.append('peakenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
+    td.append('troughfreq', 'Hz', '%.2f', value=pulse_props)
+    td.append('troughenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
     td.append('energyatt5', 'dB', '%.2f', value=pulse_props)
     td.append('energyatt50', 'dB', '%.2f', value=pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', value=pulse_props)
