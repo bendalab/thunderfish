@@ -918,34 +918,33 @@ def analyze_pulse_tail(peak_index, eod, rate=None,
         tau_inx = 2
     rridx = inx + 6*tau_inx
     if rridx > len(eod) - 1:
-        tau = None
-    else:
-        tau = time[inx + tau_inx] - time[inx]
-        params = [tau, eod[inx] - eod[rridx], eod[rridx]]
+        return None, None
+    tau = time[inx + tau_inx] - time[inx]
+    params = [tau, eod[inx] - eod[rridx], eod[rridx]]
+    try:
+        popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
+                               eod[inx:rridx], params,
+                               bounds=([0.0, -np.inf, -np.inf], np.inf))
+    except TypeError:
+        popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
+                               eod[inx:rridx], params)
+    if popt[0] > 1.2*tau:
+        tau_inx = int(np.round(popt[0]/dt))
+        rridx = inx + 6*tau_inx
+        if rridx > len(eod) - 1:
+            rridx = len(eod) - 1
         try:
             popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                                   eod[inx:rridx], params,
+                                   eod[inx:rridx], popt,
                                    bounds=([0.0, -np.inf, -np.inf], np.inf))
         except TypeError:
             popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                                   eod[inx:rridx], params)
-        if popt[0] > 1.2*tau:
-            tau_inx = int(np.round(popt[0]/dt))
-            rridx = inx + 6*tau_inx
-            if rridx > len(eod) - 1:
-                rridx = len(eod) - 1
-            try:
-                popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                                       eod[inx:rridx], popt,
-                                       bounds=([0.0, -np.inf, -np.inf], np.inf))
-            except TypeError:
-                popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                                       eod[inx:rridx], popt)
-        tau = popt[0]
-        fit = np.zeros(len(eod))
-        fit[:] = np.nan
-        fit[inx:rridx] = exp_decay(time[inx:rridx] - time[inx], *popt)
-        return tau, fit
+                                   eod[inx:rridx], popt)
+    tau = popt[0]
+    fit = np.zeros(len(eod))
+    fit[:] = np.nan
+    fit[inx:rridx] = exp_decay(time[inx:rridx] - time[inx], *popt)
+    return tau, fit
 
 
 def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
