@@ -1256,7 +1256,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     n = len(meod)//20 if len(meod) >= 20 else 1
     meod[:,1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:,1]))
 
-    # largest positive and negative peak:
+    # largest positive and negative peak and flip: # TODO move after cutting!
     flipped = False
     max_idx = np.argmax(meod[:,1])
     max_ampl = np.abs(meod[max_idx,1])
@@ -1279,14 +1279,10 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         min_idx = max_idx
         max_idx = peak_idx
         flipped = True
-    max_ampl = np.abs(meod[max_idx,1])
-    min_ampl = np.abs(meod[min_idx,1])
-                
-    # move peak of waveform to zero:
-    toffs += meod[max_idx,0]
-    meod[:,0] -= meod[max_idx,0]
+    max_ampl = np.abs(meod[max_idx, 1])
+    min_ampl = np.abs(meod[min_idx, 1])
 
-    # minimum threshold for peak detection:
+    # minimum threshold for peak detection: # return from cutting function
     n = len(meod[:,1])//10 if len(meod) >= 20 else 2
     thl_max = np.max(meod[:n, 1])
     thl_min = np.min(meod[:n, 1])
@@ -1323,17 +1319,20 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     if reidx >= len(meod):
         reidx = len(meod)
     meod = meod[leidx:reidx,:]
-    lidx -= leidx
-    ridx -= leidx
     max_idx -= leidx
     min_idx -= leidx
+                
+    # move peak of waveform to zero:
+    toffs += meod[max_idx, 0]
+    meod[:, 0] -= meod[max_idx, 0]
+    
     tau = None
     dist = 0.0
     peaks = []
 
     # amplitude and variance:
     ppampl = max_ampl + min_ampl
-    dist = meod[min_idx, 0] - meod[max_idx, 0]
+    dist = meod[min_idx, 0] - meod[max_idx, 0]  # TODO: move to analyze_pulse_phases() and handle non existent minimum
     rmssem = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
 
     # integrals and polarity balance:
