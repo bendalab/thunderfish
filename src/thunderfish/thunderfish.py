@@ -60,10 +60,6 @@ from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
-from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, save_pulse_fish
-from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks, save_pulse_times
-from .eodanalysis import load_eod_waveform, load_wave_eodfs, load_wave_fish, load_pulse_fish
-from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
 from .eodanalysis import save_analysis, load_analysis, load_recording
 from .eodanalysis import parse_filename, file_types
 

@@ -15,6 +15,7 @@ Analysis of EOD waveforms.
 
 - `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
 - `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
+- `analyze_pulse_phases()`: characterize all phases of a pulse-type EOD.
 - `analyze_pulse_tail()`: fit exponential to last peak/trough of pulse EOD.
 - `analyze_pulse_intervals()`: basic statistics of interpulse intervals.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
@@ -54,8 +55,8 @@ Analysis of EOD waveforms.
 - `load_wave_spectrum()`: load amplitude and phase spectrum of wave EOD from file.
 - `save_pulse_spectrum()`: save spectrum of pulse EOD to file.
 - `load_pulse_spectrum()`: load spectrum of pulse EOD from file.
-- `save_pulse_peaks()`: save peak properties of pulse EOD to file.
-- `load_pulse_peaks()`: load peak properties of pulse EOD from file.
+- `save_pulse_phases()`: save phase properties of pulse EOD to file.
+- `load_pulse_phases()`: load phase properties of pulse EOD from file.
 - `save_pulse_times()`: save times of pulse EOD to file.
 - `load_pulse_times()`: load times of pulse EOD from file.
 - `parse_filename()`: parse components of an EOD analysis file name.
@@ -862,6 +863,107 @@ def analyze_pulse_spectrum(freqs, energy):
         att5, att50, low_cutoff, high_cutoff
 
 
+def analyze_pulse_phases(threshold, eod, rate=None,
+                         min_dist=50.0e-6, width_frac=0.5):
+    """ Characterize all phases of a pulse-type EOD.
+    
+    Parameters
+    ----------
+    threshold: float
+        Threshold for detecting peaks and troughs.
+    eod: 1-D or 2-D array
+        The eod waveform to be analyzed.
+        If an 1-D array, then this is the waveform and you
+        need to also pass a sampling rate in `rate`.
+        If a 2-D array, then first column is time in seconds and second
+        column is the eod waveform. Further columns are ignored.
+    rate: None or float
+        The sampling rate in Hertz if a 1-D array is passed on to `eod`.
+    min_dist: float
+        Minimum distance between peak and troughs of the pulse.
+    width_frac: float
+        The width of an EOD phase is measured at this fraction of a peak's
+        height (0-1).
+    
+    Returns
+    -------
+    phases: 2-D array
+        For each peak and trough (rows) of the EOD waveform
+        7 columns: the peak index (1 is P1, i.e. the largest positive peak),
+        time relative to largest positive peak, amplitude,
+        amplitude normalized to P1 phase,
+        width of peak/trough at half height,
+        area under the peak, and area under the peak relative to total area.
+        Empty if waveform is not a pulse EOD.
+    """
+    if eod.ndim == 2:
+        time = eod[:, 0]
+        eod = eod[:, 1]
+    else:
+        time = np.arange(len(eod))/rate
+    dt = time[1] - time[0]
+    # find peaks and troughs:
+    peak_idx, trough_idx = detect_peaks(eod, threshold)
+    if len(peak_idx) == 0:
+        return np.zeros((0, 7))
+    # and their width:
+    peak_widths = peak_width(time, eod, peak_idx, trough_idx,
+                             peak_frac=width_frac, base='max')
+    trough_widths = peak_width(time, -eod, trough_idx, peak_idx,
+                               peak_frac=width_frac, base='max')
+    # combine peaks and troughs:
+    pt_idx = np.concatenate((peak_idx, trough_idx))
+    pt_widths = np.concatenate((peak_widths, trough_widths))
+    pts_idx = np.argsort(pt_idx)
+    phase_list = pt_idx[pts_idx]
+    width_list = pt_widths[pts_idx]
+    # remove multiple peaks that are too close:
+    # TODO: XXX replace by Dexters function that keeps the maximum peak
+    rmidx = [(k, k+1) for k in np.where(np.diff(time[phase_list]) < min_dist)[0]]
+    # flatten and keep maximum and minimum phase:
+    max_idx = np.argmax(eod)
+    min_idx = np.argmin(eod)
+    rmidx = np.unique([k for kk in rmidx for k in kk
+                       if phase_list[k] != max_idx and phase_list[k] != min_idx])
+    # delete:
+    if len(rmidx) > 0:
+        phase_list = np.delete(phase_list, rmidx)
+        width_list = np.delete(width_list, rmidx)
+    if len(phase_list) == 0:
+        return np.zeros((0, 7))
+    # find P1:
+    p1i = np.argmax(phase_list == max_idx)
+    # truncate peaks to the left: # TODO: REALLY? WHY?
+    offs = 0 if p1i <= 2 else p1i - 2
+    phase_list = phase_list[offs:]
+    width_list = width_list[offs:]
+    p1i -= offs
+    # amplitudes:
+    amplitudes = eod[phase_list]
+    max_ampl = np.abs(amplitudes[p1i])
+    # phase areas:
+    phase_areas = np.zeros(len(phase_list))
+    for i in range(len(phase_list)):
+        sign_fac = np.sign(eod[phase_list[i]])
+        i0 = phase_list[i - 1] if i > 0 else 0
+        i1 = phase_list[i + 1] if i + 1 < len(phase_list) else len(eod)
+        if i0 > 0 and sign_fac*eod[i0] > 0 and \
+           i1 < len(eod) and sign_fac*eod[i1] > 0:
+            phase_areas[i] = 0
+        else:
+            snippet = sign_fac*eod[i0:i1]
+            phase_areas[i] = np.sum(snippet[snippet > 0])*dt
+            phase_areas[i] *= sign_fac
+    total_area = np.sum(np.abs(phase_areas))
+    # store phase properties:
+    phases = np.zeros((len(phase_list), 7))
+    for i, pi in enumerate(phase_list):
+        phases[i, :] = [i + 1 - p1i, time[pi], amplitudes[i],
+                       amplitudes[i]/max_ampl, width_list[i],
+                       phase_areas[i], phase_areas[i]/total_area]
+    return phases
+
+            
 def analyze_pulse_tail(peak_index, eod, rate=None,
                        threshold=0.0, fit_frac=0.5):
     """ Fit exponential to last peak/trough of pulse EOD.
@@ -871,7 +973,7 @@ def analyze_pulse_tail(peak_index, eod, rate=None,
     peak_index: int
         Index of last peak in `eod`.
     eod: 1-D or 2-D array
-        The eod waveform of which the spectrum is computed.
+        The eod waveform to be analyzed.
         If an 1-D array, then this is the waveform and you
         need to also pass a sampling rate in `rate`.
         If a 2-D array, then first column is time in seconds and second
@@ -1077,15 +1179,15 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
-        - P2-P1-dist: distance between P2 and P1 in seconds.
+        - peak-dist: distance between minimum and maximum phase in seconds.
         - tau: time constant of exponential decay of pulse tail in seconds.
-        - firstpeak: index of the first peak in the pulse (i.e. -1 for P-1)
-        - lastpeak: index of the last peak in the pulse (i.e. 3 for P3)
+        - firstphase: index of the first phase in the pulse (i.e. -1 for P-1)
+        - lastphase: index of the last phase in the pulse (i.e. 3 for P3)
         - totalarea: sum of areas under positive and negative peaks.
-        - positivearea: area under positive peaks relative to total area.
-        - negativearea: area under negative peaks relative to total area.
+        - positivearea: area under positive phases relative to total area.
+        - negativearea: area under negative phases relative to total area.
         - polaritybalance: contrast between areas under positive and
-          negative peak.
+          negative phases.
         - peakfreq: frequency at peak energy of the single pulse spectrum
           in Hertz.
         - peakenergy: peak energy of the single pulse spectrum.
@@ -1104,13 +1206,13 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
           if provided.
 
         Empty if waveform is not a pulse EOD.
-    peaks: 2-D array
-        For each peak and trough (rows) of the EOD waveform
-        7 columns: the peak index (1 is P1, i.e. the largest positive peak),
-        time relative to largest positive peak, amplitude,
-        amplitude normalized to largest postive peak,
-        width of peak/trough at half height,
-        area under the peak, and area under the peak relative to total area.
+    phases: 2-D array
+        For each phase (rows) of the EOD waveform
+        7 columns: the phase index (1 is P1, i.e. the largest positive phase),
+        time relative to largest positive phase, amplitude,
+        amplitude normalized to P1 phase,
+        width of phase at half height,
+        area under the phase, and area under the phase relative to total area.
         Empty if waveform is not a pulse EOD.
     energy: 2-D array
         The energy spectrum of a single pulse. First column are the
@@ -1231,71 +1333,24 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
 
     # amplitude and variance:
     ppampl = max_ampl + min_ampl
+    dist = meod[min_idx, 0] - meod[max_idx, 0]
     rmssem = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
 
     # integrals and polarity balance:
-    pos_area = np.sum(meod[meod[:, 1] > 0, 1])*dt
+    pos_area = np.sum(meod[meod[:, 1] >= 0, 1])*dt
     neg_area = np.sum(meod[meod[:, 1] < 0, 1])*dt
     total_area = np.sum(np.abs(meod[:, 1]))*dt
-    integral_area = np.sum(meod[:, 1])*dt   # = pos_area + neg_area
+    integral_area = np.sum(meod[:, 1])*dt   # = pos_area - neg_area
     polarity_balance = integral_area/total_area
-    
-    # find smaller peaks:
-    peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
-    
-    if len(peak_idx) > 0:
-        # and their width:
-        peak_widths = peak_width(meod[:,0], meod[:,1], peak_idx, trough_idx,
-                                 peak_frac=width_frac, base='max')
-        trough_widths = peak_width(meod[:,0], -meod[:,1], trough_idx, peak_idx,
-                                   peak_frac=width_frac, base='max')
-        # combine peaks and troughs:
-        pt_idx = np.concatenate((peak_idx, trough_idx))
-        pt_widths = np.concatenate((peak_widths, trough_widths))
-        pts_idx = np.argsort(pt_idx)
-        peak_list = pt_idx[pts_idx]
-        width_list = pt_widths[pts_idx]
-        # remove multiple peaks that are too close: XXX replace by Dexters function that keeps the maximum peak
-        rmidx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)[0]]
-        # flatten and keep maximum peak:
-        rmidx = np.unique([k for kk in rmidx for k in kk if peak_list[k] != max_idx])
-        # delete:
-        if len(rmidx) > 0:
-            peak_list = np.delete(peak_list, rmidx)
-            width_list = np.delete(width_list, rmidx)
-        if len(peak_list) == 0:
-            return meod, {}, [], []
-        # find P1:
-        p1i = np.argmax(peak_list == max_idx)
-        # truncate peaks to the left: XXX REALLY? WHY?
-        offs = 0 if p1i <= 2 else p1i - 2
-        peak_list = peak_list[offs:]
-        width_list = width_list[offs:]
-        p1i -= offs
-        # peak areas:
-        peak_areas = np.zeros(len(peak_list))
-        for i in range(len(peak_list)):
-            sign_fac = np.sign(meod[peak_list[i], 1])
-            i0 = peak_list[i - 1] if i > 0 else 0
-            i1 = peak_list[i + 1] if i + 1 < len(peak_list) else len(meod)
-            if i0 > 0 and sign_fac*meod[i0, 1] > 0 and \
-               i1 < len(meod) and sign_fac*meod[i1, 1] > 0:
-                peak_areas[i] = 0
-            else:
-                snippet = sign_fac*meod[i0:i1, 1]
-                peak_areas[i] = np.sum(snippet[snippet > 0])*dt
-                peak_areas[i] *= sign_fac
-        # store peaks:
-        peaks = np.zeros((len(peak_list), 7))
-        for i, pi in enumerate(peak_list):
-            peaks[i, :] = [i + 1 - p1i, meod[pi, 0], meod[pi, 1],
-                           meod[pi, 1]/max_ampl, width_list[i],
-                           peak_areas[i], peak_areas[i]/total_area]
-        # P2 - P1 distance:
-        dist = peaks[p1i + 1, 1] - peaks[p1i, 1] if p1i + 1 < len(peaks) else 0.0
-
-        # fit exponential to last peak/trough:
-        tau, fit = analyze_pulse_tail(peak_list[-1], meod, None,
+            
+    # characterize EOD phases:
+    phases = analyze_pulse_phases(threshold, meod, None,
+                                  min_dist=min_dist, width_frac=width_frac)
+        
+    # fit exponential to last peak/trough:
+    if len(phases) > 1:
+        pi = np.argmin(np.abs(meod[:, 0] - phases[-1, 1]))
+        tau, fit = analyze_pulse_tail(pi, meod, None,
                                       threshold, fit_frac)
         if fit is not None:
             meod[:, -1] = fit
@@ -1332,11 +1387,11 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1 - t0
-    props['P2-P1-dist'] = dist
+    props['peak-dist'] = dist
     if tau:
         props['tau'] = tau
-    props['firstpeak'] = peaks[0, 0] if len(peaks) > 0 else 1
-    props['lastpeak'] = peaks[-1, 0] if len(peaks) > 0 else 1
+    props['firstphase'] = phases[0, 0] if len(phases) > 0 else 1
+    props['lastphase'] = phases[-1, 0] if len(phases) > 0 else 1
     props['totalarea'] = total_area
     props['positivearea'] = pos_area/total_area
     props['negativearea'] = neg_area/total_area
@@ -1354,7 +1409,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         props['n'] = len(eod_times)
         props['times'] = eod_times + toffs
     
-    return meod, props, peaks, eenergy
+    return meod, props, phases, eenergy
 
 
 def load_species_waveforms(species_file='none'):
@@ -2057,7 +2112,7 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
                 zorder=-5, **sstyle)
 
         
-def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
+def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       unit=None, tfac=1,
                       mstyle=dict(lw=2, color='tab:red'),
                       pstyle=dict(facecolor='tab:green', alpha=0.2,
@@ -2081,8 +2136,8 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_wave()` and `analyze_pulse()`.
-    peaks: 2_D arrays or None
-        List of peak properties (index, time, amplitude,
+    phases: 2_D arrays or None
+        List of phase properties (index, time, amplitude,
         relative amplitude, width, area) of a EOD pulse
         as returned by `analyze_pulse()`.
     unit: string
@@ -2111,7 +2166,7 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
     # plot zero line:
     ax.axhline(0.0, zorder=-5, **zstyle)
     # plot areas:
-    if peaks is not None and len(peaks) > 0:
+    if phases is not None and len(phases) > 0:
         if pstyle is not None and len(pstyle) > 0:
             ax.fill_between(time, mean_eod, 0, mean_eod >= 0, zorder=4,
                             **pstyle)
@@ -2155,9 +2210,9 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
             ty = 0.5*yfs*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
         ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
-    # annotate peaks:
-    if peaks is not None and len(peaks) > 0:
-        for i, p in enumerate(peaks):
+    # annotate phases:
+    if phases is not None and len(phases) > 0:
+        for i, p in enumerate(phases):
             ax.plot(1000*p[1], p[2], 'o', clip_on=False, zorder=0,
                     alpha=0.4, color=mstyle['color'], ms=12,
                     mec='none', mew=0)
@@ -2175,12 +2230,12 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
                     ps = f'{100*p[3]:.0f}%'
                 label += f'({ps} @ {ts})'
             left_text = (p[2] > 0 and p[1] >= 0.0) or \
-                (p[2] < 0 and p[1] >= peaks[np.argmin(peaks[:, 2]), 1])
+                (p[2] < 0 and p[1] >= phases[np.argmin(phases[:, 2]), 1])
             va = 'baseline'
             dy = 0.6*yfs
             sign = np.sign(p[2])
-            if i > 0 and i < len(peaks) - 1:
-                if peaks[i - 1][2] > p[2] and peaks[i + 1][2] > p[2]:
+            if i > 0 and i < len(phases) - 1:
+                if phases[i - 1][2] > p[2] and phases[i + 1][2] > p[2]:
                     va = 'top'
                     dy = -dy
             elif sign < 0:
@@ -2190,7 +2245,7 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
                 dy = 0.0
             if p[2] + dy < ymin + 1.3*yfs:
                 dy = ymin + 1.3*yfs - p[2]
-            if p[0] == np.max(peaks[:,0]) and ty*p[2] > 0.0 and \
+            if p[0] == np.max(phases[:,0]) and ty*p[2] > 0.0 and \
                sign*p[2] + dy < sign*ty + 1.2*yfs:
                 dy = ty + sign*1.2*yfs - p[2]
             dx = 0.5*xfs
@@ -2209,9 +2264,9 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
                 else:
                     label = f'{100*p[6]:.0f}%'
                 x = 1000*p[1]
-                if i > 0 and i < len(peaks) - 1:
-                    xl = 1000*peaks[i - 1][1]
-                    xr = 1000*peaks[i + 1][1]
+                if i > 0 and i < len(phases) - 1:
+                    xl = 1000*phases[i - 1][1]
+                    xr = 1000*phases[i + 1][1]
                     tsnippet = time[(time > xl) & (time < xr)]
                     snippet = mean_eod[(time > xl) & (time < xr)]
                     tsnippet = tsnippet[np.sign(p[2])*snippet > 0]
@@ -2766,11 +2821,10 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000.0)
     td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000.0)
     td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000.0)
-    td.append('P2-P1-dist', 'ms', '%.3f',
-              value=pulse_props, fac=1000.0)
+    td.append('peak-dist', 'ms', '%.3f', value=pulse_props, fac=1000.0)
     td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000.0)
-    td.append('firstpeak', '', '%d', value=pulse_props)
-    td.append('lastpeak', '', '%d', value=pulse_props)
+    td.append('firstphase', '', '%d', value=pulse_props)
+    td.append('lastphase', '', '%d', value=pulse_props)
     td.append('totalarea', f'{unit}*ms', '%.4f',
               value=pulse_props, fac=1000.0)
     td.append('positivearea', '%', '%.2f',
@@ -2831,8 +2885,8 @@ def load_pulse_fish(file_path):
             props['nfft'] = int(props['nfft'])
         props['index'] = int(props['index'])
         props['n'] = int(props['n'])
-        props['firstpeak'] = int(props['firstpeak'])
-        props['lastpeak'] = int(props['lastpeak'])
+        props['firstphase'] = int(props['firstphase'])
+        props['lastphase'] = int(props['lastphase'])
         if 'totalarea' in props:
             props['totalarea'] /= 1000
         if 'positivearea' in props:
@@ -2849,7 +2903,7 @@ def load_pulse_fish(file_path):
         props['tstart'] /= 1000
         props['tend'] /= 1000
         props['width'] /= 1000
-        props['P2-P1-dist'] /= 1000
+        props['peak-dist'] /= 1000
         props['tau'] /= 1000
     return eod_props
 
@@ -3003,13 +3057,13 @@ def load_pulse_spectrum(file_path):
     return spec
 
 
-def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
-    """Save peak properties of pulse EOD to file.
+def save_pulse_phases(phase_data, unit, idx, basename, **kwargs):
+    """Save phase properties of pulse EOD to file.
 
     Parameters
     ----------
-    peak_data: 2D array of floats
-        Properties of peaks and troughs of pulse EOD as returned by
+    phase_data: 2D array of floats
+        Properties of phases of pulse EOD as returned by
         `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
@@ -3018,8 +3072,8 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     basename: string or stream
         If string, path and basename of file.
         If `basename` does not have an extension,
-        '-pulsepeaks', the fish index, and a file extension are appended.
-        If stream, write pulse peaks into this stream.
+        '-pulsephases', the fish index, and a file extension are appended.
+        If stream, write pulse phases into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
@@ -3032,25 +3086,25 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
 
     See Also
     --------
-    load_pulse_peaks()
+    load_pulse_phases()
     """
-    if len(peak_data) == 0:
+    if len(phase_data) == 0:
         return None
-    td = TableData(peak_data[:,:7]*[1, 1000, 1, 100, 1000, 1000, 100],
+    td = TableData(phase_data[:,:7]*[1, 1000, 1, 100, 1000, 1000, 100],
                    ['P', 'time', 'amplitude', 'relampl', 'width', 'area', 'relarea'],
                    ['', 'ms', unit, '%', 'ms', f'{unit}*ms', '%'],
                    ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f', '%.4f', '%.2f'])
     _, ext = os.path.splitext(basename)
     fp = ''
     if not ext:
-        fp = '-pulsepeaks'
+        fp = '-pulsephases'
         if idx is not None:
             fp += '-%d' % idx
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_pulse_peaks(file_path):
-    """Load peak properties of pulse EOD from file.
+def load_pulse_phases(file_path):
+    """Load phase properties of pulse EOD from file.
 
     Parameters
     ----------
@@ -3059,11 +3113,11 @@ def load_pulse_peaks(file_path):
 
     Returns
     -------
-    peak_data: 2D array of floats
-        Properties of peaks and troughs of pulse EOD:
+    phase_data: 2D array of floats
+        Properties of phases of pulse EOD:
         P, time, amplitude, relampl, width
     unit: string
-        Unit of peak amplitudes.
+        Unit of phase amplitudes.
 
     Raises
     ------
@@ -3072,16 +3126,16 @@ def load_pulse_peaks(file_path):
 
     See Also
     --------
-    save_pulse_peaks()
+    save_pulse_phases()
     """
     data = TableData(file_path)
-    peaks = data.array()
-    peaks[:,1] *= 0.001
-    peaks[:,3] *= 0.01
-    peaks[:,4] *= 0.001
-    peaks[:,5] *= 0.001
-    peaks[:,6] *= 0.01
-    return peaks, data.unit('amplitude')
+    phases = data.array()
+    phases[:,1] *= 0.001
+    phases[:,3] *= 0.01
+    phases[:,4] *= 0.001
+    phases[:,5] *= 0.001
+    phases[:,6] *= 0.01
+    return phases, data.unit('amplitude')
 
 
 def save_pulse_times(pulse_times, idx, basename, **kwargs):
@@ -3159,7 +3213,7 @@ def load_pulse_times(file_path):
 
 
 file_types = ['waveeodfs', 'wavefish', 'pulsefish', 'eodwaveform',
-              'wavespectrum', 'pulsepeaks', 'pulsespectrum', 'pulsetimes']
+              'wavespectrum', 'pulsephases', 'pulsespectrum', 'pulsetimes']
 """List of all file types generated and supported by the `save_*` and `load_*` functions."""
 
 
@@ -3194,7 +3248,7 @@ def parse_filename(file_path):
         ('TIME' component of the file name if present).
         `None` if not present in `file_path`.
     ftype: string
-        Type of analysis file (e.g. 'wavespectrum', 'pulsepeaks', etc.),
+        Type of analysis file (e.g. 'wavespectrum', 'pulsephases', etc.),
         ('FTYPE' component of the file name if present).
         See `file_types` for a list of all supported file types.
         Empty string if not present in `file_path`.
@@ -3239,7 +3293,7 @@ def parse_filename(file_path):
 
             
 def save_analysis(output_basename, zip_file, eod_props, mean_eods,
-                  spec_data, peak_data, wave_eodfs, wave_indices, unit,
+                  spec_data, phase_data, wave_eodfs, wave_indices, unit,
                   verbose, **kwargs):
     """Save EOD analysis results to files.
 
@@ -3258,8 +3312,8 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
     spec_data: list of 2D array of floats
         Energy spectra of single pulses as returned by
         `analyze_pulse()`.
-    peak_data: list of 2D array of floats
-        Properties of peaks and troughs of pulse EODs as returned by
+    phase_data: list of 2D array of floats
+        Properties of phases of pulse EODs as returned by
         `analyze_pulse()`.
     wave_eodfs: list of 2D array of float
         Each item is a matrix with the frequencies and powers
@@ -3307,7 +3361,7 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
             write_file_zip(zf, save_wave_eodfs, output_basename,
                            wave_eodfs, wave_indices, **kwargs)
         # all wave and pulse fish:
-        for i, (mean_eod, sdata, pdata, props) in enumerate(zip(mean_eods, spec_data, peak_data, eod_props)):
+        for i, (mean_eod, sdata, pdata, props) in enumerate(zip(mean_eods, spec_data, phase_data, eod_props)):
             write_file_zip(zf, save_eod_waveform, output_basename,
                            mean_eod, unit, i, **kwargs)
             # spectrum:
@@ -3318,8 +3372,8 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
                 else:
                     write_file_zip(zf, save_wave_spectrum, output_basename,
                                    sdata, unit, i, **kwargs)
-            # peaks:
-            write_file_zip(zf, save_pulse_peaks, output_basename,
+            # phases:
+            write_file_zip(zf, save_pulse_phases, output_basename,
                            pdata, unit, i, **kwargs)
             # times:
             write_file_zip(zf, save_pulse_times, output_basename,
@@ -3358,9 +3412,9 @@ def load_analysis(file_pathes):
         relative power in dB, phase, data power in unit squared.
         Energy spectrum of single pulse-type EODs with columns
         frequency and energy.
-    peak_data: list of 2D array of floats
-        Properties of peaks and troughs of pulse-type EODs with columns
-        P, time, amplitude, relampl, width
+    phase_data: list of 2D array of floats
+        Properties of phases of pulse-type EODs with columns
+        P, time, amplitude, relampl, width, area, relarea
     recording: string
         Path and base name of the recording file.
     channel: int
@@ -3400,7 +3454,7 @@ def load_analysis(file_pathes):
     wave_indices = np.array([])
     mean_eods = [None]*neods
     spec_data = [None]*neods
-    peak_data = [None]*neods
+    phase_data = [None]*neods
     unit = None
     for f in file_pathes:
         recording, _, channel, _, ftype, idx, _ = parse_filename(f)
@@ -3415,8 +3469,8 @@ def load_analysis(file_pathes):
             mean_eods[idx], unit = load_eod_waveform(f)
         elif ftype == 'wavespectrum':
             spec_data[idx], unit = load_wave_spectrum(f)
-        elif ftype == 'pulsepeaks':
-            peak_data[idx], unit = load_pulse_peaks(f)
+        elif ftype == 'pulsephases':
+            phase_data[idx], unit = load_pulse_phases(f)
         elif ftype == 'pulsetimes':
             pulse_times = load_pulse_times(f)
             eod_props[idx]['times'] = pulse_times
@@ -3443,7 +3497,7 @@ def load_analysis(file_pathes):
                 eodfs.append(specd)
         wave_eodfs = eodfs
     return mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
-        peak_data, recording, channel, unit
+        phase_data, recording, channel, unit
 
 
 def load_recording(file_path, channel=0, load_kwargs={},
@@ -3536,7 +3590,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse fish to make the first large peak positive (flip, none, or auto).')
     cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
     cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
-    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks in pulse EODs as a fraction of the pulse amplitude.')
+    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the pulse amplitude.')
     cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
     cfg.add('eodPulseWidthFraction', width_frac, '', 'The width of a pulse is measured at this fraction of the pulse height.')
     cfg.add('eodExponentialFitFraction', fit_frac, '', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
@@ -3745,7 +3799,7 @@ def main():
     print('Analysis of EOD waveforms.')
 
     # data:
-    rate = 44100.0
+    rate = 96_000
     data = pulsefish_eods('Triphasic', 83.0, rate, 5.0, noise_std=0.02)
     unit = 'mV'
     eod_idx, _ = detect_peaks(data, 1.0)

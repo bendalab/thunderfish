@@ -26,11 +26,12 @@ from .eodanalysis import parse_filename
 def collect_fish(files, simplify_file=False,
                  meta_data=None, meta_recordings=None, skip_recordings=False,
                  temp_col=None, q10=1.62, max_fish=0, harmonics=None,
-                 peaks0=None, peaks1=None, cfg=None, verbose=0):
+                 phases0=None, phases1=None, cfg=None, verbose=0):
     """Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
 
-    Data from the *-wavespectrum-*.* and the *-pulsepeaks-*.* files can be added
-    as specified by `harmonics`, `peaks0`, and `peaks1`.
+    Data from the *-wavespectrum-*.* and the *-pulsephases-*.* files
+    can be added as specified by `harmonics`, `phases0`, and
+    `phases1`.
 
     Meta data of the recordings can also be added via `meta_data` and
     `meta_recordings`.  If `meta_data` contains a column with
@@ -70,14 +71,14 @@ def collect_fish(files, simplify_file=False,
         Number of harmonic to be added to the wave-type fish table
         (amplitude, relampl, phase).  This data is read in from the
         corresponding *-wavespectrum-*.* files.
-    peaks0: int
-        Index of the first peak of a EOD pulse to be added to the
+    phases0: int
+        Index of the first phase of a EOD pulse to be added to the
         pulse-type fish table.  This data is read in from the
-        corresponding *-pulsepeaks-*.* files.
-    peaks1: int
-        Index of the last peak of a EOD pulse to be added to the
+        corresponding *-pulsephases-*.* files.
+    phases1: int
+        Index of the last phase of a EOD pulse to be added to the
         pulse-type fish table.  This data is read in from the
-        corresponding *-pulsepeaks-*.* files.
+        corresponding *-pulsephases-*.* files.
     cfg: ConfigFile
         Configuration parameter for EOD quality assessment and species
         assignment.
@@ -241,18 +242,18 @@ def collect_fish(files, simplify_file=False,
                         df.append(species, '%', '%.0f')
                     df.append('species', '', '%-s')
             else:
-                if peaks0 is not None:
-                    fn = base_path + '-pulsepeaks-0' + file_ext
+                if phases0 is not None:
+                    fn = base_path + '-pulsephases-0' + file_ext
                     if zf is not None:
                         fn = io.TextIOWrapper(zf.open(fn, 'r'))
-                    pulse_peaks = TableData(fn)
+                    pulse_phases = TableData(fn)
                     if data.nsecs > 0:
-                        df.append_section('peaks')
-                    for p in range(peaks0, peaks1+1):
+                        df.append_section('phases')
+                    for p in range(phases0, phases1+1):
                         if p != 1:
                             df.append('P%dtime' % p, 'ms', '%.3f')
-                        df.append('P%dampl' % p, pulse_peaks.unit('amplitude'),
-                                  pulse_peaks.format('amplitude'))
+                        df.append('P%dampl' % p, pulse_phases.unit('amplitude'),
+                                  pulse_phases.format('amplitude'))
                         if p != 1:
                             df.append('P%drelampl' % p, '%', '%.2f')
                         df.append('P%dwidth' % p, 'ms', '%.3f')
@@ -379,23 +380,23 @@ def collect_fish(files, simplify_file=False,
                         table.append_data(100.0*rms)
                     table.append_data(species_name)
             else:
-                if peaks0 is not None:
-                    fn = base_path + '-pulsepeaks-%d'%idx + file_ext
+                if phases0 is not None:
+                    fn = base_path + '-pulsephases-%d'%idx + file_ext
                     if zf is not None:
                         fn = io.TextIOWrapper(zf.open(fn, 'r'))
-                    pulse_peaks = TableData(fn)
-                    for p in range(peaks0, peaks1+1):
-                        for pr in range(pulse_peaks.rows()):
-                            if pulse_peaks[pr,'P'] == p:
+                    pulse_phases = TableData(fn)
+                    for p in range(phases0, phases1+1):
+                        for pr in range(pulse_phases.rows()):
+                            if pulse_phases[pr,'P'] == p:
                                 break
                         else:
                             continue
                         if p != 1:
-                            table.append_data(pulse_peaks[pr,'time'], 'P%dtime' % p)
-                        table.append_data(pulse_peaks[pr,'amplitude'], 'P%dampl' % p)
+                            table.append_data(pulse_phases[pr,'time'], 'P%dtime' % p)
+                        table.append_data(pulse_phases[pr,'amplitude'], 'P%dampl' % p)
                         if p != 1:
-                            table.append_data(pulse_peaks[pr,'relampl'], 'P%drelampl' % p)
-                        table.append_data(pulse_peaks[pr,'width'], 'P%dwidth' % p)
+                            table.append_data(pulse_phases[pr,'relampl'], 'P%drelampl' % p)
+                        table.append_data(pulse_phases[pr,'width'], 'P%dwidth' % p)
                 if len(pulse_names) > 0:
                     fn = base_path + '-eodwaveform-%d'%idx + file_ext
                     if zf is not None:
@@ -500,9 +501,9 @@ def main(cargs=None):
                         help='remove initial common directories from input files')
     parser.add_argument('-m', dest='max_fish', type=int, metavar='N',
                         help='maximum number of fish to be taken from each recording')
-    parser.add_argument('-p', dest='pulse_peaks', type=rangestr,
+    parser.add_argument('-p', dest='pulse_phases', type=rangestr,
                         default=(0, 1), metavar='N:M',
-                        help='add properties of peak N to M of pulse-type EODs to the table')
+                        help='add properties of phase N to M of pulse-type EODs to the table')
     parser.add_argument('-w', dest='harmonics', type=int, default=3, metavar='N',
                         help='add properties of first N harmonics of wave-type EODs to the table')
     parser.add_argument('-r', dest='remove_cols', action='append', default=[], metavar='COLUMN',
@@ -611,7 +612,7 @@ def main(cargs=None):
                                            md, rec_data, args.skip,
                                            temp_col, args.q10,
                                            args.max_fish, args.harmonics,
-                                           args.pulse_peaks[0],  args.pulse_peaks[1],
+                                           args.pulse_phases[0],  args.pulse_phases[1],
                                            cfg, verbose)
     # write tables:
     if len(file_suffix) > 0 and file_suffix[0] != '-':

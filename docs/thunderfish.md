@@ -349,7 +349,7 @@ The following files are generated:
 - `RECORDING-CHANNEL-TIME-wavefish.EXT`: list of properties of good EODs of wave-type fish
 - `RECORDING-CHANNEL-TIME-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
 - `RECORDING-CHANNEL-TIME-pulsefish.EXT`: list of properties of good EODs of pulse-type fish
-- `RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT`: for each pulse-type fish properties of peaks and troughs
+- `RECORDING-CHANNEL-TIME-pulsephases-N.EXT`: for each pulse-type fish properties of EOD phases
 - `RECORDING-CHANNEL-TIME-pulsetimes-N.EXT`: for each pulse-type fish the time points of detected EODs
 - `RECORDING-CHANNEL-TIME-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a single pulse
 
@@ -425,7 +425,7 @@ The columns contain:
 3. `std` Corresponding standard deviation.
 4. `fit` A fit to the averaged waveform. In case of a wave fish this
    is a Fourier series, for pulse fish it is an exponential fit to the
-   tail of the last peak.
+   tail of the last EOD phase.
 
 
 ### RECORDING-CHANNEL-TIME-waveeodfs.EXT
@@ -871,10 +871,10 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">tstart</th>
     <th align="left">tend</th>
     <th align="left">width</th>
-    <th align="left">P2-P1-dist</th>
+    <th align="left">peak-dist</th>
     <th align="left">tau</th>
-    <th align="left">firstpeak</th>
-    <th align="left">lastpeak</th>
+    <th align="left">firstphase</th>
+    <th align="left">lastphase</th>
     <th align="left">totalarea</th>
     <th align="left">positivearea</th>
     <th align="left">negativearea</th>
@@ -979,7 +979,7 @@ The columns contain:
 7. `index` Index of the fish (the number that is also used to number the files).
 8. `EODf` EOD frequency in Hertz.
 9. `period` Period between two pulses (1/EODf) in milliseconds.
-10. `max-ampl` Amplitude of the largest peak (P1 peak) in the units of the input data.
+10. `max-ampl` Amplitude of the largest phase (P1 phase) in the units of the input data.
 11. `min-ampl` Amplitude of the largest trough in the units of the input data.
 12. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
 13. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
@@ -989,14 +989,14 @@ The columns contain:
 16. `tstart` Time where the pulse starts relative to P1 in milliseconds.
 17. `tend` Time where the pulse ends relative to P1 in milliseconds.
 18. `width` Total width of the pulse in milliseconds.
-19. `P2-P1-dist`: Distance between P2 and P1 in milliseconds. Zero if p2 is not present.
+19. `peak-dist`: Distance between minimum and maximum phase in milliseconds.
 20. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-21. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1).
-22. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3).
-23. `totalarea` Sum of areas under positive and negative peaks.
-24. `positivearea` Area under positive peaks relative to total area.
-25. `negativearea` Area under negative peaks relative to total area.
-26. `polaritybalance` Contrast between areas under positive and negative peak.
+21. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
+22. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
+23. `totalarea` Sum of areas under positive and negative phases.
+24. `positivearea` Area under positive phases relative to total area.
+25. `negativearea` Area under negative phases relative to total area.
+26. `polaritybalance` Contrast between areas under positive and negative phases.
 27. `n` Number of EODs used for computing the averaged EOD waveform.
 28. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
 29. `peakenergy` Peak energy of the single pulse spectrum.
@@ -1007,9 +1007,9 @@ The columns contain:
 34. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
 35. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
-### RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT
+### RECORDING-CHANNEL-TIME-pulsephases-N.EXT
 
-Properties of peaks and troughs of a pulse-type fish's EOD.
+Properties of phases of a pulse-type fish's EOD.
 
 <table>
 <thead>
@@ -1056,14 +1056,14 @@ Properties of peaks and troughs of a pulse-type fish's EOD.
 
 The columns contain:
 
-1. `P` Name of the peak/trough. Peaks and troughs are numbered sequentially. P1 is the 
-   largest peak with positive amplitude.
-2. `time` Time of the peak/trough relative to P1 in milliseconds.
-3. `amplitude` Amplitude of the peak/trough in the unit of the input data.
-4. `relampl` Amplitude of the peak/trough relative to the amplitude of P1.
-5. `width` Width of the peak/trough at half height in milliseconds. 
-6. `area` Area under the peak/trough.
-7. `relaarea` Area under the peak/trough relative to total area.
+1. `P` Name of the phase. Phases are numbered sequentially. P1 is the 
+   largest phase with positive amplitude.
+2. `time` Time of the phase's peak/trough relative to P1 in milliseconds.
+3. `amplitude` Amplitude of the phase in the unit of the input data.
+4. `relampl` Amplitude of the phase relative to the amplitude of P1.
+5. `width` Width of the phase at half height in milliseconds. 
+6. `area` Area under the phase.
+7. `relaarea` Area of the phase relative to total area.
 
 
 ### RECORDING-CHANNEL-TIME-pulsetimes-N.EXT

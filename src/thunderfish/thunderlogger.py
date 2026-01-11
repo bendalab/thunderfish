@@ -23,9 +23,9 @@ from thunderlab.eventdetection import hist_threshold
 
 from .version import __version__, __year__
 from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
-from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
+from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_phases
 from .eodanalysis import load_eod_waveform, load_wave_fish, load_pulse_fish
-from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
+from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_phases
 from .eodanalysis import wave_similarity, pulse_similarity
 from .thunderfish import configuration, save_configuration
 from .thunderfish import detect_eods, remove_eod_files
@@ -281,8 +281,8 @@ def save_data(output_folder, name, pulse_fishes, wave_fishes,
                 save_eod_waveform(fish.waveform, unit, idx, out_path,
                                   **write_table_args(cfg))
                 if fish.peaks is not None:
-                    save_pulse_peaks(fish.peaks, unit, idx, out_path,
-                                     **write_table_args(cfg))
+                    save_pulse_phases(fish.peaks, unit, idx, out_path,
+                                      **write_table_args(cfg))
                 save_times(fish.times, idx, out_path, name,
                            **write_table_args(cfg))
                 pulse_props.append(fish.props)
@@ -345,7 +345,7 @@ def load_data(files, start_time=None):
                     channels.add((t['device'], t['channel']))
                 try:
                     peaks, unit = \
-                        load_pulse_peaks(base_file + 'pulsepeaks-%d'%idx + ext)
+                        load_pulse_phases(base_file + 'pulsephases-%d'%idx + ext)
                     fish.peaks = peaks
                 except FileNotFoundError:
                     fish.peaks = None
