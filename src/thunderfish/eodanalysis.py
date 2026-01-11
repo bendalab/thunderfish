@@ -1224,10 +1224,11 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     rmssem = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
 
     # integrals and polarity balance:
-    pos_area = np.sum(meod[meod[:,1] > 0, 1])*dt
-    neg_area = np.sum(meod[meod[:,1] < 0, 1])*dt
-    total_area = pos_area - neg_area
-    polarity_balance = (pos_area + neg_area)/total_area
+    pos_area = np.sum(meod[meod[:, 1] > 0, 1])*dt
+    neg_area = np.sum(meod[meod[:, 1] < 0, 1])*dt
+    total_area = np.sum(np.abs(meod[:, 1]))*dt
+    integral_area = np.sum(meod[:, 1])*dt   # = pos_area + neg_area
+    polarity_balance = integral_area/total_area
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
