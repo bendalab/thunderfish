@@ -73,7 +73,7 @@ trace_color = '#D71000'
 data_color = '#1040C0'
 """ Default color for the full data trace."""
 
-fit_color = '#E09080'
+fit_color = '#8000C0'
 """ Default color for fits."""
 
 spectrum_color = '#1040C0'
@@ -89,13 +89,13 @@ trace_style = dict(color=trace_color, lw=2)
                            
 spectrum_style = dict(color=spectrum_color, lw=2)
 
-eod_styles = dict(mstyle=dict(color=trace_color, lw=3),
+eod_styles = dict(mstyle=dict(color=trace_color, lw=2),
                   pstyle=dict(facecolor='#00A050', alpha=0.2,
                               edgecolor='none'),
                   nstyle=dict(facecolor='#1040C0', alpha=0.2,
                               edgecolor='none'),
                   sstyle=dict(color='0.8'),
-                  fstyle=dict(color=fit_color, lw=3),
+                  fstyle=dict(color=fit_color, lw=2),
                   zstyle=dict(color='0.3', lw=1))
                       
 snippet_style = dict(scaley=False, lw=0.5, color='0.6')
