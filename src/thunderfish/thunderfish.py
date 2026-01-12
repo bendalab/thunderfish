@@ -50,6 +50,7 @@ from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
+from .fakefish import pulsefish_spectrum
 from .eodanalysis import eod_waveform, waveeod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_pulse_eods
@@ -76,7 +77,10 @@ fit_color = '#E09080'
 """ Default color for fits."""
 
 spectrum_color = '#1040C0'
-""" Default color for power spectra."""
+""" Default color for spectra."""
+
+analytic_spectrum_color = '#00D0B0'
+""" Default color for analyically computed spectra."""
 
 data_styles = dict(dstyle=dict(color=data_color, lw=1.4),
                    wstyle=dict(color=trace_color, lw=1.4))
@@ -91,7 +95,7 @@ eod_styles = dict(mstyle=dict(color=trace_color, lw=3),
                   nstyle=dict(facecolor='#1040C0', alpha=0.2,
                               edgecolor='none'),
                   sstyle=dict(color='0.8'),
-                  fstyle=dict(color=fit_color, lw=6),
+                  fstyle=dict(color=fit_color, lw=3),
                   zstyle=dict(color='0.3', lw=1))
                       
 snippet_style = dict(scaley=False, lw=0.5, color='0.6')
@@ -99,7 +103,8 @@ snippet_style = dict(scaley=False, lw=0.5, color='0.6')
 wave_spec_styles = dict(mstyle=dict(color=spectrum_color, markersize=10),
                         sstyle=dict(color=spectrum_color, alpha=0.5, lw=2))
 
-pulse_spec_styles = dict(sstyle=dict(color=spectrum_color, lw=3),
+pulse_spec_styles = dict(sstyle=dict(color=spectrum_color, lw=2),
+                         astyle=dict(color=analytic_spectrum_color, lw=2),
                          pstyle=dict(ls='', marker='o', markersize=12,
                                      color=spectrum_color, mec='none', mew=0,
                                      alpha=0.6),
@@ -209,7 +214,13 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
         each wavefish the relative amplitudes and phases of the harmonics.
     peak_data: list of 2_D arrays
         For each pulse fish a list of peak properties
-        (index, time, and amplitude), empty array for wave fish.
+        (index, time, amplitude, normalized amplitude, width, area, normalized area),
+        empty array for wave fish.
+    pulse_data: list of dict
+        For each pulse fish a dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.  Use the
+        functions provided in thunderfish.fakefish to simulate pulse
+        fish EODs from this data.
     power_thresh:  2 D array or None
         Frequency (first column) and power (second column) of threshold
         derived from single pulse spectra to discard false wave fish.
@@ -255,6 +266,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
     mean_eods = []
     spec_data = []
     peak_data = []
+    pulseeod_data = []
     power_thresh = None
     skip_reason = []
     max_pulse_amplitude = 0.0
@@ -281,8 +293,8 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 eod_waveform(data, rate, eod_ts, win_fac=0.8,
                              min_win=cfg.value('eodMinPulseSnippet'),
                              min_sem=False, **eod_waveform_args(cfg))
-            mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
-                                                          **analyze_pulse_args(cfg))
+            mean_eod, props, peaks, pulse, power = analyze_pulse(mean_eod, eod_times0,
+                                                                 **analyze_pulse_args(cfg))
             if len(peaks) == 0:
                 print('error: no peaks in pulse EOD detected')
                 continue
@@ -303,6 +315,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 mean_eods.append(mean_eod)
                 spec_data.append(power)
                 peak_data.append(peaks)
+                pulseeod_data.append(pulse)
                 if verbose > 0:
                     print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
             else:
@@ -401,6 +414,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 mean_eods.append(mean_eod)
                 spec_data.append(sdata)
                 peak_data.append([])
+                pulseeod_data.append(dict())
                 if verbose > 0:
                     print('take   %6.1fHz wave  fish: %s' % (props['EODf'], msg))
             else:
@@ -412,7 +426,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
         wave_eodfs = [eodfs for idx, eodfs in zip(wave_indices, wave_eodfs) if idx > -2]
         wave_indices = np.array([idx for idx in wave_indices if idx > -2], dtype=int)
     return (psd_data, wave_eodfs, wave_indices, eod_props, mean_eods,
-            spec_data, peak_data, power_thresh, skip_reason, zoom_window)
+            spec_data, peak_data, pulseeod_data, power_thresh, skip_reason, zoom_window)
 
 
 def remove_eod_files(output_basename, verbose, cfg):
@@ -455,7 +469,7 @@ def axes_style(ax):
 def plot_eods(base_name, message_filename,
               raw_data, rate, channel, idx0, idx1, clipped,
               psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
-              peak_data, spec_data, indices, unit, zoom_window, tfac=1,
+              peak_data, pulse_data, spec_data, indices, unit, zoom_window, tfac=1,
               n_snippets=10, power_thresh=None, label_power=True,
               all_eods=False, spec_plots='auto', skip_bad=True,
               log_freq=False, min_freq=0.0, max_freq=3000.0,
@@ -499,7 +513,13 @@ def plot_eods(base_name, message_filename,
         Properties for each waveform in mean_eods.
     peak_data: list of 2_D arrays
         For each pulsefish a list of peak properties
-        (index, time, and amplitude).
+        (index, time, amplitude, normalized amplitude, width, area, normalized area),
+        empty array for wave fish.
+    pulse_data: list of dict
+        For each pulse fish a dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.  Use the
+        functions provided in thunderfish.fakefish to simulate pulse
+        fish EODs from this data.
     spec_data: list of 2_D arrays
         For each pulsefish a power spectrum of the single pulse and for
         each wavefish the relative amplitudes and phases of the harmonics.
@@ -820,6 +840,11 @@ def plot_eods(base_name, message_filename,
         if spec_plots:
             spec = spec_data[idx]
             if  props['type'] == 'pulse':
+                pulse = pulse_data[idx]
+                if len(pulse) > 0:
+                    afreqs, aspec = pulsefish_spectrum(pulse, spec[-1, 0], np.mean(np.diff(spec[:, 0])))
+                    aspec = np.abs(aspec)**2
+                    spec = np.hstack((spec, aspec.reshape((-1, 1))))
                 ax = fig.add_axes([midx, posy, halfwidth, pheight])
                 axes_style(ax)
                 plot_pulse_spectrum(ax, spec, props, **pulse_spec_styles)
@@ -854,7 +879,7 @@ def plot_eods(base_name, message_filename,
                             
 def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                       clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
-                      eod_props, peak_data, spec_data,
+                      eod_props, peak_data, pulse_data, spec_data,
                       unit, zoom_window, tfac=1,
                       n_snippets=10, power_thresh=None, label_power=True,
                       skip_bad=True, log_freq=False,
@@ -895,7 +920,13 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
         Properties for each waveform in mean_eods.
     peak_data: list of 2_D arrays
         For each pulsefish a list of peak properties
-        (index, time, and amplitude).
+        (index, time, amplitude, normalized amplitude, width, area, normalized area),
+        empty array for wave fish.
+    pulse_data: list of dict
+        For each pulse fish a dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.  Use the
+        functions provided in thunderfish.fakefish to simulate pulse
+        fish EODs from this data.
     spec_data: list of 2_D arrays
         For each pulsefish a power spectrum of the single pulse and for
         each wavefish the relative amplitudes and phases of the harmonics.
@@ -1031,10 +1062,14 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
         mpdf = None
         if 'S' in subplots:
             mpdf = PdfPages(base_name + '-spectrum.pdf')
-        for props, peaks, spec in zip(eod_props, peak_data, spec_data):
+        for props, pulse, spec in zip(eod_props, pulse_data, spec_data):
             if spec is None:
                 continue
             if props is not None and props['type'] == 'pulse':
+                if len(pulse) > 0:
+                    afreqs, aspec = pulsefish_spectrum(pulse, spec[-1, 0], np.mean(np.diff(spec[:, 0])))
+                    aspec = np.abs(aspec)**2
+                    spec = np.hstack((spec, aspec.reshape((-1, 1))))
                 fig, ax = plt.subplots(figsize=(5, 3.5))
                 fig.subplots_adjust(left=0.15, right=0.967, bottom=0.16, top=0.88)
                 axes_style(ax)
@@ -1062,7 +1097,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
         mpdf = None
         if 'E' in subplots:
             mpdf = PdfPages(base_name + '-eods.pdf')
-        for meod, props, peaks, spec in zip(mean_eods, eod_props, peak_data, spec_data):
+        for meod, props, peaks, pulse, spec in zip(mean_eods, eod_props, peak_data, pulse_data, spec_data):
             if meod is None or spec is None:
                 continue
             fig = plt.figure(figsize=(10, 3.5))
@@ -1080,6 +1115,10 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
             if not props is None and props['type'] == 'pulse':
+                if len(pulse) > 0:
+                    afreqs, aspec = pulsefish_spectrum(pulse, spec[-1, 0], np.mean(np.diff(spec[:, 0])))
+                    aspec = np.abs(aspec)**2
+                    spec = np.hstack((spec, aspec.reshape((-1, 1))))
                 ax2 = fig.add_subplot(gs[:,1])
                 axes_style(ax2)
                 plot_pulse_spectrum(ax2, spec, props, **pulse_spec_styles)
@@ -1159,11 +1198,11 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
     verbose: int
        Verbosity level (for debugging).
     """
-    if len(save_subplots) == 0:
-        save_subplots = 'rtpwsed'  # plot everything
+    #if len(save_subplots) == 0:
+    #    save_subplots = 'rtpwsed'  # plot everything
     # load analysis results:
     mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
-        peak_data, base_name, channel, unit = load_analysis(files)
+        peak_data, pulse_data, base_name, channel, unit = load_analysis(files)
     if len(mean_eods) == 0 or all(me is None for me in mean_eods):
         save_subplots = save_subplots.replace('w', '')
         save_subplots = save_subplots.replace('W', '')
@@ -1224,7 +1263,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         fig = plot_eods(os.path.basename(base_name), None, data, rate,
                         channel, idx0, idx1, clipped, psd_data,
                         wave_eodfs, wave_indices, mean_eods,
-                        eod_props, peak_data, spec_data, None, unit,
+                        eod_props, peak_data, pulse_data, spec_data, None, unit,
                         zoom_window, tfac, 10, None, True, all_eods,
                         spec_plots, skip_bad, log_freq, min_freq,
                         max_freq, interactive=not save_plot,
@@ -1243,7 +1282,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         plot_eod_subplots(output_basename, save_subplots, data, rate,
                           idx0, idx1, clipped, psd_data, wave_eodfs,
                           wave_indices, mean_eods, eod_props,
-                          peak_data, spec_data, unit, zoom_window, tfac, 10,
+                          peak_data, pulse_data, spec_data, unit, zoom_window, tfac, 10,
                           None, True, skip_bad, log_freq, min_freq,
                           max_freq, save_plot)
     return None
@@ -1371,7 +1410,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
         # detect EODs in the data:
         psd_data, wave_eodfs, wave_indices, eod_props, \
-        mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
+        mean_eods, spec_data, peak_data, pulse_data, power_thresh, skip_reason, zoom_window = \
           detect_eods(data, rate, min_clip, max_clip, filename, mode,
                       verbose, plot_level, cfg)
         if not found_bestwindow:
@@ -1417,7 +1456,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
             remove_eod_files(output_basename, verbose, cfg)
             if found_bestwindow:
                 save_analysis(output_basename, zip_file, eod_props,
-                              mean_eods, spec_data, peak_data,
+                              mean_eods, spec_data, peak_data, pulse_data,
                               wave_eodfs, wave_indices, unit, verbose,
                               **write_table_args(cfg))
         # summary plots:
@@ -1429,7 +1468,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                                 raw_data, rate, chl, idx0, idx1,
                                 clipped, psd_data[0], wave_eodfs,
                                 wave_indices, mean_eods, eod_props,
-                                peak_data, spec_data, None, unit,
+                                peak_data, pulse_data, spec_data, None, unit,
                                 zoom_window, tfac, n_snippets, power_thresh,
                                 True, all_eods, spec_plots, skip_bad,
                                 log_freq, min_freq, max_freq,
@@ -1450,7 +1489,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                                   raw_data, rate, idx0, idx1, clipped,
                                   psd_data[0], wave_eodfs,
                                   wave_indices, mean_eods, eod_props,
-                                  peak_data, spec_data, unit,
+                                  peak_data, pulse_data, spec_data, unit,
                                   zoom_window, tfac, n_snippets,
                                   power_thresh, True, skip_bad,
                                   log_freq, min_freq, max_freq,

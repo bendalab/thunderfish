@@ -603,7 +603,7 @@ def pulsefish_spectrum(fish, fmax=10000, deltaf=1):
     return freqs, spec
 
 
-def pulsefish_parameter(times, amplitudes, stdevs):
+def pulsefish_parameter(fish):
     """ Transform pulse parameters to flat list.
 
     Takes the output of pulsefish_phases() and makes it suitable
@@ -611,12 +611,17 @@ def pulsefish_parameter(times, amplitudes, stdevs):
     
     Parameters
     ----------
-    times : array of floats
-        Positions of the phases.
-    amplitudes : array of floats
-        Amplitudes of the phases.
-    stdevs : array of floats
-        Standard deviations of the phases.
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes, and standard deviations
+        of Gaussians phases that are superimposed to simulate EOD waveforms
+        of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_eodphases` dictionary.
+        If dictionary then take pulse properties from the 'times', 'amlitudes'
+        and 'stdevs' keys.
+        If tuple then the first element is the list of phase positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
     
     Returns
     -------
@@ -626,8 +631,9 @@ def pulsefish_parameter(times, amplitudes, stdevs):
         position, amplitude, and phase of second phase,
         and so on.
     """
+    times, ampls, stdevs = pulsefish_phases(fish)
     tas = []
-    for t, a, s in zip(times, amplitudes, stdevs):
+    for t, a, s in zip(times, ampls, stdevs):
         tas.extend((t, a, s))
     return tas
 
@@ -726,7 +732,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, rate=44100.0,
     pulse_duration = x[-1] - x[0]
     
     # generate a single pulse:
-    pulse = pulsefish_waveform(x, *pulsefish_parameter(phase_times, phase_amplitudes, phase_stdevs))
+    pulse = pulsefish_waveform(x, *pulsefish_parameter((phase_times, phase_amplitudes, phase_stdevs)))
     #pulse = np.zeros(len(x))
     #for time, ampl, std in zip(phase_times, phase_amplitudes, phase_stdevs):
     #    pulse += ampl * np.exp(-0.5*((x-time)/std)**2)

@@ -124,7 +124,7 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                                 max_clip = cfg.value('maxDataAmplitude')
                             name = file
                             # detect EODs in the data:
-                            _, _, _, eod_props, mean_eods, spec_data, peak_data, _, _, _ = \
+                            _, _, _, eod_props, mean_eods, spec_data, peak_data, _, _, _, _ = \
                               detect_eods(data[:,channel], sf.rate,
                                           min_clip, max_clip,
                                           name, verbose, plot_level, cfg)
@@ -145,8 +145,8 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                                 else:
                                     fish_dist = 10000.0
                                     for pfish in pulse_fishes[channel]:
-                                        ddist = np.abs(pfish.props['P1-P1-dist'] -
-                                                       props['P1-P1-dist'])
+                                        ddist = np.abs(pfish.props['peak-dist'] -
+                                                       props['peak-dist'])
                                         if ddist < fish_dist:
                                             fish_dist = ddist
                                             fish_deltaf = np.abs(pfish.props['EODf'] -

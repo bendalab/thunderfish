@@ -345,7 +345,7 @@ class EODExplorer(MultivariateExplorer):
                             cfg.value('windowPosition'), cfg)
         # detect EODs in the data:
         psd_data, fishlist, _, eod_props, mean_eods, \
-          spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
+          spec_data, peak_data, pulse_data, power_thresh, skip_reason, zoom_window = \
           detect_eods(data, rate, min_clip, max_clip, recording, 0, 0, cfg)
         # plot EOD:
         idx = int(self.eoddata[index,'index']) if 'index' in self.eoddata else 0
@@ -354,7 +354,7 @@ class EODExplorer(MultivariateExplorer):
             plt.rcParams[k] = self.plt_params[k]
         fig = plot_eods(file_base, None, raw_data, rate, None, idx0, idx1,
                         clipped, psd_data[0], fishlist, None,
-                        mean_eods, eod_props, peak_data, spec_data,
+                        mean_eods, eod_props, peak_data, pulse_data, spec_data,
                         [idx], unit, zoom_window, 10, None, True, False,
                         'auto', False, 0.0, 3000.0,
                         interactive=True, verbose=0)

@@ -58,6 +58,8 @@ Analysis of EOD waveforms.
 - `load_pulse_spectrum()`: load spectrum of pulse EOD from file.
 - `save_pulse_phases()`: save phase properties of pulse EOD to file.
 - `load_pulse_phases()`: load phase properties of pulse EOD from file.
+- `save_pulse_gaussians()`: save Gaussian phase properties of pulse EOD to file.
+- `load_pulse_gaussians()`: load Gaussian phase properties of pulse EOD from file.
 - `save_pulse_times()`: save times of pulse EOD to file.
 - `load_pulse_times()`: load times of pulse EOD from file.
 - `parse_filename()`: parse components of an EOD analysis file name.
@@ -106,6 +108,8 @@ from thunderlab.dataloader import load_data
 
 from .harmonics import fundamental_freqs_and_power
 from .fakefish import pulsefish_parameter, pulsefish_waveform
+from .fakefish import normalize_pulsefish, export_pulsefish
+from .fakefish import normalize_wavefish, export_wavefish
 
 
 def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
@@ -864,7 +868,7 @@ def analyze_pulse_spectrum(freqs, energy):
     ip = np.argmax(energy)
     peak_freq = freqs[ip]
     peak_energy = energy[ip]
-    it = np.argmin(energy[:ip])
+    it = np.argmin(energy[:ip]) if ip > 0 else 0
     trough_freq = freqs[it]
     trough_energy = energy[it]
     att5 = decibel(np.mean(energy[freqs<5.0]), peak_energy)
@@ -1001,12 +1005,11 @@ def decompose_pulse(phases, eod, ratetime=None):
 
     Returns
     -------
-    times : array of floats
-        Positions of the phases.
-    amplitudes : array of floats
-        Amplitudes of the phases.
-    stdevs : array of floats
-        Standard deviations of the phases.
+    pulse: dict
+        Dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.  Use the
+        functions provided in thunderfish.fakefish to simulate pulse
+        fish EODs from this data.
 
     """
     if eod.ndim == 2:
@@ -1017,12 +1020,13 @@ def decompose_pulse(phases, eod, ratetime=None):
     else:
         time = np.arange(len(eod))/rate
     fac = 0.5/np.sqrt(2*np.log(2))  # convert half width to standrad deviation
-    popt = pulsefish_parameter(phases[:, 1], phases[:, 2], phases[:, 4]*fac)
+    popt = pulsefish_parameter((phases[:, 1], phases[:, 2], phases[:, 4]*fac))
     popt, pcov = curve_fit(pulsefish_waveform, time, eod, popt)
     times = np.asarray(popt[0::3])
     ampls = np.asarray(popt[1::3])
     stdevs = np.asarray(popt[2::3])
-    return times, ampls, stdevs
+    pulse = dict(times=times, amplitudes=ampls, stdevs=stdevs)
+    return pulse
 
             
 def analyze_pulse_tail(peak_index, eod, ratetime=None,
@@ -1044,10 +1048,11 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
         rate in Hertz or the time array corresponding to `eod`.
     threshold: float
         Minimum size of peaks of the pulse waveform.
-    fit_frac: float
+    fit_frac: float or None
         An exponential is fitted to the tail of the last peak/trough
         starting where the waveform falls below this fraction of the
         peak's height (0-1).
+        If None, do not attempt to fit.
     
     Returns
     -------
@@ -1056,6 +1061,8 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
     fit: 1-D array of float
         Time trace of the fit corresponding to `eod`.
     """
+    if fit_frac is None:
+        return None, None
     if eod.ndim == 2:
         time = eod[:, 0]
         eod = eod[:, 1]
@@ -1226,9 +1233,9 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         The eod waveform. First column is time in seconds,
         second column the eod waveform.
         Further columns are kept from the input `eod`.
-        As the two last columns the fit to the tail of the last peak
-        and the waveform resulting from the decomposition into Gaussians
-        is appended.
+        As the two last columns the waveform resulting from the
+        decomposition into Gaussians and the fit to the tail of the
+        last peak is appended.
     props: dict
         A dictionary with properties of the analyzed EOD waveform.
 
@@ -1284,6 +1291,11 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         width of phase at half height,
         area under the phase, and area under the phase relative to total area.
         Empty if waveform is not a pulse EOD.
+    pulse: dict
+        Dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.  Use the
+        functions provided in thunderfish.fakefish to simulate pulse
+        fish EODs from this data.
     energy: 2-D array
         The energy spectrum of a single pulse. First column are the
         frequencies, second column the energy in x^2 s/Hz.
@@ -1418,9 +1430,9 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
                                   min_dist=min_dist, width_frac=width_frac)
 
     # decompose EOD waveform:
-    times, ampls, stdevs = decompose_pulse(phases, meod)
-    eod_fit = pulsefish_waveform(meod[:, 0], *pulsefish_parameter(times, ampls, stdevs))
-    meod[:, -1] = eod_fit
+    pulse = decompose_pulse(phases, meod)
+    eod_fit = pulsefish_waveform(meod[:, 0], *pulsefish_parameter(pulse))
+    meod[:, -2] = eod_fit
         
     # fit exponential to last peak/trough:
     if len(phases) > 1:
@@ -1428,7 +1440,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         tau, fit = analyze_pulse_tail(pi, meod, None,
                                       threshold, fit_frac)
         if fit is not None:
-            meod[:, -2] = fit
+            meod[:, -1] = fit
 
     # energy spectrum of single pulse:
     freqs, energy = pulse_spectrum(meod, None, freq_resolution, fade_frac)
@@ -1484,7 +1496,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         props['n'] = len(eod_times)
         props['times'] = eod_times + toffs
     
-    return meod, props, phases, eenergy
+    return meod, props, phases, pulse, eenergy
 
 
 def load_species_waveforms(species_file='none'):
@@ -2195,7 +2207,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       nstyle=dict(facecolor='tab:blue', alpha=0.2,
                                   edgecolor='none'),
                       sstyle=dict(color='0.8'),
-                      fstyle=dict(lw=6, color='tab:blue'),
+                      fstyle=dict(lw=3, color='tab:blue'),
                       zstyle=dict(lw=1, color='0.7')):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
@@ -2206,8 +2218,9 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     eod_waveform: 2-D array
         EOD waveform. First column is time in seconds, second column
         the (mean) eod waveform. The optional third column is the
-        standard error, and the optional fourth column is a fit on the
-        waveform.
+        standard error, the optional fourth column is a fit of the
+        whole waveform, and the optional fourth column is a fit of 
+        the tails of a pulse waveform.
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_wave()` and `analyze_pulse()`.
@@ -2249,13 +2262,13 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 ax.fill_between(time, mean_eod, 0, mean_eod <= 0, zorder=4,
                                 **nstyle)
     # plot fits:
+    if eod_waveform.shape[1] > 3:
+        ax.plot(time, eod_waveform[:, 3], zorder=4, **fstyle)
     if eod_waveform.shape[1] > 4:
         fs = dict(**fstyle)
         if 'lw' in fs:
-            fs['lw'] *= 0.5
-        ax.plot(time, eod_waveform[:, 4], zorder=4, **fs)
-    if eod_waveform.shape[1] > 3:
-        ax.plot(time, eod_waveform[:, 3], zorder=5, **fstyle)
+            fs['lw'] *= 2
+        ax.plot(time, eod_waveform[:, 4], zorder=5, **fs)
     # plot waveform:
     ax.plot(time, mean_eod, zorder=10, **mstyle)
     # plot standard error:
@@ -2457,6 +2470,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
 
 def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
                         sstyle=dict(lw=3, color='tab:blue'),
+                        astyle=dict(lw=4, color='tab:cyan'),
                         pstyle=dict(ls='', marker='o', markersize=10,
                                     color='tab:blue', mec='none', mew=0,
                                     alpha=0.4),
@@ -2471,6 +2485,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     energy: 2-D array
         The energy spectrum of a single pulse as returned by `analyze_pulse()`.
         First column are the frequencies, second column the energy.
+        An optional third column is an analytically computed spectrum.
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_pulse()`.
@@ -2479,7 +2494,12 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     max_freq: float
         Maximun frequency of the spectrum to be plotted (logscale!).
     sstyle: dict
-        Arguments passed on to the plot command for the enrgy spectrum.
+        Arguments passed on to the plot command for the energy spectrum
+        computed from the data.
+    astyle: dict
+        Arguments passed on to the plot command for the energy spectrum
+        that was analytically computed from the Gaussian fits
+        (optional third column in `energy`).
     pstyle: dict
         Arguments passed on to the plot command for marking the peak frequency.
     cstyle: dict
@@ -2490,47 +2510,50 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     att50_color: matplotlib color specification
         Color for the rectangular patch marking the first 50 Hz.
     """
-    ax.axvspan(1, 50, color=att50_color, zorder=1)
+    ax.axvspan(1, 50, color=att50_color, zorder=10)
     att = props['energyatt50']
     if att < -5.0:
         ax.text(10.0, att+1.0, f'{att:.0f}dB',
-                ha='left', va='bottom', zorder=10)
+                ha='left', va='bottom', zorder=100)
     else:
         ax.text(10.0, att-1.0, f'{att:.0f}dB',
-                ha='left', va='top', zorder=10)
-    ax.axvspan(1, 5, color=att5_color, zorder=2)
+                ha='left', va='top', zorder=100)
+    ax.axvspan(1, 5, color=att5_color, zorder=20)
     att = props['energyatt5']
     if att < -5.0:
         ax.text(4.0, att+1.0, f'{att:.0f}dB',
-                ha='right', va='bottom', zorder=10)
+                ha='right', va='bottom', zorder=100)
     else:
         ax.text(4.0, att-1.0, f'{att:.0f}dB',
-                ha='right', va='top', zorder=10)
+                ha='right', va='top', zorder=100)
     lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
         ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att],
-                zorder=3, **cstyle)
+                zorder=30, **cstyle)
         ax.text(1.2*lowcutoff, 0.5*att-1.0, f'{lowcutoff:.0f}Hz',
-                ha='left', va='top', zorder=10)
+                ha='left', va='top', zorder=100)
     highcutoff = props['highcutoff']
-    ax.plot([highcutoff, highcutoff], [-60.0, -3.0], zorder=3, **cstyle)
+    ax.plot([highcutoff, highcutoff], [-60.0, -3.0], zorder=30, **cstyle)
     ax.text(1.2*highcutoff, -3.0, f'{highcutoff:.0f}Hz',
-            ha='left', va='center', zorder=10)
+            ha='left', va='center', zorder=100)
     ref_energy = np.max(energy[:, 1])
+    if energy.shape[1] > 2 and len(astyle) > 0:
+        db = decibel(energy[:, 2], ref_energy)
+        ax.plot(energy[:, 0], db, zorder=45, **astyle)
     db = decibel(energy[:, 1], ref_energy)
-    ax.plot(energy[:, 0], db, zorder=4, **sstyle)
+    ax.plot(energy[:, 0], db, zorder=50, **sstyle)
     peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
-        ax.plot(peakfreq, 0, zorder=5, **pstyle)
+        ax.plot(peakfreq, 0, zorder=60, **pstyle)
         ax.text(peakfreq*1.2, 1.0, f'{peakfreq:.0f}Hz',
-                va='bottom', zorder=10)
+                va='bottom', zorder=100)
     troughfreq = props['troughfreq']
     if troughfreq >= min_freq:
         troughenergy = decibel(props['troughenergy'], ref_energy)
-        ax.plot(troughfreq, troughenergy, zorder=5, **pstyle)
+        ax.plot(troughfreq, troughenergy, zorder=60, **pstyle)
         ax.text(troughfreq, troughenergy - 3,
                 f'{troughenergy:.1f}dB @ {troughfreq:.0f}Hz',
-                ha='center', va='top', zorder=10)
+                ha='center', va='top', zorder=100)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
     ax.set_ylim(-60.0, 2.0)
@@ -2575,6 +2598,8 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
                    ['%.3f', '%.6g', '%.6g'])
     if mean_eod.shape[1] > 3:
         td.append('fit', unit, '%.5f', value=mean_eod[:, 3])
+    if mean_eod.shape[1] > 4:
+        td.append('tailfit', unit, '%.5f', value=mean_eod[:, 4])
     _, ext = os.path.splitext(basename)
     fp = ''
     if not ext:
@@ -3218,6 +3243,92 @@ def load_pulse_phases(file_path):
     return phases, data.unit('amplitude')
 
 
+def save_pulse_gaussians(pulse_data, unit, idx, basename, **kwargs):
+    """Save Gaussian phase properties of pulse EOD to file.
+
+    Parameters
+    ----------
+    pulse: dict
+        Dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform
+        as returned by `decompose_pulse()` and `analyze_pulse()`.
+    unit: string
+        Unit of the waveform data.
+    idx: int or None
+        Index of fish.
+    basename: string or stream
+        If string, path and basename of file.
+        If `basename` does not have an extension,
+        '-pulsegaussians', the fish index, and a file extension are appended.
+        If stream, write pulse phases into this stream.
+    kwargs:
+        Arguments passed on to `TableData.write()`.
+
+    Returns
+    -------
+    filename: string
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
+
+    See Also
+    --------
+    load_pulse_gaussians()
+    """
+    if len(pulse_data) == 0:
+        return None
+    td = TableData(pulse_data,
+                   units=['ms', unit, 'ms'],
+                   formats=['%.3f', '%.5f', '%.3f'])
+    td[:, 'times'] *= 1000
+    td[:, 'stdevs'] *= 1000
+    _, ext = os.path.splitext(basename)
+    fp = ''
+    if not ext:
+        fp = '-pulsegaussians'
+        if idx is not None:
+            fp += '-%d' % idx
+    return td.write_file_stream(basename, fp, **kwargs)
+
+
+def load_pulse_gaussians(file_path):
+    """Load Gaussian phase properties of pulse EOD from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    pulse: dict
+        Dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.
+        Use the functions provided in thunderfish.fakefish to simulate
+        pulse fish EODs from this data.
+    unit: string
+        Unit of Gaussian amplitudes.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
+
+    See Also
+    --------
+    save_pulse_gaussians()
+
+    """
+    data = TableData(file_path)
+    pulses = data.dict()
+    pulses['times'] = np.asarray(pulses['times'])
+    pulses['amplitudes'] = np.asarray(pulses['amplitudes'])
+    pulses['stdevs'] = np.asarray(pulses['stdevs'])
+    pulses['times'] *= 0.001
+    pulses['stdevs'] *= 0.001
+    return pulses, data.unit('amplitudes')
+
+
 def save_pulse_times(pulse_times, idx, basename, **kwargs):
     """Save times of pulse EOD to file.
 
@@ -3293,7 +3404,7 @@ def load_pulse_times(file_path):
 
 
 file_types = ['waveeodfs', 'wavefish', 'pulsefish', 'eodwaveform',
-              'wavespectrum', 'pulsephases', 'pulsespectrum', 'pulsetimes']
+              'wavespectrum', 'pulsephases', 'pulsegaussians', 'pulsespectrum', 'pulsetimes']
 """List of all file types generated and supported by the `save_*` and `load_*` functions."""
 
 
@@ -3372,8 +3483,8 @@ def parse_filename(file_path):
     return recording, base_path, channel, time, ftype, index, ext
 
             
-def save_analysis(output_basename, zip_file, eod_props, mean_eods,
-                  spec_data, phase_data, wave_eodfs, wave_indices, unit,
+def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
+                  phase_data, pulse_data, wave_eodfs, wave_indices, unit,
                   verbose, **kwargs):
     """Save EOD analysis results to files.
 
@@ -3395,6 +3506,9 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
     phase_data: list of 2D array of floats
         Properties of phases of pulse EODs as returned by
         `analyze_pulse()`.
+    pulse_data: list of dict
+        For each pulse fish a dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.
     wave_eodfs: list of 2D array of float
         Each item is a matrix with the frequencies and powers
         (columns) of the fundamental and harmonics (rows) as returned
@@ -3412,7 +3526,7 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
         if zf is None:
             fp = save_func(*args, basename=output, **kwargs)
             if verbose > 0 and fp is not None:
-                print('wrote file %s' % fp)
+                print('wrote file', fp)
         else:
             with io.StringIO() as df:
                 fp = save_func(*args, basename=df, **kwargs)
@@ -3420,18 +3534,22 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
                     fp = output_basename + fp
                     zf.writestr(os.path.basename(fp), df.getvalue())
                     if verbose > 0:
-                        print('zipped file %s' % fp)
+                        print('zipped file', fp)
 
     
     if 'table_format' in kwargs and kwargs['table_format'] == 'py':
-        with open(output_basename+'.py', 'w') as f:
+        with open(output_basename + '.py', 'w') as f:
             name = os.path.basename(output_basename)
-            for k, sdata in enumerate(spec_data):
-                # save wave fish only:
-                if len(sdata)>0 and sdata.shape[1] > 2:
-                    fish = dict(amplitudes=sdata[:, 3], phases=sdata[:, 5])
-                    fish = normalize_wavefish(fish)
-                    export_wavefish(fish, name+'-%d_harmonics' % k, f)
+            for k in range(len((spec_data))):
+                if len(pulse_data[k]) > 0:
+                    fish = normalize_pulsefish(pulse_data[k])
+                    export_pulsefish(fish, f'{name}-{k}_phases', f)
+                else:
+                    sdata = spec_data[k]
+                    if len(sdata) > 0 and sdata.shape[1] > 2:
+                        fish = dict(amplitudes=sdata[:, 3], phases=sdata[:, 5])
+                        fish = normalize_wavefish(fish)
+                        export_wavefish(fish, f'{name}-{k}_harmonics', f)
     else:
         zf = None
         if zip_file:
@@ -3441,7 +3559,8 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
             write_file_zip(zf, save_wave_eodfs, output_basename,
                            wave_eodfs, wave_indices, **kwargs)
         # all wave and pulse fish:
-        for i, (mean_eod, sdata, pdata, props) in enumerate(zip(mean_eods, spec_data, phase_data, eod_props)):
+        for i, (mean_eod, sdata, pdata, pulse, props) in enumerate(zip(mean_eods, spec_data, phase_data,
+                                                                       pulse_data, eod_props)):
             write_file_zip(zf, save_eod_waveform, output_basename,
                            mean_eod, unit, i, **kwargs)
             # spectrum:
@@ -3455,6 +3574,9 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
             # phases:
             write_file_zip(zf, save_pulse_phases, output_basename,
                            pdata, unit, i, **kwargs)
+            # pulses:
+            write_file_zip(zf, save_pulse_gaussians, output_basename,
+                           pulse, unit, i, **kwargs)
             # times:
             write_file_zip(zf, save_pulse_times, output_basename,
                            props, i, **kwargs)
@@ -3495,6 +3617,11 @@ def load_analysis(file_pathes):
     phase_data: list of 2D array of floats
         Properties of phases of pulse-type EODs with columns
         P, time, amplitude, relampl, width, area, relarea
+    pulse_data: list of dict
+        For each pulse fish a dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.  Use the
+        functions provided in thunderfish.fakefish to simulate pulse
+        fish EODs from this data.
     recording: string
         Path and base name of the recording file.
     channel: int
@@ -3509,7 +3636,7 @@ def load_analysis(file_pathes):
     if len(file_pathes) == 1 and os.path.splitext(file_pathes[0])[1][1:] == 'zip':
         zf = zipfile.ZipFile(file_pathes[0])
         file_pathes = sorted(zf.namelist())
-    # first, read wave- and pulse-fish summaries:
+    # read wave- and pulse-fish summaries:
     pulse_fish = False
     wave_fish = False
     for f in file_pathes:
@@ -3525,7 +3652,7 @@ def load_analysis(file_pathes):
     idx_offs = 0
     if wave_fish and not pulse_fish:
         idx_offs = sorted([ep['index'] for ep in eod_props])[0]
-    # then load all other files:
+    # load all other files:
     neods = len(eod_props)
     if neods < 1:
         neods = 1
@@ -3535,6 +3662,7 @@ def load_analysis(file_pathes):
     mean_eods = [None]*neods
     spec_data = [None]*neods
     phase_data = [None]*neods
+    pulse_data = [None]*neods
     unit = None
     for f in file_pathes:
         recording, _, channel, _, ftype, idx, _ = parse_filename(f)
@@ -3551,6 +3679,8 @@ def load_analysis(file_pathes):
             spec_data[idx], unit = load_wave_spectrum(f)
         elif ftype == 'pulsephases':
             phase_data[idx], unit = load_pulse_phases(f)
+        elif ftype == 'pulsegaussians':
+            pulse_data[idx], unit = load_pulse_gaussians(f)
         elif ftype == 'pulsetimes':
             pulse_times = load_pulse_times(f)
             eod_props[idx]['times'] = pulse_times
@@ -3577,7 +3707,7 @@ def load_analysis(file_pathes):
                 eodfs.append(specd)
         wave_eodfs = eodfs
     return mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
-        phase_data, recording, channel, unit
+        phase_data, pulse_data, recording, channel, unit
 
 
 def load_recording(file_path, channel=0, load_kwargs={},
