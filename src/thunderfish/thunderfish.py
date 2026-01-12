@@ -1698,7 +1698,7 @@ def main(cargs=None):
         _, base_name, _, _, ftype, _, ext = parse_filename(f)
         if ext == 'zip' or (ext in exts and ftype in file_types):
             if len(result_files) == 0 or \
-               not result_files[-1][-1].startswith(base_name):
+               not result_files[-1][-1].startswith(str(base_name)):
                 result_files.append([f])
             else:
                 result_files[-1].append(f)

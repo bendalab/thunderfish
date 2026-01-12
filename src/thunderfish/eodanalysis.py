@@ -88,7 +88,6 @@ Analysis of EOD waveforms.
 - `pulse_quality_args()`: retrieve parameters for `pulse_quality()` from configuration.
 """
 
-import os
 import io
 import glob
 import zipfile
@@ -98,6 +97,7 @@ try:
 except ImportError:
     pass
 
+from pathlib import Path
 from scipy.optimize import curve_fit
 from numba import jit
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
@@ -1561,8 +1561,7 @@ def load_species_waveforms(species_file='none'):
         `pulse_names`.  First column of a waveform is time in seconds,
         second column is the EOD waveform.
     """
-    if len(species_file) == 0 or species_file == 'none' or \
-       not os.path.isfile(species_file):
+    if not Path(species_file).is_file():
         return [], [], [], []
     wave_names = []
     wave_eods = []
@@ -2590,7 +2589,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: Path
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -2607,8 +2606,8 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
         td.append('fit', unit, '%.5f', value=mean_eod[:, 3])
     if mean_eod.shape[1] > 4:
         td.append('tailfit', unit, '%.5f', value=mean_eod[:, 4])
-    _, ext = os.path.splitext(basename)
     fp = ''
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
         fp = '-eodwaveform'
         if idx is not None:
@@ -2668,7 +2667,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: Path
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -2686,7 +2685,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
                          for wi in wave_indices])
     td.append('EODf', 'Hz', '%7.2f', value=eodfs[:, 0])
     td.append('datapower', 'dB', '%7.2f', value=eodfs[:, 1])
-    _, ext = os.path.splitext(basename)
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-waveeodfs' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
 
@@ -2748,7 +2747,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
 
     Returns
     -------
-    filename: string or None
+    filename: Path or None
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -2807,7 +2806,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('min-p-p-distance', '%', '%.2f',
               value=wave_props, fac=100.0)
     td.append('relpeakampl', '%', '%.2f', value=wave_props, fac=100.0)
-    _, ext = os.path.splitext(basename)
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-wavefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
 
@@ -2889,7 +2888,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
 
     Returns
     -------
-    filename: string or None
+    filename: Path or None
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -2955,7 +2954,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('energyatt50', 'dB', '%.2f', value=pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', value=pulse_props)
     td.append('highcutoff', 'Hz', '%.2f', value=pulse_props)
-    _, ext = os.path.splitext(basename)
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-pulsefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
 
@@ -3042,7 +3041,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: Path
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -3059,12 +3058,12 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     if spec_data.shape[1] > 6:
         td.append('datapower', '%s^2/Hz' % unit, '%11.4e',
                   value=spec_data[:, 6])
-    _, ext = os.path.splitext(basename)
     fp = ''
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
         fp = '-wavespectrum'
         if idx is not None:
-            fp += '-%d' % idx
+            fp += f'-{idx}'
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -3122,7 +3121,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: Path
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -3133,12 +3132,12 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     """
     td = TableData(spec_data[:, :2], ['frequency', 'energy'],
                    ['Hz', '%s^2s/Hz' % unit], ['%.2f', '%.4e'])
-    _, ext = os.path.splitext(basename)
     fp = ''
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
         fp = '-pulsespectrum'
         if idx is not None:
-            fp += '-%d' % idx
+            fp += f'-{idx}'
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -3191,7 +3190,7 @@ def save_pulse_phases(phase_data, unit, idx, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: Path
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -3206,12 +3205,12 @@ def save_pulse_phases(phase_data, unit, idx, basename, **kwargs):
                    ['P', 'time', 'amplitude', 'relampl', 'width', 'area', 'relarea'],
                    ['', 'ms', unit, '%', 'ms', f'{unit}*ms', '%'],
                    ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f', '%.4f', '%.2f'])
-    _, ext = os.path.splitext(basename)
     fp = ''
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
         fp = '-pulsephases'
         if idx is not None:
-            fp += '-%d' % idx
+            fp += f'-{idx}'
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -3273,7 +3272,7 @@ def save_pulse_gaussians(pulse_data, unit, idx, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: Path
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -3289,12 +3288,12 @@ def save_pulse_gaussians(pulse_data, unit, idx, basename, **kwargs):
                    formats=['%.3f', '%.5f', '%.3f'])
     td[:, 'times'] *= 1000
     td[:, 'stdevs'] *= 1000
-    _, ext = os.path.splitext(basename)
     fp = ''
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
         fp = '-pulsegaussians'
         if idx is not None:
-            fp += '-%d' % idx
+            fp += f'-{idx}'
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -3357,7 +3356,7 @@ def save_pulse_times(pulse_times, idx, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: Path
         Path and full name of the written file in case of `basename`
         being a string. Otherwise, the file name and extension that
         would have been appended to a basename.
@@ -3374,12 +3373,12 @@ def save_pulse_times(pulse_times, idx, basename, **kwargs):
         return None
     td = TableData()
     td.append('time', 's', '%.4f', value=pulse_times)
-    _, ext = os.path.splitext(basename)
     fp = ''
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
         fp = '-pulsetimes'
         if idx is not None:
-            fp += '-%d' % idx
+            fp += f'-{idx}'
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -3459,9 +3458,10 @@ def parse_filename(file_path):
         ('EXT' component of the file name).
 
     """
-    name, ext = os.path.splitext(file_path)
+    file_path = Path(file_path)
+    ext = file_path.suffix
     ext = ext[1:]
-    parts = name.split('-')
+    parts = file_path.stem.split('-')
     index = -1
     if len(parts) > 0 and parts[-1].isdigit():
         index = int(parts[-1])
@@ -3470,9 +3470,7 @@ def parse_filename(file_path):
     if len(parts) > 0:
         ftype = parts[-1]
         parts = parts[:-1]
-    base_path = '-'.join(parts)
-    if base_path.startswith('./'):
-        base_path = base_path[2:]
+    base_path = file_path.parent / '-'.join(parts)
     time = None
     if len(parts) > 0 and len(parts[-1]) > 0 and \
        parts[-1][0] == 't' and parts[-1][-1] == 's' and \
@@ -3485,8 +3483,6 @@ def parse_filename(file_path):
         channel = int(parts[-1][1:])
         parts = parts[:-1]
     recording = '-'.join(parts)
-    if recording.startswith('./'):
-        recording = recording[2:]
     return recording, base_path, channel, time, ftype, index, ext
 
             
@@ -3538,15 +3534,15 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
             with io.StringIO() as df:
                 fp = save_func(*args, basename=df, **kwargs)
                 if fp is not None:
-                    fp = output_basename + fp
-                    zf.writestr(os.path.basename(fp), df.getvalue())
+                    fp = Path(output + str(fp))
+                    zf.writestr(fp.name, df.getvalue())
                     if verbose > 0:
-                        print('zipped file', fp)
+                        print('zipped file', fp.name)
 
     
     if 'table_format' in kwargs and kwargs['table_format'] == 'py':
         with open(output_basename + '.py', 'w') as f:
-            name = os.path.basename(output_basename)
+            name = Path(output_basename).stem
             for k in range(len((spec_data))):
                 if len(pulse_data[k]) > 0:
                     fish = normalize_pulsefish(pulse_data[k])
@@ -3640,7 +3636,7 @@ def load_analysis(file_pathes):
     channel = -1
     eod_props = []
     zf = None
-    if len(file_pathes) == 1 and os.path.splitext(file_pathes[0])[1][1:] == 'zip':
+    if len(file_pathes) == 1 and Path(file_pathes[0]).suffix[1:] == 'zip':
         zf = zipfile.ZipFile(file_pathes[0])
         file_pathes = sorted(zf.namelist())
     # read wave- and pulse-fish summaries:
@@ -3723,7 +3719,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
 
     Parameters
     ----------
-    file_path: string
+    file_path: string or Path
         Full path of the file with the recorded data.
         Extension is optional. If absent, look for the first file
         with a reasonable extension.
@@ -3757,15 +3753,16 @@ def load_recording(file_path, channel=0, load_kwargs={},
     idx0 = 0
     idx1 = 0
     data_file = ''
-    if len(os.path.splitext(file_path)[1]) > 1:
+    file_path = Path(file_path)
+    if len(file_path.suffix) > 1:
         data_file = file_path
     else:
-        data_files = glob.glob(file_path + os.extsep + '*')
+        data_files = file_path.parent.glob(file_path.stem + '*')
         for dfile in data_files:
-            if not os.path.splitext(dfile)[1][1:] in ['zip'] + list(TableData.ext_formats.values()):
+            if not dfile.suffix[1:] in ['zip'] + list(TableData.ext_formats.values()):
                 data_file = dfile
                 break
-    if os.path.exists(data_file):
+    if data_file.is_file():
         data, rate, unit, amax = load_data(data_file, verbose=verbose,
                                            **load_kwargs)
         data = data[:, channel]
