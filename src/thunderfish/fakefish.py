@@ -24,6 +24,8 @@
 
 ## Pulsefish
 
+- `pulsefish_peaks()`: position, amplitudes and standard deviations of peaks in pulsefish EOD waveforms.
+- `pulsefish_spectrum()`: analytically computed single-pulse spectrum.
 - `pulsefish_eods()`: simulate EOD waveform of a pulse-type fish.
 - `normalize_pulsefish()`: normalize times and stdevs of pulse-type EOD waveform.
 - `export_pulsefish()`: serialize pulsefish parameter to file.
@@ -541,6 +543,61 @@ def pulsefish_peaks(fish):
     return peak_times, peak_amplitudes, peak_stdevs
                               
 
+def pulsefish_spectrum(fish, fmax=10000, deltaf=1):
+    """Analytically computed single-pulse spectrum.
+
+    The spectrum is the sum of the spectra of all of the phases.  Each
+    phase is the spectrum of a Gaussian (which again is a Gaussian
+    centered at f=0) multiplied with a shift term to account for its
+    position relative to the first phase.
+
+    You get the amplitude spectral density by taking the absolute value.
+    The energy spectral density is the amplitude spectral density squared:
+    ```
+    freqs, spec = pulsefish_spectrum(...)
+    ampl = np.abs(spec)
+    energy = np.abs(spec)**2
+    ```
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians phases that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_eodpeaks` dictionary.
+        If dictionary then take pulse properties from the 'times', 'amlitudes'
+        and 'stdevs' keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+    fmax: float
+        Maximum frequency for which the spectrum is computed.
+    deltaf: float
+        Frequency resolution of the computed spectrum.
+    
+    Returns
+    -------
+    freqs: 1-D array of float
+        The frequency components of the spectrum ranging from 0 to fmax
+        with a resolution of deltaf.
+    spectrum: 1-D array of complex
+        The one-sided complex-valued spectrum of the single pulse EOD.
+        The squared magnitude (the energy spectrum) has
+        the unit (x s)^2 = x^2 s/Hz.
+
+    """
+    times, ampls, stdevs = pulsefish_peaks(fish)
+    freqs = np.arange(0, fmax + 0.5*deltaf, deltaf)
+    spec = np.zeros(len(freqs), dtype=complex)
+    for dt, a, s in zip(times, ampls, stdevs):
+        gauss = a*np.sqrt(2*np.pi)*s*np.exp(-0.5*(2*np.pi*s*freqs)**2)
+        shift = np.exp(-2j*np.pi*freqs*dt)
+        spec += gauss*shift
+    spec *= np.sqrt(2)    # because of one-sided spectrum
+    return freqs, spec
+
+
 def pulsefish_eods(fish='Biphasic', frequency=100.0, rate=44100.0,
                    duration=1.0, noise_std=0.01, jitter_cv=0.1,
                    first_pulse=None):
@@ -909,16 +966,8 @@ def generate_testfiles():
         eod_data = np.mean(snips, 0)
         eod_time = (np.arange(len(eod_data)) - iw)/rate
         # analytic spectra:
-        freqs = np.arange(0, rate/2, 1.0)
-        spec = np.zeros(len(freqs), dtype=complex)
-        times = pulse['times']
-        ampls = pulse['amplitudes']
-        stdevs = pulse['stdevs']
-        for dt, a, s in zip(times, ampls, stdevs):
-            gauss = eoda*a*np.sqrt(2*np.pi)*s*np.exp(-0.5*(2*np.pi*s*freqs)**2)
-            shift = np.exp(-2j*np.pi*freqs*dt)
-            spec += gauss*shift
-        spec *= np.sqrt(2)    # because of one-sided spectrum
+        freqs, spec = pulsefish_spectrum(pulse, rate/2, 1.0)
+        spec *= eoda
         ampl = np.abs(spec)
         energy = ampl**2
         level = 10*np.log10(energy/np.max(energy))
