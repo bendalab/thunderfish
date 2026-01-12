@@ -91,12 +91,12 @@ def test_pulsefish():
                              noise_std=0.02, jitter_cv=0.1)
     assert len(time) == len(data), 'pulsefish_eods() failed'
 
-    for key in ff.pulsefish_eodpeaks:
+    for key in ff.pulsefish_eodphases:
         data = ff.pulsefish_eods(key, 80., rate, duration=duration)
         assert len(time) == len(data), f'pulsefish_eods({key}) failed'
         ff.normalize_pulsefish(key)
     
-    data = ff.pulsefish_eods(ff.Biphasic_peaks, 80., rate,
+    data = ff.pulsefish_eods(ff.Biphasic_phases, 80., rate,
                              duration=duration)
     assert len(time) == len(data), f'pulsefish_eods({key}) failed'
 

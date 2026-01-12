@@ -1516,7 +1516,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
                          loc='upper right')
     # plot power spectrum:
     plot_decibel_psd(ax, psd_freqs, psd, log_freq=log_freq, min_freq=min_freq,
-                     max_freq=max_freq, ymarg=ymarg, **sstyle)
+                     max_freq=max_freq, ymarg=ymarg, sstyle=sstyle)
 
     
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
