@@ -350,6 +350,7 @@ The following files are generated:
 - `RECORDING-CHANNEL-TIME-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
 - `RECORDING-CHANNEL-TIME-pulsefish.EXT`: list of properties of good EODs of pulse-type fish
 - `RECORDING-CHANNEL-TIME-pulsephases-N.EXT`: for each pulse-type fish properties of EOD phases
+- `RECORDING-CHANNEL-TIME-pulsegaussians-N.EXT`: for each pulse-type fish properties of Gaussians fitting the EOD phases
 - `RECORDING-CHANNEL-TIME-pulsetimes-N.EXT`: for each pulse-type fish the time points of detected EODs
 - `RECORDING-CHANNEL-TIME-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a single pulse
 
@@ -367,18 +368,20 @@ sections describe the content of the generated files.
 
 ### RECORDING-CHANNEL-TIME-eodwaveform-N.EXT
 
-For each fish the average waveform with standard deviation and fit.
+For each fish the average waveform with standard error and fit.
 
 <table>
 <thead>
   <tr>
     <th align="left">time</th>
     <th align="left">mean</th>
-    <th align="left">std</th>
+    <th align="left">sem</th>
     <th align="left">fit</th>
+    <th align="left">tailfit</th>
   </tr>
   <tr>
     <th align="left">ms</th>
+    <th align="left">a.u.</th>
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
@@ -386,34 +389,32 @@ For each fish the average waveform with standard deviation and fit.
 </thead>
 <tbody>
   <tr>
-    <td align="right">-1.746</td>
-    <td align="right">-0.34837</td>
-    <td align="right">0.01194</td>
-    <td align="right">-0.34562</td>
+    <td align="right">-1.750</td>
+    <td align="right">0.000183971</td>
+    <td align="right">0.000355154</td>
+    <td align="right">-0.00000</td>
+    <td align="right">-</td>
   </tr>
   <tr>
-    <td align="right">-1.723</td>
-    <td align="right">-0.30700</td>
-    <td align="right">0.01199</td>
-    <td align="right">-0.30411</td>
+    <td align="right">-1.719</td>
+    <td align="right">0.000105037</td>
+    <td align="right">0.000355562</td>
+    <td align="right">-0.00000</td>
+    <td align="right">-</td>
   </tr>
   <tr>
-    <td align="right">-1.701</td>
-    <td align="right">-0.26664</td>
-    <td align="right">0.01146</td>
-    <td align="right">-0.26383</td>
+    <td align="right">-1.688</td>
+    <td align="right">0.000158089</td>
+    <td align="right">0.000353294</td>
+    <td align="right">-0.00000</td>
+    <td align="right">-</td>
   </tr>
   <tr>
-    <td align="right">-1.678</td>
-    <td align="right">-0.22713</td>
-    <td align="right">0.01153</td>
-    <td align="right">-0.22426</td>
-  </tr>
-  <tr>
-    <td align="right">-1.655</td>
-    <td align="right">-0.18706</td>
-    <td align="right">0.01187</td>
-    <td align="right">-0.18428</td>
+    <td align="right">-1.656</td>
+    <td align="right">6.47331e-05</td>
+    <td align="right">0.000356885</td>
+    <td align="right">-0.00000</td>
+    <td align="right">-</td>
   </tr>
 </tbody>
 </table>
@@ -422,10 +423,11 @@ The columns contain:
 
 1. `time` Time in milliseconds.
 2. `mean` Averaged waveform in the unit of the input data.
-3. `std` Corresponding standard deviation.
+3. `sem` Corresponding standard error of the mean.
 4. `fit` A fit to the averaged waveform. In case of a wave fish this
-   is a Fourier series, for pulse fish it is an exponential fit to the
-   tail of the last EOD phase.
+   is a Fourier series, for pulse fish it is a sum of Gaussians.
+5. `tailfit` For pulse fish an exponential fit to the tail of the last
+   EOD phase.
 
 
 ### RECORDING-CHANNEL-TIME-waveeodfs.EXT
@@ -1007,6 +1009,7 @@ The columns contain:
 34. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
 35. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
+
 ### RECORDING-CHANNEL-TIME-pulsephases-N.EXT
 
 Properties of phases of a pulse-type fish's EOD.
@@ -1036,20 +1039,20 @@ Properties of phases of a pulse-type fish's EOD.
   <tr>
     <td align="right">1</td>
     <td align="right">0.000</td>
-    <td align="right">0.27713</td>
+    <td align="right">0.26548</td>
     <td align="right">100.00</td>
-    <td align="right">0.229</td>
-    <td align="right">0.0667</td>
-    <td align="right">57.18</td>
+    <td align="right">0.225</td>
+    <td align="right">0.0616</td>
+    <td align="right">50.76</td>
   </tr>
   <tr>
     <td align="right">2</td>
     <td align="right">0.250</td>
-    <td align="right">-0.21288</td>
-    <td align="right">-76.81</td>
-    <td align="right">0.213</td>
-    <td align="right">-0.0498</td>
-    <td align="right">-42.69</td>
+    <td align="right">-0.21925</td>
+    <td align="right">-82.59</td>
+    <td align="right">0.221</td>
+    <td align="right">-0.0598</td>
+    <td align="right">-49.24</td>
   </tr>
 </tbody>
 </table>
@@ -1060,10 +1063,48 @@ The columns contain:
    largest phase with positive amplitude.
 2. `time` Time of the phase's peak/trough relative to P1 in milliseconds.
 3. `amplitude` Amplitude of the phase in the unit of the input data.
-4. `relampl` Amplitude of the phase relative to the amplitude of P1.
+4. `relampl` Amplitude of the phase relative to the amplitude of P1 in percent.
 5. `width` Width of the phase at half height in milliseconds. 
 6. `area` Area under the phase.
-7. `relaarea` Area of the phase relative to total area.
+7. `relaarea` Area of the phase relative to total area in percent.
+
+
+### RECORDING-CHANNEL-TIME-pulsegaussians-N.EXT
+
+For each pulse-type fish properties of Gaussians fitting the EOD phases.
+
+<table>
+<thead>
+  <tr>
+    <th align="left">times</th>
+    <th align="left">amplitudes</th>
+    <th align="left">stdevs</th>
+  </tr>
+  <tr>
+    <th align="left">ms</th>
+    <th align="left">a.u.</th>
+    <th align="left">ms</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td align="right">0.058</td>
+    <td align="right">0.58302</td>
+    <td align="right">0.128</td>
+  </tr>
+  <tr>
+    <td align="right">0.162</td>
+    <td align="right">-0.47997</td>
+    <td align="right">0.148</td>
+  </tr>
+</tbody>
+</table>
+
+The columns contain:
+
+1. `times` Position of each Gaussian
+2. `amplitudes` Amplitude of each Gaussian
+3. `stdevs` Standard deviation of each Gaussian
 
 
 ### RECORDING-CHANNEL-TIME-pulsetimes-N.EXT
@@ -1108,6 +1149,7 @@ Time points of detected pulse-type EODs.
 </table>
 
 The columns contain:
+
 1. The times of pulse-type EODs in seconds.
 
 
