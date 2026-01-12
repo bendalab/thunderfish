@@ -1235,7 +1235,8 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
     if verbose > 0:
         print('loaded', data_path)
     if len(eod_props) > 0 and not eod_props[0] is None and \
-       'dfreq' in eod_props[0] and data is not None and len(data) > 0:
+       'dfreq' in eod_props[0] and np.isfinite(eod_props[0]['dfreq']) and \
+       data is not None and len(data) > 0:
         psd_data = multi_psd(data[idx0:idx1], rate,
                              1.1*eod_props[0]['dfreq'])[0]
     if psd_data is not None and len(psd_data) > 0:

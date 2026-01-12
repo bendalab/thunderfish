@@ -2187,7 +2187,7 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
     sstyle: dict
         Arguments passed on to the plot command for plotting the snippets.
     """
-    if n_snippets <= 0:
+    if data is None or n_snippets <= 0:
         return
     i0 = int(tmin*rate)
     i1 = int(tmax*rate)
@@ -3768,13 +3768,14 @@ def load_recording(file_path, channel=0, load_kwargs={},
     if os.path.exists(data_file):
         data, rate, unit, amax = load_data(data_file, verbose=verbose,
                                            **load_kwargs)
+        data = data[:, channel]
         idx0 = 0
         idx1 = len(data)
         if eod_props is not None and len(eod_props) > 0 and 'twin' in eod_props[0]:
             idx0 = int(eod_props[0]['twin']*rate)
         if len(eod_props) > 0 and 'window' in eod_props[0]:
             idx1 = idx0 + int(eod_props[0]['window']*rate)
-    return data[:, channel], rate, idx0, idx1, data_file
+    return data, rate, idx0, idx1, data_file
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
