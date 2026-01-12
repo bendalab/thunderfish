@@ -1044,7 +1044,7 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
         rate in Hertz or the time array corresponding to `eod`.
     threshold: float
         Minimum size of peaks of the pulse waveform.
-    fit_frac: float or None
+    fit_frac: float
         An exponential is fitted to the tail of the last peak/trough
         starting where the waveform falls below this fraction of the
         peak's height (0-1).
@@ -1065,22 +1065,24 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
         time = np.arange(len(eod))/rate
     pi = peak_index
     # positive or negative decay:
-    sign = 1.0
-    if np.sum(eod[pi:] < -0.5*threshold) > np.sum(eod[pi:] > 0.5*threshold):
+    sign = 1
+    eodpp = eod[pi:] - 0.5*threshold
+    eodpn = -eod[pi:] - 0.5*threshold
+    if np.sum(eodpn[eodpn > 0]) > np.sum(eodpp[eodpp > 0]):
         sign = -1
-    if sign*eod[pi] < 0.0:
+    if sign*eod[pi] < 0:
         pi += np.argmax(sign*eod[pi:])
     pi_ampl = np.abs(eod[pi])
     n = len(eod[pi:])
     # no sufficiently large initial value:
-    if fit_frac and pi_ampl*fit_frac <= 0.5*threshold:
+    if pi_ampl*fit_frac <= 0.5*threshold:
         fit_frac = False
     # no sufficiently long decay:
     if n < 10:
         fit_frac = False
     # not decaying towards zero:
     max_line = pi_ampl - (pi_ampl - threshold)*np.arange(n)/n + 1e-8
-    if np.any(np.abs(eod[pi + 2:]) > max_line[2:]):
+    if np.sum(np.abs(eod[pi + 2:]) > max_line[2:])/n > 0.05:
         fit_frac = False
     if not fit_frac:
         return None, None
@@ -1092,7 +1094,9 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
         tau_inx = 2
     rridx = inx + 6*tau_inx
     if rridx > len(eod) - 1:
-        return None, None
+        rridx = len(eod) - 1
+        if rridx - inx < 3*tau_inx:
+            return None, None
     tau = time[inx + tau_inx] - time[inx]
     params = [tau, eod[inx] - eod[rridx], eod[rridx]]
     try:
@@ -2524,9 +2528,9 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     if troughfreq >= min_freq:
         troughenergy = decibel(props['troughenergy'], ref_energy)
         ax.plot(troughfreq, troughenergy, zorder=5, **pstyle)
-        ax.text(troughfreq*0.9, troughenergy - 1,
+        ax.text(troughfreq, troughenergy - 3,
                 f'{troughenergy:.1f}dB @ {troughfreq:.0f}Hz',
-                ha='right', va='top', zorder=10)
+                ha='center', va='top', zorder=10)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
     ax.set_ylim(-60.0, 2.0)
