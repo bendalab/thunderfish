@@ -26,7 +26,9 @@
 
 - `pulsefish_phases()`: position, amplitudes and standard deviations of EOD phases in pulsefish waveforms.
 - `pulsefish_spectrum()`: analytically computed single-pulse spectrum.
-- `pulsefish_eods()`: simulate EOD waveform of a pulse-type fish.
+- `pulsefish_parameter()`: transform pulse parameters to flat list.
+- `pulsefish_waveform()`: compute a single pulsefish EOD.
+- `pulsefish_eods()`: simulate EODs of a pulse-type fish.
 - `normalize_pulsefish()`: normalize times and stdevs of pulse-type EOD waveform.
 - `export_pulsefish()`: serialize pulsefish parameter to file.
 
@@ -601,10 +603,68 @@ def pulsefish_spectrum(fish, fmax=10000, deltaf=1):
     return freqs, spec
 
 
+def pulsefish_parameter(times, amplitudes, stdevs):
+    """ Transform pulse parameters to flat list.
+
+    Takes the output of pulsefish_phases() and makes it suitable
+    for pulsefish_waveform().
+    
+    Parameters
+    ----------
+    times : array of floats
+        Positions of the phases.
+    amplitudes : array of floats
+        Amplitudes of the phases.
+    stdevs : array of floats
+        Standard deviations of the phases.
+    
+    Returns
+    -------
+    *tas: list of floats
+        The pulse parameters in a flat list.
+        Position, amplitude, and phase of first phase,
+        position, amplitude, and phase of second phase,
+        and so on.
+    """
+    tas = []
+    for t, a, s in zip(times, amplitudes, stdevs):
+        tas.extend((t, a, s))
+    return tas
+
+
+def pulsefish_waveform(t, *tas):
+    """Compute a single pulsefish EOD.
+
+    You may use pulsefish_parameter() to pass the paramters returned
+    by pulsefish_phases() to this function.
+    
+    Parameters
+    ----------
+    t: array of float
+        The time array over which the pulse waveform is evaluated.
+    *tas: list of floats
+        The pulse parameters in a flat list.
+        Position, amplitude, and phase of first phase,
+        position, amplitude, and phase of second phase,
+        and so on.
+        As, for example, returned by pulsefish_parameter().
+    
+    Returns
+    -------
+    pulse: array of float
+        The pulse waveform for the times given in `t`.
+
+    """
+    pulse = np.zeros(len(t))
+    for time, ampl, std in zip(tas[0:-2:3], tas[1:-1:3], tas[2::3]):
+        pulse += ampl*np.exp(-0.5*((t - time)/std)**2)
+    return pulse
+
+
 def pulsefish_eods(fish='Biphasic', frequency=100.0, rate=44100.0,
                    duration=1.0, noise_std=0.01, jitter_cv=0.1,
                    first_pulse=None):
-    """Simulate EOD waveform of a pulse-type fish.
+    """Simulate EODs of a pulse-type fish.
 
     Pulses are spaced by 1/frequency, jittered as determined by
     jitter_cv. Each pulse is a combination of Gaussian phases, whose
@@ -666,9 +726,10 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, rate=44100.0,
     pulse_duration = x[-1] - x[0]
     
     # generate a single pulse:
-    pulse = np.zeros(len(x))
-    for time, ampl, std in zip(phase_times, phase_amplitudes, phase_stdevs):
-        pulse += ampl * np.exp(-0.5*((x-time)/std)**2)
+    pulse = pulsefish_waveform(x, *pulsefish_parameter(phase_times, phase_amplitudes, phase_stdevs))
+    #pulse = np.zeros(len(x))
+    #for time, ampl, std in zip(phase_times, phase_amplitudes, phase_stdevs):
+    #    pulse += ampl * np.exp(-0.5*((x-time)/std)**2)
     poffs = len(pulse)//2
 
     # paste the pulse into the noise floor:
@@ -1003,7 +1064,7 @@ def generate_testfiles():
                                        layout='constrained')
         fig.suptitle(pulse['name'])
         ax1.axhline(0, color='gray')
-        ax1.plot(1000*eod_time, eod_data, color='C0')
+        ax1.plot(1000*eod_time, eod_data, color='C0', label='data')
         ax1.text(0.1, 0.05, f'polarity balance = {100*balance:.0f}%',
                  transform=ax1.transAxes)
         ax1.set_xlim(-1000*tmax, 1000*tmax)
@@ -1028,7 +1089,7 @@ def generate_testfiles():
         ax2.text(2, dc - 4, f'{dc:.0f}dB')
         ax2.text(fmaxpos*1.05, pmax + 1, f'{fmax:.0f}Hz')
         fig.savefig(pulse['name'] + '.pdf')
-        #plt.show()
+        plt.show()
         plt.close(fig)
         print(f'  wrote {pulse['name']}.pdf')
         
