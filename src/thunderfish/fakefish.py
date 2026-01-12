@@ -848,19 +848,17 @@ def generate_testfiles():
 
     1. A wav file with the simulated recording.
     2. A csv file with the spectra (see below for details).
-    3. A pdf file with a plot showing a single EOD pulse and the power spectrum.
+    3. A pdf file with a plot showing the averaged EOD pulse and the spectrum.
 
-    The csv file contains 8 columns separated by semicolons of the
+    The csv file contains six columns separated by semicolons of the
     single pulse spectra:
 
     1. `f`: the frequency components in Hertz
     2- `real`: real part of the Fourier spectrum
     3. `imag`: imaginary part of the Fourier spectrum
     4. `ampl`: amplitude spectrum, i.e. magnitude of Fourier spectrum
-    5. `power`: power spectrum, i.e. squared amplitude
-    6. `level`: power sepctrum in decibel relative to maximum power
-    7. `gauss`: amplitude spectrum of the monophasic Gaussian pulse
-    8. `shift`: magnitude of the shift term modulating the spectrum of the monophasic pulse.
+    5. `energy`: energy spectrum, i.e. squared amplitude
+    6. `level`: energy sepctrum in decibel relative to maximum energy
 
     """
     import matplotlib.pyplot as plt
@@ -890,7 +888,8 @@ def generate_testfiles():
                        times=(0, 2*sigmat),
                        amplitudes=(1.0, -1.0),
                        stdevs=(sigmat, sigmat))
-    for pulse in [monophasic, biphasic30, biphasic60, biphasic100]:
+    triphasic = dict(name='triphasic', **Triphasic_peaks)
+    for pulse in [monophasic, biphasic30, biphasic60, biphasic100, triphasic]:
         print(pulse['name'], '...')
         # fake recording:
         eodf = rng.uniform(40.0, 120.0)
@@ -911,28 +910,27 @@ def generate_testfiles():
         eod_time = (np.arange(len(eod_data)) - iw)/rate
         # analytic spectra:
         freqs = np.arange(0, rate/2, 1.0)
-        gauss = eoda*np.sqrt(2*np.pi)*sigmat*np.exp(-0.5*(2*np.pi*sigmat*freqs)**2)
+        spec = np.zeros(len(freqs), dtype=complex)
         times = pulse['times']
         ampls = pulse['amplitudes']
-        if len(times) > 1:
-            shift = 1 + np.exp(-2j*np.pi*freqs*(times[1] - times[0]))*ampls[1]/ampls[0]
-        else:
-            shift = np.ones(len(freqs))
-        spec = gauss*shift*np.sqrt(2)    # because of one-sided spectrum
+        stdevs = pulse['stdevs']
+        for dt, a, s in zip(times, ampls, stdevs):
+            gauss = eoda*a*np.sqrt(2*np.pi)*s*np.exp(-0.5*(2*np.pi*s*freqs)**2)
+            shift = np.exp(-2j*np.pi*freqs*dt)
+            spec += gauss*shift
+        spec *= np.sqrt(2)    # because of one-sided spectrum
         ampl = np.abs(spec)
         energy = ampl**2
         level = 10*np.log10(energy/np.max(energy))
-        spec_data = np.zeros((len(freqs), 8))
+        spec_data = np.zeros((len(freqs), 6))
         spec_data[:, 0] = freqs
         spec_data[:, 1] = np.real(spec)
         spec_data[:, 2] = np.imag(spec)
         spec_data[:, 3] = ampl
         spec_data[:, 4] = energy
         spec_data[:, 5] = level
-        spec_data[:, 6] = eoda*gauss
-        spec_data[:, 7] = np.abs(shift)
         np.savetxt(pulse['name'] + '.csv', spec_data, fmt='%g', delimiter=';',
-                   header='f/Hz;real;imag;ampl;energy;level/dB;gauss;shift')
+                   header='f/Hz;real;imag;ampl;energy;level/dB')
         print(f'  wrote {pulse['name']}.csv')
         # numerical spectrum:
         nfreqs, nenergy = pulse_spectrum(eod_data, rate, 1.0, 0.05)
