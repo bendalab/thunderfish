@@ -1021,7 +1021,13 @@ def decompose_pulse(phases, eod, ratetime=None):
         time = np.arange(len(eod))/rate
     fac = 0.5/np.sqrt(2*np.log(2))  # convert half width to standrad deviation
     popt = pulsefish_parameter((phases[:, 1], phases[:, 2], phases[:, 4]*fac))
-    popt, pcov = curve_fit(pulsefish_waveform, time, eod, popt)
+    try:
+        popt, pcov = curve_fit(pulsefish_waveform, time, eod, popt)
+    except RuntimeError as e:
+        # RuntimeError: Optimal parameters not found: Number of calls to function has reached maxfev = 2000
+        # TODO: what to do?
+        print('Fit of Gaussian phases failed in decompose_pulse():', e)
+        pass
     times = np.asarray(popt[0::3])
     ampls = np.asarray(popt[1::3])
     stdevs = np.asarray(popt[2::3])
@@ -1070,6 +1076,7 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
         time = ratetime
     else:
         time = np.arange(len(eod))/rate
+    dt = np.mean(np.diff(time))
     pi = peak_index
     # positive or negative decay:
     sign = 1
@@ -2291,14 +2298,14 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     # annotate fit:
     tau = None if props is None else props.get('tau', None)
     ty = 0.0
-    if tau is not None and eod_waveform.shape[1] > 3:
+    if tau is not None and eod_waveform.shape[1] > 4:
         if tau < 0.001:
             label = f'\u03c4={1.e6*tau:.0f}\u00b5s'
         else:
             label = f'\u03c4={1.e3*tau:.2f}ms'
-        inx = np.argmin(np.isnan(eod_waveform[:, 3]))
-        x = eod_waveform[inx,0] + 1.5*tau
-        ty = 0.7*eod_waveform[inx, 3]
+        inx = np.argmin(np.isnan(eod_waveform[:, 4]))
+        x = eod_waveform[inx, 0] + 1.5*tau
+        ty = 0.7*eod_waveform[inx, 4]
         if np.abs(ty) < 0.5*yfs:
             ty = 0.5*yfs*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
