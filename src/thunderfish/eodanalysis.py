@@ -1012,6 +1012,9 @@ def decompose_pulse(phases, eod, ratetime=None):
         fish EODs from this data.
 
     """
+    if len(phases) < 1:
+        return dict(times=np.zeros(0), amplitudes=np.zeros(0),
+                    stdevs=np.zeros(0))
     if eod.ndim == 2:
         time = eod[:, 0]
         eod = eod[:, 1]
