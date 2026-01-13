@@ -955,11 +955,11 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
         return np.zeros((0, 7))
     # find P1:
     p1i = np.argmax(phase_list == max_idx)
-    # truncate peaks to the left: # TODO: REALLY? WHY?
-    offs = 0 if p1i <= 2 else p1i - 2
-    phase_list = phase_list[offs:]
-    width_list = width_list[offs:]
-    p1i -= offs
+    ## truncate peaks to the left: # TODO: REALLY? WHY?
+    #offs = 0 if p1i <= 2 else p1i - 2
+    #phase_list = phase_list[offs:]
+    #width_list = width_list[offs:]
+    #p1i -= offs
     # amplitudes:
     amplitudes = eod[phase_list]
     max_ampl = np.abs(amplitudes[p1i])
@@ -1123,23 +1123,47 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
     tas = []
     for t, a, s in zip(phases[:, 1], phases[:, 2], phases[:, 4]*fac):
         tas.extend((t, a, s))
+    tas = np.asarray(tas)
     # fit EOD waveform:
-    try:
-        tas, _ = curve_fit(gaussian_sum, time, eod, tas)
-    except RuntimeError as e:
-        # RuntimeError: Optimal parameters not found: Number of calls to function has reached maxfev = 2000
-        # TODO: what to do?
-        print('Fit gaussian_sum failed in decompose_pulse():', e)
-        pass
+    for m in ['L-BFGS-B', 'Nelder-Mead']:
+        try:
+            tas, _ = curve_fit(gaussian_sum, time, eod, tas)
+            break
+        except RuntimeError as e:
+            print(f'Fit gaussian_sum failed with method {m} in decompose_pulse():', e)
     bnds = [(1e-5, None) if k%3 == 2 else (None, None)
             for k in range(len(tas))]
-    res = minimize(gaussian_sum_costs, tas,
-                   args=(time, eod, freqs, energy), bounds=bnds)
-    if res.success:
-        tas = res.x
-    else:
-        print('Optimization gaussian_sum_costs failed in decompose_pulse():',
-              res.message)
+    for m in ['L-BFGS-B', 'Nelder-Mead']:
+        res = minimize(gaussian_sum_costs, tas,
+                       args=(time, eod, freqs, energy), bounds=bnds,
+                       method=m)
+        if res.success:
+            tas = res.x
+            break
+        else:
+            print(f'Optimization gaussian_sum_costs failed with method {m} in decompose_pulse():',
+                  res.message)
+    rms_norm = np.max(np.abs(eod))
+    rms_old = np.sqrt(np.mean((gaussian_sum(time, *tas) - eod)**2))/rms_norm
+    eod_diff = np.abs(gaussian_sum(time, *tas) - eod)/rms_norm
+    # add another Gaussian:
+    if np.max(eod_diff) > 0.1:
+        print('add Gaussian', np.max(eod_diff))
+        ntas = np.concatenate((tas, (time[np.argmax(eod_diff)], np.max(eod_diff),
+                                     np.mean(tas[2::3]))))
+        bnds = [(1e-5, None) if k%3 == 2 else (None, None)
+                for k in range(len(ntas))]
+        res = minimize(gaussian_sum_costs, ntas,
+                       args=(time, eod, freqs, energy), bounds=bnds)
+        if res.success:
+            rms_new = np.sqrt(np.mean((gaussian_sum(time, *res.x) - eod)**2))/rms_norm
+            if rms_new < 0.8*rms_old:
+                tas = res.x
+            else:
+                print('removed new Gaussian')
+        else:
+            print('Optimization gaussian_sum_costs for additional Gaussian failed in decompose_pulse():',
+                  res.message)
     times = np.asarray(tas[0::3])
     ampls = np.asarray(tas[1::3])
     stdevs = np.asarray(tas[2::3])
