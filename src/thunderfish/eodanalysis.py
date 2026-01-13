@@ -98,7 +98,7 @@ except ImportError:
     pass
 
 from pathlib import Path
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
 from numba import jit
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
@@ -107,7 +107,7 @@ from thunderlab.tabledata import TableData
 from thunderlab.dataloader import load_data
 
 from .harmonics import fundamental_freqs_and_power
-from .fakefish import pulsefish_parameter, pulsefish_waveform
+from .fakefish import pulsefish_parameter, pulsefish_waveform, pulsefish_spectrum
 from .fakefish import normalize_pulsefish, export_pulsefish
 from .fakefish import normalize_wavefish, export_wavefish
 
@@ -983,7 +983,24 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     return phases
 
 
-def decompose_pulse(phases, eod, ratetime=None):
+def pulse_phases_costs(tas, time, eod, freqs, energy):
+    eod_fit = pulsefish_waveform(time, *tas)
+    eod_rms = np.sqrt(np.mean((eod_fit - eod)**2))/np.max(np.abs(eod))
+    level = decibel(energy)
+    level_range = 30
+    n = np.argmax(level)
+    _, spec_fit = pulsefish_spectrum((tas[0::3], tas[1::3], tas[2::3]), freqs)
+    level_fit = decibel(np.abs(spec_fit)**2)
+    weight = np.ones(n)
+    weight[freqs[:n] < 10] = 100
+    weight /= np.sum(weight)
+    spec_rms = np.sqrt(np.mean(weight*(level_fit[:n] - level[:n])**2))/level_range
+    costs = eod_rms + 5*spec_rms
+    #print(f'{costs:.4f}, {eod_rms:.4f}, {spec_rms:.4f}')
+    return costs
+
+
+def decompose_pulse(eod, phases, freqs, energy):
     """Decompose single pulse waveform into sum of Gaussians.
 
     Use the output to simulate pulse-type EODs using the functions
@@ -991,17 +1008,11 @@ def decompose_pulse(phases, eod, ratetime=None):
     
     Parameters
     ----------
-    phases: 2-D array
+    phases: 2-D array of float
         Properties of the EOD phases as returned by analyze_pulse_phases(). 
-    eod: 1-D or 2-D array
-        The eod waveform to be analyzed.
-        If an 1-D array, then this is the waveform and you
-        need to also pass a sampling rate in `rate`.
-        If a 2-D array, then first column is time in seconds and second
+    eod: 2-D array of float
+        The eod waveform. First column is time in seconds and second
         column is the eod waveform. Further columns are ignored.
-    ratetime: None or float or array of float
-        If a 1-D array is passed on to `eod` then either the sampling
-        rate in Hertz or the time array corresponding to `eod`.
 
     Returns
     -------
@@ -1029,8 +1040,14 @@ def decompose_pulse(phases, eod, ratetime=None):
     except RuntimeError as e:
         # RuntimeError: Optimal parameters not found: Number of calls to function has reached maxfev = 2000
         # TODO: what to do?
-        print('Fit of Gaussian phases failed in decompose_pulse():', e)
+        print('Fit 1 of Gaussian phases failed in decompose_pulse():', e)
         pass
+    bnds = [(1e-5, None) if k%3 == 2 else (None, None) for k in range(len(popt))]
+    res = minimize(pulse_phases_costs, popt, args=(time, eod, freqs, energy), bounds=bnds)
+    if res.success:
+        popt = res.x
+    else:
+        print('Fit 2 of Gaussian phases failed in decompose_pulse():', res.message)
     times = np.asarray(popt[0::3])
     ampls = np.asarray(popt[1::3])
     stdevs = np.asarray(popt[2::3])
@@ -1438,11 +1455,6 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     # characterize EOD phases:
     phases = analyze_pulse_phases(threshold, meod, None,
                                   min_dist=min_dist, width_frac=width_frac)
-
-    # decompose EOD waveform:
-    pulse = decompose_pulse(phases, meod)
-    eod_fit = pulsefish_waveform(meod[:, 0], *pulsefish_parameter(pulse))
-    meod[:, -2] = eod_fit
         
     # fit exponential to last peak/trough:
     if len(phases) > 1:
@@ -1462,6 +1474,11 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     peakfreq, peakenergy, troughfreq, troughenergy, \
         att5, att50, lowcutoff, highcutoff = \
         analyze_pulse_spectrum(freqs, energy)
+
+    # decompose EOD waveform:
+    pulse = decompose_pulse(meod, phases, freqs, energy)
+    eod_fit = pulsefish_waveform(meod[:, 0], *pulsefish_parameter(pulse))
+    meod[:, -2] = eod_fit
 
     # analyze pulse intervals:
     ipi_median, ipi_mean, ipi_std = analyze_pulse_intervals(eod_times,

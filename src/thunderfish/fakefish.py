@@ -547,7 +547,7 @@ def pulsefish_phases(fish):
     return times, amplitudes, stdevs
                               
 
-def pulsefish_spectrum(fish, fmax=10000, deltaf=1):
+def pulsefish_spectrum(fish, freqsmax=10000, deltaf=1):
     """Analytically computed single-pulse spectrum.
 
     The spectrum is the sum of the spectra of all of the phases.  Each
@@ -576,16 +576,19 @@ def pulsefish_spectrum(fish, fmax=10000, deltaf=1):
         If tuple then the first element is the list of phase positions,
         the second is the list of corresponding amplitudes, and
         the third one the list of corresponding standard deviations.
-    fmax: float
-        Maximum frequency for which the spectrum is computed.
+    freqsmax: float or 1-D array of float
+        If scalar, maximum frequency for which the spectrum is computed,
+        and you also need to specify `deltaf`.
+        If array, frequencies at which the spectrum is computed.
     deltaf: float
         Frequency resolution of the computed spectrum.
     
     Returns
     -------
     freqs: 1-D array of float
-        The frequency components of the spectrum ranging from 0 to fmax
-        with a resolution of deltaf.
+        The frequency components of the spectrum ranging from 0 to `freqsmax`
+        with a resolution of `deltaf`.
+        If `freqsmax` is an array, this is `freqsmax`.
     spectrum: 1-D array of complex
         The one-sided complex-valued spectrum of the single pulse EOD.
         The squared magnitude (the energy spectrum) has
@@ -593,7 +596,7 @@ def pulsefish_spectrum(fish, fmax=10000, deltaf=1):
 
     """
     times, ampls, stdevs = pulsefish_phases(fish)
-    freqs = np.arange(0, fmax + 0.5*deltaf, deltaf)
+    freqs = np.arange(0, freqsmax + 0.5*deltaf, deltaf) if np.isscalar(freqsmax) else freqsmax
     spec = np.zeros(len(freqs), dtype=complex)
     for dt, a, s in zip(times, ampls, stdevs):
         gauss = a*np.sqrt(2*np.pi)*s*np.exp(-0.5*(2*np.pi*s*freqs)**2)
