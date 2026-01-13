@@ -842,7 +842,7 @@ def plot_eods(base_name, message_filename,
             if  props['type'] == 'pulse':
                 pulse = pulse_data[idx]
                 if len(pulse) > 0:
-                    afreqs, aspec = pulsefish_spectrum(pulse, spec[-1, 0], np.mean(np.diff(spec[:, 0])))
+                    aspec = pulsefish_spectrum(pulse, spec[:, 0])
                     aspec = np.abs(aspec)**2
                     spec = np.hstack((spec, aspec.reshape((-1, 1))))
                 ax = fig.add_axes([midx, posy, halfwidth, pheight])
@@ -1067,7 +1067,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                 continue
             if props is not None and props['type'] == 'pulse':
                 if len(pulse) > 0:
-                    afreqs, aspec = pulsefish_spectrum(pulse, spec[-1, 0], np.mean(np.diff(spec[:, 0])))
+                    aspec = pulsefish_spectrum(pulse, spec[:, 0])
                     aspec = np.abs(aspec)**2
                     spec = np.hstack((spec, aspec.reshape((-1, 1))))
                 fig, ax = plt.subplots(figsize=(5, 3.5))
@@ -1116,7 +1116,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
             axes_style(ax1)
             if not props is None and props['type'] == 'pulse':
                 if len(pulse) > 0:
-                    afreqs, aspec = pulsefish_spectrum(pulse, spec[-1, 0], np.mean(np.diff(spec[:, 0])))
+                    aspec = pulsefish_spectrum(pulse, spec[:, 0])
                     aspec = np.abs(aspec)**2
                     spec = np.hstack((spec, aspec.reshape((-1, 1))))
                 ax2 = fig.add_subplot(gs[:,1])

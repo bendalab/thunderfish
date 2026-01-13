@@ -12,7 +12,8 @@ def test_pulsefish():
     data = pulsefish_eods('Biphasic', 200.0, rate, 5.0, noise_std=0.02)
     pi, _ = detect_peaks(data, 1.0)
     mean_eod, eod_times = ea.eod_waveform(data, rate, pi/rate)
-    mean_eod, props, peaks, power = ea.analyze_pulse(mean_eod, eod_times)
+    mean_eod, props, peaks, pulses, power = \
+        ea.analyze_pulse(mean_eod, eod_times)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ea.plot_pulse_spectrum(ax, power, props)

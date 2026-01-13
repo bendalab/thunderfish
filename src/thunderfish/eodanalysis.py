@@ -71,6 +71,9 @@ Analysis of EOD waveforms.
 
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
 - `exp_decay()`: exponential decay.
+- `gaussian_sum()`: sum of Gaussians.
+- `gaussian_sum_spectrum()`: energy spectrum of sum of Gaussians.
+- `gaussian_sum_costs()`: cost function for fitting sum of Gaussians.
 
 ## Filter functions
 
@@ -107,7 +110,7 @@ from thunderlab.tabledata import TableData
 from thunderlab.dataloader import load_data
 
 from .harmonics import fundamental_freqs_and_power
-from .fakefish import pulsefish_parameter, pulsefish_waveform, pulsefish_spectrum
+from .fakefish import pulsefish_waveform
 from .fakefish import normalize_pulsefish, export_pulsefish
 from .fakefish import normalize_wavefish, export_wavefish
 
@@ -983,14 +986,88 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     return phases
 
 
-def pulse_phases_costs(tas, time, eod, freqs, energy):
-    eod_fit = pulsefish_waveform(time, *tas)
+def gaussian_sum(x, *pas):
+    """Sum of Gaussians.
+    
+    Parameters
+    ----------
+    x: array of float
+        The x array over which the sum of Gaussians is evaluated.
+    *pas: list of floats
+        The parameters of the Gaussians in a flat list.
+        Position, amplitude, and standard deviation of first Gaussian,
+        position, amplitude, and standard deviation of second Gaussian,
+        and so on.
+    
+    Returns
+    -------
+    sg: array of float
+        The sum of Gaussians for the times given in `t`.
+    """
+    sg = np.zeros(len(x))
+    for pos, ampl, std in zip(pas[0:-2:3], pas[1:-1:3], pas[2::3]):
+        sg += ampl*np.exp(-0.5*((x - pos)/std)**2)
+    return sg
+
+
+def gaussian_sum_spectrum(f, *pas):
+    """Energy spectrum of sum of Gaussians.
+
+    Parameters
+    ----------
+    f: 1-D array of float
+        The frequencies at which to evaluate the spectrum.
+    *pas: list of floats
+        The parameters of the Gaussians in a flat list.
+        Position, amplitude, and standard deviation of first Gaussian,
+        position, amplitude, and standard deviation of second Gaussian,
+        and so on.
+    
+    Returns
+    -------
+    energy: 1-D array of float
+        The one-sided energy spectrum of the sum of Gaussians.
+    """
+    spec = np.zeros(len(f), dtype=complex)
+    for dt, a, s in zip(pas[0:-2:3], pas[1:-1:3], pas[2::3]):
+        gauss = a*np.sqrt(2*np.pi)*s*np.exp(-0.5*(2*np.pi*s*f)**2)
+        shift = np.exp(-2j*np.pi*f*dt)
+        spec += gauss*shift
+    spec *= np.sqrt(2)    # because of one-sided spectrum
+    return np.abs(spec)**2
+
+
+def gaussian_sum_costs(pas, time, eod, freqs, energy):
+    """ Cost function for fitting sum of Gaussian to pulse EOD.
+    
+    Parameters
+    ----------
+    pas: list of floats
+        The pulse parameters in a flat list.
+        Position, amplitude, and standard deviation of first phase,
+        position, amplitude, and standard deviation of second phase,
+        and so on.
+    time: 1-D array of float
+        Time points of the EOD waveform.
+    eod: 1-D array of float
+        The real EOD waveform.
+    freqs: 1-D array of float
+        The frequency components of the spectrum.
+    energy: 1-D array of float
+        The energy spectrum of the real pulse.
+    
+    Returns
+    -------
+    costs: float
+        Weighted sum of rms waveform difference and rms spectral difference.
+    """
+    eod_fit = gaussian_sum(time, *pas)
     eod_rms = np.sqrt(np.mean((eod_fit - eod)**2))/np.max(np.abs(eod))
     level = decibel(energy)
     level_range = 30
     n = np.argmax(level)
-    _, spec_fit = pulsefish_spectrum((tas[0::3], tas[1::3], tas[2::3]), freqs)
-    level_fit = decibel(np.abs(spec_fit)**2)
+    energy_fit = gaussian_sum_spectrum(freqs, *pas)
+    level_fit = decibel(energy_fit)
     weight = np.ones(n)
     weight[freqs[:n] < 10] = 100
     weight /= np.sum(weight)
@@ -1000,7 +1077,7 @@ def pulse_phases_costs(tas, time, eod, freqs, energy):
     return costs
 
 
-def decompose_pulse(eod, phases, freqs, energy):
+def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
     """Decompose single pulse waveform into sum of Gaussians.
 
     Use the output to simulate pulse-type EODs using the functions
@@ -1008,11 +1085,18 @@ def decompose_pulse(eod, phases, freqs, energy):
     
     Parameters
     ----------
-    phases: 2-D array of float
-        Properties of the EOD phases as returned by analyze_pulse_phases(). 
     eod: 2-D array of float
         The eod waveform. First column is time in seconds and second
         column is the eod waveform. Further columns are ignored.
+    freqs: 1-D array of float
+        The frequency components of the spectrum.
+    energy: 1-D array of float
+        The energy spectrum of the real pulse.
+    phases: 2-D array of float
+        Properties of the EOD phases as returned by analyze_pulse_phases(). 
+    width_frac: float
+        The width of a peak is measured at this fraction of a peak's
+        height (0-1).
 
     Returns
     -------
@@ -1033,24 +1117,32 @@ def decompose_pulse(eod, phases, freqs, energy):
         time = ratetime
     else:
         time = np.arange(len(eod))/rate
-    fac = 0.5/np.sqrt(2*np.log(2))  # convert half width to standrad deviation
-    popt = pulsefish_parameter((phases[:, 1], phases[:, 2], phases[:, 4]*fac))
+    # convert half width to standard deviation:
+    fac = 0.5/np.sqrt(-2*np.log(width_frac))
+    # fit parameter as single list:
+    tas = []
+    for t, a, s in zip(phases[:, 1], phases[:, 2], phases[:, 4]*fac):
+        tas.extend((t, a, s))
+    # fit EOD waveform:
     try:
-        popt, pcov = curve_fit(pulsefish_waveform, time, eod, popt)
+        tas, _ = curve_fit(gaussian_sum, time, eod, tas)
     except RuntimeError as e:
         # RuntimeError: Optimal parameters not found: Number of calls to function has reached maxfev = 2000
         # TODO: what to do?
-        print('Fit 1 of Gaussian phases failed in decompose_pulse():', e)
+        print('Fit gaussian_sum failed in decompose_pulse():', e)
         pass
-    bnds = [(1e-5, None) if k%3 == 2 else (None, None) for k in range(len(popt))]
-    res = minimize(pulse_phases_costs, popt, args=(time, eod, freqs, energy), bounds=bnds)
+    bnds = [(1e-5, None) if k%3 == 2 else (None, None)
+            for k in range(len(tas))]
+    res = minimize(gaussian_sum_costs, tas,
+                   args=(time, eod, freqs, energy), bounds=bnds)
     if res.success:
-        popt = res.x
+        tas = res.x
     else:
-        print('Fit 2 of Gaussian phases failed in decompose_pulse():', res.message)
-    times = np.asarray(popt[0::3])
-    ampls = np.asarray(popt[1::3])
-    stdevs = np.asarray(popt[2::3])
+        print('Optimization gaussian_sum_costs failed in decompose_pulse():',
+              res.message)
+    times = np.asarray(tas[0::3])
+    ampls = np.asarray(tas[1::3])
+    stdevs = np.asarray(tas[2::3])
     pulse = dict(times=times, amplitudes=ampls, stdevs=stdevs)
     return pulse
 
@@ -1476,8 +1568,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         analyze_pulse_spectrum(freqs, energy)
 
     # decompose EOD waveform:
-    pulse = decompose_pulse(meod, phases, freqs, energy)
-    eod_fit = pulsefish_waveform(meod[:, 0], *pulsefish_parameter(pulse))
+    pulse = decompose_pulse(meod, freqs, energy, phases, width_frac)
+    eod_fit = pulsefish_waveform(pulse, meod[:, 0])
     meod[:, -2] = eod_fit
 
     # analyze pulse intervals:
@@ -4042,7 +4134,7 @@ def main():
 
     # analyse EOD:
     mean_eod, eod_times = eod_waveform(data, rate, eod_times)
-    mean_eod, props, peaks, energy = analyze_pulse(mean_eod, eod_times)
+    mean_eod, props, peaks, pulses, energy = analyze_pulse(mean_eod, eod_times)
 
     # plot:
     fig, axs = plt.subplots(1, 2)

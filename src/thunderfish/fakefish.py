@@ -26,11 +26,10 @@
 
 - `pulsefish_phases()`: position, amplitudes and standard deviations of EOD phases in pulsefish waveforms.
 - `pulsefish_spectrum()`: analytically computed single-pulse spectrum.
-- `pulsefish_parameter()`: transform pulse parameters to flat list.
 - `pulsefish_waveform()`: compute a single pulsefish EOD.
 - `pulsefish_eods()`: simulate EODs of a pulse-type fish.
 - `normalize_pulsefish()`: normalize times and stdevs of pulse-type EOD waveform.
-- `export_pulsefish()`: serialize pulsefish parameter to file.
+- `export_pulsefish()`: serialize pulsefish parameter to python code.
 
 
 ## Waveform generation
@@ -547,7 +546,7 @@ def pulsefish_phases(fish):
     return times, amplitudes, stdevs
                               
 
-def pulsefish_spectrum(fish, freqsmax=10000, deltaf=1):
+def pulsefish_spectrum(fish, freqs):
     """Analytically computed single-pulse spectrum.
 
     The spectrum is the sum of the spectra of all of the phases.  Each
@@ -558,7 +557,7 @@ def pulsefish_spectrum(fish, freqsmax=10000, deltaf=1):
     You get the amplitude spectral density by taking the absolute value.
     The energy spectral density is the amplitude spectral density squared:
     ```
-    freqs, spec = pulsefish_spectrum(...)
+    spec = pulsefish_spectrum('Biphasic', freqs)
     ampl = np.abs(spec)
     energy = np.abs(spec)**2
     ```
@@ -576,19 +575,11 @@ def pulsefish_spectrum(fish, freqsmax=10000, deltaf=1):
         If tuple then the first element is the list of phase positions,
         the second is the list of corresponding amplitudes, and
         the third one the list of corresponding standard deviations.
-    freqsmax: float or 1-D array of float
-        If scalar, maximum frequency for which the spectrum is computed,
-        and you also need to specify `deltaf`.
-        If array, frequencies at which the spectrum is computed.
-    deltaf: float
-        Frequency resolution of the computed spectrum.
+    freqs: 1-D array of float
+        Frequencies at which the spectrum is computed.
     
     Returns
     -------
-    freqs: 1-D array of float
-        The frequency components of the spectrum ranging from 0 to `freqsmax`
-        with a resolution of `deltaf`.
-        If `freqsmax` is an array, this is `freqsmax`.
     spectrum: 1-D array of complex
         The one-sided complex-valued spectrum of the single pulse EOD.
         The squared magnitude (the energy spectrum) has
@@ -596,21 +587,20 @@ def pulsefish_spectrum(fish, freqsmax=10000, deltaf=1):
 
     """
     times, ampls, stdevs = pulsefish_phases(fish)
-    freqs = np.arange(0, freqsmax + 0.5*deltaf, deltaf) if np.isscalar(freqsmax) else freqsmax
     spec = np.zeros(len(freqs), dtype=complex)
     for dt, a, s in zip(times, ampls, stdevs):
         gauss = a*np.sqrt(2*np.pi)*s*np.exp(-0.5*(2*np.pi*s*freqs)**2)
         shift = np.exp(-2j*np.pi*freqs*dt)
         spec += gauss*shift
     spec *= np.sqrt(2)    # because of one-sided spectrum
-    return freqs, spec
+    return spec
 
 
-def pulsefish_parameter(fish):
-    """ Transform pulse parameters to flat list.
+def pulsefish_waveform(fish, t):
+    """Compute a single pulsefish EOD.
 
-    Takes the output of pulsefish_phases() and makes it suitable
-    for pulsefish_waveform().
+    You may use pulsefish_parameter() to pass the paramters returned
+    by pulsefish_phases() to this function.
     
     Parameters
     ----------
@@ -625,38 +615,8 @@ def pulsefish_parameter(fish):
         If tuple then the first element is the list of phase positions,
         the second is the list of corresponding amplitudes, and
         the third one the list of corresponding standard deviations.
-    
-    Returns
-    -------
-    *tas: list of floats
-        The pulse parameters in a flat list.
-        Position, amplitude, and phase of first phase,
-        position, amplitude, and phase of second phase,
-        and so on.
-    """
-    times, ampls, stdevs = pulsefish_phases(fish)
-    tas = []
-    for t, a, s in zip(times, ampls, stdevs):
-        tas.extend((t, a, s))
-    return tas
-
-
-def pulsefish_waveform(t, *tas):
-    """Compute a single pulsefish EOD.
-
-    You may use pulsefish_parameter() to pass the paramters returned
-    by pulsefish_phases() to this function.
-    
-    Parameters
-    ----------
     t: array of float
         The time array over which the pulse waveform is evaluated.
-    *tas: list of floats
-        The pulse parameters in a flat list.
-        Position, amplitude, and phase of first phase,
-        position, amplitude, and phase of second phase,
-        and so on.
-        As, for example, returned by pulsefish_parameter().
     
     Returns
     -------
@@ -664,9 +624,10 @@ def pulsefish_waveform(t, *tas):
         The pulse waveform for the times given in `t`.
 
     """
+    times, ampls, stdevs = pulsefish_phases(fish)
     pulse = np.zeros(len(t))
-    for time, ampl, std in zip(tas[0:-2:3], tas[1:-1:3], tas[2::3]):
-        pulse += ampl*np.exp(-0.5*((t - time)/std)**2)
+    for dt, a, s in zip(times, ampls, stdevs):
+        pulse += a*np.exp(-0.5*((t - dt)/s)**2)
     return pulse
 
 
@@ -735,7 +696,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, rate=44100.0,
     pulse_duration = x[-1] - x[0]
     
     # generate a single pulse:
-    pulse = pulsefish_waveform(x, *pulsefish_parameter((phase_times, phase_amplitudes, phase_stdevs)))
+    pulse = pulsefish_waveform((phase_times, phase_amplitudes, phase_stdevs), x)
     #pulse = np.zeros(len(x))
     #for time, ampl, std in zip(phase_times, phase_amplitudes, phase_stdevs):
     #    pulse += ampl * np.exp(-0.5*((x-time)/std)**2)
@@ -1043,7 +1004,8 @@ def generate_testfiles():
         eod_data = np.mean(snips, 0)
         eod_time = (np.arange(len(eod_data)) - iw)/rate
         # analytic spectra:
-        freqs, spec = pulsefish_spectrum(pulse, rate/2, 1.0)
+        freqs = np.arange(0, rate/2, 1.0)
+        spec = pulsefish_spectrum(pulse, freqs)
         spec *= eoda
         ampl = np.abs(spec)
         energy = ampl**2
