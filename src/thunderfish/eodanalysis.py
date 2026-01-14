@@ -1107,9 +1107,10 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
         fish EODs from this data.
 
     """
+    pulse = dict(times=np.zeros(0), amplitudes=np.zeros(0),
+                 stdevs=np.zeros(0))
     if len(phases) < 1:
-        return dict(times=np.zeros(0), amplitudes=np.zeros(0),
-                    stdevs=np.zeros(0))
+        return pulse
     if eod.ndim == 2:
         time = eod[:, 0]
         eod = eod[:, 1]
@@ -1125,45 +1126,42 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
         tas.extend((t, a, s))
     tas = np.asarray(tas)
     # fit EOD waveform:
-    for m in ['L-BFGS-B', 'Nelder-Mead']:
-        try:
-            tas, _ = curve_fit(gaussian_sum, time, eod, tas)
-            break
-        except RuntimeError as e:
-            print(f'Fit gaussian_sum failed with method {m} in decompose_pulse():', e)
+    try:
+        tas, _ = curve_fit(gaussian_sum, time, eod, tas)
+    except RuntimeError as e:
+        print('Fit gaussian_sum failed in decompose_pulse():', e)
+        return pulse
+    # fit EOD waveform and spectrum:
     bnds = [(1e-5, None) if k%3 == 2 else (None, None)
             for k in range(len(tas))]
-    for m in ['L-BFGS-B', 'Nelder-Mead']:
-        res = minimize(gaussian_sum_costs, tas,
-                       args=(time, eod, freqs, energy), bounds=bnds,
-                       method=m)
-        if res.success:
-            tas = res.x
-            break
-        else:
-            print(f'Optimization gaussian_sum_costs failed with method {m} in decompose_pulse():',
-                  res.message)
-    rms_norm = np.max(np.abs(eod))
-    rms_old = np.sqrt(np.mean((gaussian_sum(time, *tas) - eod)**2))/rms_norm
-    eod_diff = np.abs(gaussian_sum(time, *tas) - eod)/rms_norm
-    # add another Gaussian:
-    if np.max(eod_diff) > 0.1:
-        print('add Gaussian', np.max(eod_diff))
-        ntas = np.concatenate((tas, (time[np.argmax(eod_diff)], np.max(eod_diff),
-                                     np.mean(tas[2::3]))))
-        bnds = [(1e-5, None) if k%3 == 2 else (None, None)
-                for k in range(len(ntas))]
-        res = minimize(gaussian_sum_costs, ntas,
-                       args=(time, eod, freqs, energy), bounds=bnds)
-        if res.success:
-            rms_new = np.sqrt(np.mean((gaussian_sum(time, *res.x) - eod)**2))/rms_norm
-            if rms_new < 0.8*rms_old:
-                tas = res.x
+    res = minimize(gaussian_sum_costs, tas,
+                   args=(time, eod, freqs, energy), bounds=bnds)
+    if not res.success:
+        print('Optimization gaussian_sum_costs failed in decompose_pulse():',
+              res.message)
+    else:
+        tas = res.x
+        # add another Gaussian:
+        rms_norm = np.max(np.abs(eod))
+        rms_old = np.sqrt(np.mean((gaussian_sum(time, *tas) - eod)**2))/rms_norm
+        eod_diff = np.abs(gaussian_sum(time, *tas) - eod)/rms_norm
+        if np.max(eod_diff) > 0.1:
+            print('add Gaussian', np.max(eod_diff))
+            ntas = np.concatenate((tas, (time[np.argmax(eod_diff)], np.max(eod_diff),
+                                         np.mean(tas[2::3]))))
+            bnds = [(1e-5, None) if k%3 == 2 else (None, None)
+                    for k in range(len(ntas))]
+            res = minimize(gaussian_sum_costs, ntas,
+                           args=(time, eod, freqs, energy), bounds=bnds)
+            if res.success:
+                rms_new = np.sqrt(np.mean((gaussian_sum(time, *res.x) - eod)**2))/rms_norm
+                if rms_new < 0.8*rms_old:
+                    tas = res.x
+                else:
+                    print('removed new Gaussian')
             else:
-                print('removed new Gaussian')
-        else:
-            print('Optimization gaussian_sum_costs for additional Gaussian failed in decompose_pulse():',
-                  res.message)
+                print('Optimization gaussian_sum_costs for additional Gaussian failed in decompose_pulse():',
+                      res.message)
     times = np.asarray(tas[0::3])
     ampls = np.asarray(tas[1::3])
     stdevs = np.asarray(tas[2::3])
@@ -1593,8 +1591,9 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
 
     # decompose EOD waveform:
     pulse = decompose_pulse(meod, freqs, energy, phases, width_frac)
-    eod_fit = pulsefish_waveform(pulse, meod[:, 0])
-    meod[:, -2] = eod_fit
+    if len(pulse['amplitudes']) > 0:
+        eod_fit = pulsefish_waveform(pulse, meod[:, 0])
+        meod[:, -2] = eod_fit
 
     # analyze pulse intervals:
     ipi_median, ipi_mean, ipi_std = analyze_pulse_intervals(eod_times,
@@ -2404,7 +2403,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 ax.fill_between(time, mean_eod, 0, mean_eod <= 0, zorder=4,
                                 **nstyle)
     # plot fits:
-    if eod_waveform.shape[1] > 3:
+    if eod_waveform.shape[1] > 3 and np.all(np.isfinite(eod_waveform[:, 3])):
         ax.plot(time, eod_waveform[:, 3], zorder=4, **fstyle)
     if eod_waveform.shape[1] > 4:
         fs = dict(**fstyle)
@@ -2679,7 +2678,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     ax.text(1.2*highcutoff, -3.0, f'{highcutoff:.0f}Hz',
             ha='left', va='center', zorder=100)
     ref_energy = np.max(energy[:, 1])
-    if energy.shape[1] > 2 and len(astyle) > 0:
+    if energy.shape[1] > 2 and np.all(np.isfinite(energy[:, 2])) and len(astyle) > 0:
         db = decibel(energy[:, 2], ref_energy)
         ax.plot(energy[:, 0], db, zorder=45, **astyle)
     db = decibel(energy[:, 1], ref_energy)
