@@ -1064,7 +1064,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
                'times' in props:
                 plot_eod_snippets(ax, data, rate, meod[0,0],
                                   meod[-1,0], props['times'],
-                                  n_snippets, False, snippet_style)
+                                  n_snippets, props['flipped'], snippet_style)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if multi_pdf is not None:
@@ -1133,7 +1133,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
             if not props is None and props['type'] == 'pulse' and 'times' in props:
                 plot_eod_snippets(ax1, data, rate, meod[0,0],
                                   meod[-1,0], props['times'],
-                                  n_snippets, False, snippet_style)
+                                  n_snippets, props['flipped'], snippet_style)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
             if not props is None and props['type'] == 'pulse':

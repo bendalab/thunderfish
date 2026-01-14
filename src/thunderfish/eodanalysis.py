@@ -2331,9 +2331,9 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         step = 1
     for t in eod_times[n_snippets//2::step]:
         idx = int(np.round(t*rate))
-        if idx+i0 < 0 or idx+i1 >= len(data):
+        if idx + i0 < 0 or idx + i1 >= len(data):
             continue
-        snippet = data[idx+i0:idx+i1]
+        snippet = data[idx + i0:idx + i1]
         if flip:
             snippet *= -1
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]),
@@ -2653,29 +2653,29 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     """
     ax.axvspan(1, 50, color=att50_color, zorder=10)
     att = props['energyatt50']
-    if att < -5.0:
-        ax.text(10.0, att+1.0, f'{att:.0f}dB',
+    if att < -10:
+        ax.text(10, att + 1, f'{att:.0f}dB',
                 ha='left', va='bottom', zorder=100)
     else:
-        ax.text(10.0, att-1.0, f'{att:.0f}dB',
+        ax.text(10, att - 1, f'{att:.0f}dB',
                 ha='left', va='top', zorder=100)
     ax.axvspan(1, 5, color=att5_color, zorder=20)
     att = props['energyatt5']
-    if att < -5.0:
-        ax.text(4.0, att+1.0, f'{att:.0f}dB',
+    if att < -10:
+        ax.text(4, att + 1, f'{att:.0f}dB',
                 ha='right', va='bottom', zorder=100)
     else:
-        ax.text(4.0, att-1.0, f'{att:.0f}dB',
+        ax.text(4, att - 1, f'{att:.0f}dB',
                 ha='right', va='top', zorder=100)
     lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
-        ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att],
+        ax.plot([lowcutoff, lowcutoff, 1], [-60, 0.5*att, 0.5*att],
                 zorder=30, **cstyle)
-        ax.text(1.2*lowcutoff, 0.5*att-1.0, f'{lowcutoff:.0f}Hz',
+        ax.text(1.2*lowcutoff, 0.5*att - 1, f'{lowcutoff:.0f}Hz',
                 ha='left', va='top', zorder=100)
     highcutoff = props['highcutoff']
-    ax.plot([highcutoff, highcutoff], [-60.0, -3.0], zorder=30, **cstyle)
-    ax.text(1.2*highcutoff, -3.0, f'{highcutoff:.0f}Hz',
+    ax.plot([highcutoff, highcutoff], [-60, -3], zorder=30, **cstyle)
+    ax.text(1.2*highcutoff, -3, f'{highcutoff:.0f}Hz',
             ha='left', va='center', zorder=100)
     ref_energy = np.max(energy[:, 1])
     if energy.shape[1] > 2 and np.all(np.isfinite(energy[:, 2])) and len(astyle) > 0:
@@ -2686,7 +2686,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
         ax.plot(peakfreq, 0, zorder=60, clip_on=False, **pstyle)
-        ax.text(peakfreq*1.2, 1.0, f'{peakfreq:.0f}Hz',
+        ax.text(peakfreq*1.2, 1, f'{peakfreq:.0f}Hz',
                 va='bottom', zorder=100)
     troughfreq = props['troughfreq']
     if troughfreq >= min_freq:
@@ -2697,7 +2697,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
                 ha='center', va='top', zorder=100)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
-    ax.set_ylim(-60.0, 2.0)
+    ax.set_ylim(-60, 2)
     ax.set_xlabel('Frequency [Hz]')
     ax.set_ylabel('Energy [dB]')
 
