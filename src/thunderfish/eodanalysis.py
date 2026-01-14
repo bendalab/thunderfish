@@ -2685,7 +2685,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     ax.plot(energy[:, 0], db, zorder=50, **sstyle)
     peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
-        ax.plot(peakfreq, 0, zorder=60, **pstyle)
+        ax.plot(peakfreq, 0, zorder=60, clip_on=False, **pstyle)
         ax.text(peakfreq*1.2, 1.0, f'{peakfreq:.0f}Hz',
                 va='bottom', zorder=100)
     troughfreq = props['troughfreq']
