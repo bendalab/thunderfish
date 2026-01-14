@@ -30,6 +30,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 import matplotlib.lines as ml
 
+from pathlib import Path
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
@@ -877,7 +878,7 @@ def plot_eods(base_name, message_filename,
     return fig
 
                             
-def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
+def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1,
                       clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
                       eod_props, peak_data, pulse_data, spec_data,
                       unit, zoom_window, tfac=1,
@@ -890,6 +891,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
     ----------
     base_name: string
         Basename of audio_file.
+    multi_pdf: matplotlib.PdfPages or None
+        PdfPages instance in which to save plots.
     subplots: string
         Specifies which subplots to plot:
         r) recording with best window, t) data trace with detected pulse fish,
@@ -960,15 +963,20 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
     """
     plot_style()
     if 'r' in subplots:
+        top = 0.1 if multi_pdf is not None else 0
         fig, ax = plt.subplots(figsize=(10, 2))
-        fig.subplots_adjust(left=0.07, right=0.99, bottom=0.22, top=0.95)
+        fig.subplots_adjust(left=0.07, right=0.99, bottom=0.22, top=0.95-top)
         plot_data_window(ax, raw_data, rate, unit, idx0, idx1, clipped,
                          **data_styles)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
         axes_style(ax)
-        if save:
+        if multi_pdf is not None:
+            fig.suptitle(Path(base_name).stem)
+            multi_pdf.savefig(fig)
+        else:
             fig.savefig(base_name + '-recording.pdf')
     if 't' in subplots:
+        top = 0.1 if multi_pdf is not None else 0
         fig, ax = plt.subplots(figsize=(10, 6))
         twidth = 0.1
         if len(eod_props) > 0:
@@ -992,11 +1000,15 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
         if ax.get_legend() is not None:
             ax.get_legend().get_frame().set_color('white')
         axes_style(ax)
-        if save:
+        if multi_pdf is not None:
+            fig.suptitle(Path(base_name).stem)
+            multi_pdf.savefig(fig)
+        else:
             fig.savefig(base_name + '-trace.pdf')
     if 'p' in subplots:
+        top = 0.1 if multi_pdf is not None else 0
         fig, ax = plt.subplots(figsize=(10, 5))
-        fig.subplots_adjust(left=0.08, right=0.975, bottom=0.11, top=0.9)
+        fig.subplots_adjust(left=0.08, right=0.975, bottom=0.11, top=0.9-top)
         axes_style(ax)
         if power_thresh is not None:
             ax.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
@@ -1006,7 +1018,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                 title = '%d EOD frequencies' % len(wave_eodfs)
                 kwargs = {'title': title if len(wave_eodfs) > 2 else None }
                 if len(wave_eodfs) > 2:
-                    fig.subplots_adjust(left=0.08, right=0.78, bottom=0.11, top=0.9)
+                    fig.subplots_adjust(left=0.08, right=0.78, bottom=0.11, top=0.9-top)
                     kwargs.update({'bbox_to_anchor': (1.01, 1.1),
                                    'loc': 'upper left', 'legend_rows': 14,
                                    'labelspacing': 0.6})
@@ -1029,17 +1041,21 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
             ax.set_title('Powerspectrum: %s' % label, y=1.05)
         else:
             ax.set_title('Powerspectrum', y=1.05)
-        if save:
+        if multi_pdf is not None:
+            fig.suptitle(Path(base_name).stem)
+            multi_pdf.savefig(fig)
+        else:
             fig.savefig(base_name + '-psd.pdf')
     if 'w' in subplots or 'W' in subplots:
         mpdf = None
-        if 'W' in subplots:
+        top = 0.1 if multi_pdf is not None else 0
+        if 'W' in subplots and save and multi_pdf is None:
             mpdf = PdfPages(base_name + '-waveforms.pdf')
         for meod, props, peaks in zip(mean_eods, eod_props, peak_data):
             if meod is None:
                 continue
             fig, ax = plt.subplots(figsize=(5, 3))
-            fig.subplots_adjust(left=0.18, right=0.98, bottom=0.15, top=0.9)
+            fig.subplots_adjust(left=0.18, right=0.98, bottom=0.14, top=0.9-top)
             if not props is None:
                 ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
             plot_eod_waveform(ax, meod, props, peaks, unit, tfac, **eod_styles)
@@ -1051,16 +1067,19 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                                   n_snippets, False, snippet_style)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
-            if mpdf is None:
-                if save:
-                    fig.savefig(base_name + '-waveform-%d.pdf' % props['index'])
-            else:
+            if multi_pdf is not None:
+                fig.suptitle(Path(base_name).stem)
+                multi_pdf.savefig(fig)
+            elif mpdf is not None:
                 mpdf.savefig(fig)
+            elif save:
+                fig.savefig(base_name + '-waveform-%d.pdf' % props['index'])
         if mpdf is not None:
             mpdf.close()
     if 's' in subplots or 'S' in subplots:
         mpdf = None
-        if 'S' in subplots:
+        top = 0.1 if multi_pdf is not None else 0
+        if 'S' in subplots and save and multi_pdf is None:
             mpdf = PdfPages(base_name + '-spectrum.pdf')
         for props, pulse, spec in zip(eod_props, pulse_data, spec_data):
             if spec is None:
@@ -1071,13 +1090,13 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                     aspec = np.abs(aspec)**2
                     spec = np.hstack((spec, aspec.reshape((-1, 1))))
                 fig, ax = plt.subplots(figsize=(5, 3.5))
-                fig.subplots_adjust(left=0.15, right=0.967, bottom=0.16, top=0.88)
+                fig.subplots_adjust(left=0.15, right=0.967, bottom=0.14, top=0.88-top)
                 axes_style(ax)
                 ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
                 plot_pulse_spectrum(ax, spec, props, **pulse_spec_styles)
             else:
                 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 3.5))
-                fig.subplots_adjust(left=0.15, right=0.97, bottom=0.16, top=0.88, hspace=0.4)
+                fig.subplots_adjust(left=0.15, right=0.97, bottom=0.14, top=0.88-top, hspace=0.4)
                 axes_style(ax1)
                 axes_style(ax2)
                 if not props is None:
@@ -1086,23 +1105,26 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                                    **wave_spec_styles)
                 ax1.set_xticklabels([])
                 ax1.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            if mpdf is None:
-                if save:
-                    fig.savefig(base_name + '-spectrum-%d.pdf' % props['index'])
-            else:
+            if multi_pdf is not None:
+                fig.suptitle(Path(base_name).stem)
+                multi_pdf.savefig(fig)
+            elif mpdf is not None:
                 mpdf.savefig(fig)
+            elif save:
+                fig.savefig(base_name + '-spectrum-%d.pdf' % props['index'])
         if mpdf is not None:
             mpdf.close()
     if 'e' in subplots or 'E' in subplots:
         mpdf = None
-        if 'E' in subplots:
+        top = 0.1 if multi_pdf is not None else 0
+        if 'E' in subplots and save and multi_pdf is None:
             mpdf = PdfPages(base_name + '-eods.pdf')
         for meod, props, peaks, pulse, spec in zip(mean_eods, eod_props, peak_data, pulse_data, spec_data):
             if meod is None or spec is None:
                 continue
             fig = plt.figure(figsize=(10, 3.5))
             gs = gridspec.GridSpec(nrows=2, ncols=2, left=0.09, right=0.98,
-                                   bottom=0.16, top=0.88, wspace=0.4, hspace=0.4)
+                                   bottom=0.14, top=0.88-top, wspace=0.4, hspace=0.4)
             ax1 = fig.add_subplot(gs[:,0])
             if not props is None:
                 ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
@@ -1133,11 +1155,13 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                 ax2.set_title('Amplitude and phase spectrum', y=1.15)
                 ax2.set_xticklabels([])
                 ax2.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            if mpdf is None:
-                if save:
-                    fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
-            else:
+            if multi_pdf is not None:
+                fig.suptitle(Path(base_name).stem)
+                multi_pdf.savefig(fig)
+            elif mpdf is not None:
                 mpdf.savefig(fig)
+            elif save:
+                fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
         if mpdf is not None:
             mpdf.close()
     if not save:
@@ -1280,7 +1304,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         plt.close()
         save_subplots = save_subplots.replace('d', '')
     if len(save_subplots) > 0:
-        plot_eod_subplots(output_basename, save_subplots, data, rate,
+        plot_eod_subplots(output_basename, multi_pdf, save_subplots, data, rate,
                           idx0, idx1, clipped, psd_data, wave_eodfs,
                           wave_indices, mean_eods, eod_props,
                           peak_data, pulse_data, spec_data, unit, zoom_window, tfac, 10,
@@ -1486,7 +1510,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 plt.close()
                 save_subplots = save_subplots.replace('d', '')
             if len(save_subplots) > 0:
-                plot_eod_subplots(output_basename, save_subplots,
+                plot_eod_subplots(output_basename, multi_pdf, save_subplots,
                                   raw_data, rate, idx0, idx1, clipped,
                                   psd_data[0], wave_eodfs,
                                   wave_indices, mean_eods, eod_props,
