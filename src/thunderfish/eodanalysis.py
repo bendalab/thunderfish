@@ -2693,7 +2693,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
         troughenergy = decibel(props['troughenergy'], ref_energy)
         ax.plot(troughfreq, troughenergy, zorder=60, **pstyle)
         ax.text(troughfreq, troughenergy - 3,
-                f'{troughenergy:.1f}dB @ {troughfreq:.0f}Hz',
+                f'{troughenergy:.0f}dB @ {troughfreq:.0f}Hz',
                 ha='center', va='top', zorder=100)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
