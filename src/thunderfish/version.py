@@ -1,7 +1,7 @@
-__version__='2.1.0'
+__version__='2.2.0'
 """Current version of the thunderfish package."""
 
-__year__ = '2025'
+__year__ = '2026'
 """Current year for copyright messages."""
 
 __pdoc__ = {}

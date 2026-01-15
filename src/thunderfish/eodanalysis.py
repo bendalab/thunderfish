@@ -107,7 +107,7 @@ from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippe
 from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
 from thunderlab.powerspectrum import next_power_of_two, nfft, decibel
 from thunderlab.tabledata import TableData
-from thunderlab.dataloader import load_data
+from thunderlab.dataloader import DataLoader
 
 from .harmonics import fundamental_freqs_and_power
 from .fakefish import pulsefish_waveform
@@ -3879,15 +3879,15 @@ def load_recording(file_path, channel=0, load_kwargs={},
         Start index of the analysis window.
     idx1: int
         End index of the analysis window.
-    data_file: str
-        Full path and name of the loaded file inclusively extension.
-
+    info_dict: dict
+        Dictionary with path, basename, species, channel, chanstr, time.
     """
     data = None
     rate = 0.0
     idx0 = 0
     idx1 = 0
     data_file = ''
+    info_dict = {}
     file_path = Path(file_path)
     if len(file_path.suffix) > 1:
         data_file = file_path
@@ -3898,16 +3898,37 @@ def load_recording(file_path, channel=0, load_kwargs={},
                 data_file = dfile
                 break
     if data_file.is_file():
-        data, rate, unit, amax = load_data(data_file, verbose=verbose,
-                                           **load_kwargs)
-        data = data[:, channel]
+        all_data = DataLoader(data_file, verbose=verbose, **load_kwargs)
+        rate = all_data.rate
+        unit = all_data.unit
+        ampl_max = all_data.ampl_max
+        data = all_data[:, channel]
+        species = get_str(all_data.metadata(), ['species'], default='')
+        if len(species) > 0:
+            species += ' '
+        info_dict = dict(path=all_data.filepath,
+                          basename=all_data.basename(),
+                          species=species,
+                          channel=channel)
+        if all_data.channels > 1:
+            if all_data.channels > 100:
+                info_dict['chanstr'] = f'-c{channel:03d}'
+            elif all_data.channels > 10:
+                info_dict['chanstr'] = f'-c{channel:02d}'
+            else:
+                info_dict['chanstr'] = f'-c{channel:d}'
+        else:
+            info_dict['chanstr'] = ''
         idx0 = 0
         idx1 = len(data)
         if eod_props is not None and len(eod_props) > 0 and 'twin' in eod_props[0]:
             idx0 = int(eod_props[0]['twin']*rate)
         if len(eod_props) > 0 and 'window' in eod_props[0]:
             idx1 = idx0 + int(eod_props[0]['window']*rate)
-    return data, rate, idx0, idx1, data_file
+        info_dict['time'] = '-t{idx0/rate:.0f}s'
+        all_data.close()
+            
+    return data, rate, idx0, idx1, info_dict
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,

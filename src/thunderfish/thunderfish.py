@@ -34,9 +34,9 @@ from pathlib import Path
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
-from audioio import play, fade, load_audio
+from audioio import parse_load_kwargs, get_str, play, fade, load_audio
 from thunderlab.configfile import ConfigFile
-from thunderlab.dataloader import load_data
+from thunderlab.dataloader import DataLoader
 from thunderlab.powerspectrum import decibel, plot_decibel_psd, multi_psd
 from thunderlab.powerspectrum import add_multi_psd_config, multi_psd_args
 from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
@@ -467,7 +467,7 @@ def axes_style(ax):
     ax.get_yaxis().tick_left()
 
     
-def plot_eods(base_name, message_filename,
+def plot_eods(title, message_filename,
               raw_data, rate, channel, idx0, idx1, clipped,
               psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
               peak_data, pulse_data, spec_data, indices, unit, zoom_window, tfac=1,
@@ -484,8 +484,8 @@ def plot_eods(base_name, message_filename,
 
     Parameters
     ----------
-    base_name: string
-        Basename of audio_file.
+    title: string
+        Title string for the plot
     message_filename: string or None
         Path to meta-data message.
     raw_data: array
@@ -645,13 +645,11 @@ def plot_eods(base_name, message_filename,
         fig.canvas.mpl_connect('key_press_event', keypress)
     
     # plot title:
-    title = base_name
     if channel is not None:
         title += ' c%d' % channel
     ax = fig.add_axes([0.2/width, 1.0-0.6/height, 1.0-0.4/width, 0.55/height])
     ax.text(0.0, 1.0, title, fontsize=22, va='top')
-    ax.text(1.0, 1.0, 'thunderfish by Benda-Lab', fontsize=16, ha='right', va='top')
-    ax.text(1.0, 0.0, 'version %s' % __version__, fontsize=16, ha='right', va='bottom')
+    ax.text(1.0, 1.0, f'thunderfish version {__version__}', fontsize=16, ha='right', va='top')
     ax.set_frame_on(False)
     ax.set_axis_off()
     ax.set_navigate(False)
@@ -878,7 +876,7 @@ def plot_eods(base_name, message_filename,
     return fig
 
                             
-def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1,
+def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx0, idx1,
                       clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
                       eod_props, peak_data, pulse_data, spec_data,
                       unit, zoom_window, tfac=1,
@@ -900,6 +898,8 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
         s/S) EOD spectrum, e/E) EOD waveform and spectra. With capital letters
         all fish are saved into a single pdf file, with small letters each fish
         is saved into a separate file.
+    title: str
+        Plot title for multi_pdf plots.
     raw_data: array
         Dataset.
     rate: float
@@ -971,7 +971,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
         ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
         axes_style(ax)
         if multi_pdf is not None:
-            fig.suptitle(Path(base_name).stem)
+            fig.suptitle(title)
             multi_pdf.savefig(fig)
         else:
             fig.savefig(base_name + '-recording.pdf')
@@ -1001,7 +1001,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
             ax.get_legend().get_frame().set_color('white')
         axes_style(ax)
         if multi_pdf is not None:
-            fig.suptitle(Path(base_name).stem)
+            fig.suptitle(title)
             multi_pdf.savefig(fig)
         else:
             fig.savefig(base_name + '-trace.pdf')
@@ -1042,7 +1042,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
         else:
             ax.set_title('Powerspectrum', y=1.05)
         if multi_pdf is not None:
-            fig.suptitle(Path(base_name).stem)
+            fig.suptitle(title)
             multi_pdf.savefig(fig)
         else:
             fig.savefig(base_name + '-psd.pdf')
@@ -1068,7 +1068,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if multi_pdf is not None:
-                fig.suptitle(Path(base_name).stem)
+                fig.suptitle(title)
                 multi_pdf.savefig(fig)
             elif mpdf is not None:
                 mpdf.savefig(fig)
@@ -1106,7 +1106,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
                 ax1.set_xticklabels([])
                 ax1.yaxis.set_major_locator(ticker.MaxNLocator(4))
             if multi_pdf is not None:
-                fig.suptitle(Path(base_name).stem)
+                fig.suptitle(title)
                 multi_pdf.savefig(fig)
             elif mpdf is not None:
                 mpdf.savefig(fig)
@@ -1156,7 +1156,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
                 ax2.set_xticklabels([])
                 ax2.yaxis.set_major_locator(ticker.MaxNLocator(4))
             if multi_pdf is not None:
-                fig.suptitle(Path(base_name).stem)
+                fig.suptitle(title)
                 multi_pdf.savefig(fig)
             elif mpdf is not None:
                 mpdf.savefig(fig)
@@ -1171,7 +1171,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, raw_data, rate, idx0, idx1
 
 def thunderfish_plot(files, data_path=None, load_kwargs={},
                      all_eods=False, spec_plots='auto', skip_bad=True,
-                     save_plot=False, multi_pdf=None,
+                     title_str='{basename}', save_plot=False, multi_pdf=None,
                      save_subplots='', tfac=1, log_freq=False,
                      min_freq=0.0, max_freq=3000.0, output_folder='.',
                      keep_path=False, verbose=0):
@@ -1249,7 +1249,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
     if base_name:
         name = os.path.basename(base_name) if data_path and data_path != '.' else base_name
         data_path = os.path.join(data_path, name)
-    data, rate, idx0, idx1, data_path = \
+    data, rate, idx0, idx1, info_dict = \
         load_recording(data_path, channel, load_kwargs,
                        eod_props, verbose-1)
     if data is None:
@@ -1284,8 +1284,9 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
                 print('mkdir %s' % outpath)
             os.makedirs(outpath)
     # plot:
+    title = title_str.format(**info_dict)
     if len(save_subplots) == 0 or 'd' in save_subplots:
-        fig = plot_eods(os.path.basename(base_name), None, data, rate,
+        fig = plot_eods(title, None, data, rate,
                         channel, idx0, idx1, clipped, psd_data,
                         wave_eodfs, wave_indices, mean_eods,
                         eod_props, peak_data, pulse_data, spec_data, None, unit,
@@ -1304,8 +1305,8 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         plt.close()
         save_subplots = save_subplots.replace('d', '')
     if len(save_subplots) > 0:
-        plot_eod_subplots(output_basename, multi_pdf, save_subplots, data, rate,
-                          idx0, idx1, clipped, psd_data, wave_eodfs,
+        plot_eod_subplots(output_basename, multi_pdf, save_subplots, title,
+                          data, rate, idx0, idx1, clipped, psd_data, wave_eodfs,
                           wave_indices, mean_eods, eod_props,
                           peak_data, pulse_data, spec_data, unit, zoom_window, tfac, 10,
                           None, True, skip_bad, log_freq, min_freq,
@@ -1318,7 +1319,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 mode='wp', tfac=1, log_freq=False, min_freq=0.0, max_freq=3000,
                 save_data=False, zip_file=False,
                 all_eods=False, spec_plots='auto', skip_bad=True,
-                save_plot=False, multi_pdf=None, save_subplots='',
+                title_str='{basename}', save_plot=False, multi_pdf=None, save_subplots='',
                 output_folder='.', keep_path=False,
                 verbose=0, plot_level=0):
     """Automatically detect and analyze all EOD waveforms in a short recording.
@@ -1402,26 +1403,32 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
     # load data:
     try:
-        all_data, rate, unit, ampl_max = load_data(filename,
-                                                   verbose=verbose,
-                                                   **load_kwargs)
+        all_data = DataLoader(filename, verbose=verbose, **load_kwargs)
+        rate = all_data.rate
+        unit = all_data.unit
+        ampl_max = all_data.ampl_max
+        species = get_str(all_data.metadata(), ['species'], default='')
+        if len(species) > 0:
+            species += ' '
+        title_dict = dict(path=all_data.filepath,
+                          basename=all_data.basename(),
+                          species=species)
     except IOError as e:
-        return '%s: failed to open file: %s' % (filename, str(e))
+        return f'{filename}: failed to open file:' + str(e)
     # select channel:
     channels = all_data.shape[1]
     chan_list = [channel]
     if channel < 0:
         chan_list = range(channels)
     elif channel >= channels:
-        return '%s: invalid channel %d (%d channels)' % (filename, channel, channels)
+        return f'{filename}: invalid channel {channel} ({channels} channels)'
     # process all channels:
     for chan in chan_list:
         raw_data = all_data[:,chan]
         if len(raw_data) <= 1:
-            return '%s: empty data file' % filename
+            return '{filename}: empty data file'
         if verbose >= 0 and len(chan_list) > 1:
-            print('  channel %d' % chan)
-
+            print('  channel {chan}')
         # analysis window:
         win_pos = cfg.value('windowPosition')
         if time is not None:
@@ -1431,7 +1438,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                             plot_level>0)
         found_bestwindow = idx1 > 0
         if not found_bestwindow:
-            return '%s: not enough data for requested window length. You may want to adjust the windowSize parameter in the configuration file.' % filename
+            return f'{filename}: not enough data for requested window length. You may want to adjust the windowSize parameter in the configuration file.'
 
         # detect EODs in the data:
         psd_data, wave_eodfs, wave_indices, eod_props, \
@@ -1454,21 +1461,29 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         if found_bestwindow and not eod_props :
             msg = ', '.join(skip_reason)
             if msg:
-                print(filename + ': no fish found: %s' % msg)
+                print(filename + ': no fish found:', msg)
             else:
                 print(filename + ': no fish found.')
 
-        # file name for output files:
-        output_basename = os.path.join(output_folder, outfilename)
+        # format plot title:
+        title_dict['channel'] = chan
         if channels > 1:
             if channels > 100:
-                output_basename += '-c%03d' % chan
+                title_dict['chanstr'] = f'-c{chan:03d}'
             elif channels > 10:
-                output_basename += '-c%02d' % chan
+                title_dict['chanstr'] = f'-c{chan:02d}'
             else:
-                output_basename += '-c%d' % chan
+                title_dict['chanstr'] = f'-c{chan:d}'
+        else:
+            title_dict['chanstr'] = ''
         if time_file:
-            output_basename += '-t%.0fs' % (idx0/rate)
+            title_dict['time'] = '-t{idx0/rate:.0f}s'
+        else:
+            title_dict['time'] = ''
+        title = title_str.format(**title_dict)
+        # file name for output files:
+        output_basename = os.path.join(output_folder,
+                                       outfilename + title_dict['chanstr'] + title_dict['time'])
         # make directory if necessary:
         if keep_path and found_bestwindow:
             outpath = os.path.dirname(output_basename)
@@ -1489,7 +1504,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
             n_snippets = 10
             if len(save_subplots) == 0 or 'd' in save_subplots:
                 chl = chan if channels > 1 else None
-                fig = plot_eods(outfilename, messagefilename,
+                fig = plot_eods(title, messagefilename,
                                 raw_data, rate, chl, idx0, idx1,
                                 clipped, psd_data[0], wave_eodfs,
                                 wave_indices, mean_eods, eod_props,
@@ -1511,7 +1526,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 save_subplots = save_subplots.replace('d', '')
             if len(save_subplots) > 0:
                 plot_eod_subplots(output_basename, multi_pdf, save_subplots,
-                                  raw_data, rate, idx0, idx1, clipped,
+                                  title, raw_data, rate, idx0, idx1, clipped,
                                   psd_data[0], wave_eodfs,
                                   wave_indices, mean_eods, eod_props,
                                   peak_data, pulse_data, spec_data, unit,
@@ -1519,6 +1534,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                                   power_thresh, True, skip_bad,
                                   log_freq, min_freq, max_freq,
                                   save_plot)
+    all_data.close()
     return None
 
 
@@ -1548,7 +1564,7 @@ def run_thunderfish(file_args):
 def main(cargs=None):
     # config file name:
     cfgfile = __package__ + '.cfg'
-
+    
     # command line arguments:
     if cargs is None:
         cargs = sys.argv[1:]
@@ -1593,6 +1609,8 @@ def main(cargs=None):
                         help='save all summary plots of all recordings in a multi page pdf file. Disables parallel jobs.')
     parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwsed',
                         help='show or save subplots separately: r) recording with analysis window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra, d) the default summary plot. Capital letters produce a single multipage pdf containing plots of all detected fish')
+    parser.add_argument('--title', default='{species}{basename}{chanstr}{time}', type=str,
+                        help='title string for plots with fields {path}, {basename}, {species}, {channel}, {chanstr}, and {time}')
     parser.add_argument('-d', dest='rawdata_path', default='.', type=str, metavar='PATH',
                         help='path to raw EOD recordings needed for plotting based on analysis results')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
@@ -1693,12 +1711,7 @@ def main(cargs=None):
             os.makedirs(args.outpath)
 
     # kwargs for data loader:
-    load_kwargs = {}
-    for s in args.load_kwargs:
-        for kw in s.split(','):
-            kws = kw.split(':')
-            if len(kws) == 2:
-                load_kwargs[kws[0].strip()] = kws[1].strip()
+    load_kwargs = parse_load_kwargs(args.load_kwargs)
 
     # frequency limits for power spectrum:
     min_freq = 0.0
@@ -1741,12 +1754,12 @@ def main(cargs=None):
     pool_args = (results, load_kwargs, cfg, args.channel, args.time,
                  args.time_file, args.mode, args.tfac, log_freq, min_freq,
                  max_freq, args.save_data, args.zip_file,
-                 args.all_eods, spec_plots, args.skip_bad,
+                 args.all_eods, spec_plots, args.skip_bad, args.title,
                  args.save_plot, multi_pdf, args.save_subplots,
                  args.outpath, args.keep_path, v-1, plot_level)
     if results:
         pool_args = (results, args.rawdata_path, load_kwargs,
-                     args.all_eods, spec_plots, args.skip_bad,
+                     args.all_eods, spec_plots, args.skip_bad, args.title,
                      args.save_plot, multi_pdf, args.save_subplots,
                      args.tfac, log_freq, min_freq, max_freq, args.outpath,
                      args.keep_path, v)
