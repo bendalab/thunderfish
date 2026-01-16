@@ -3880,7 +3880,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
     idx1: int
         End index of the analysis window.
     info_dict: dict
-        Dictionary with path, basename, species, channel, chanstr, time.
+        Dictionary with path, name, species, channel, chanstr, time.
     """
     data = None
     rate = 0.0
@@ -3907,9 +3907,9 @@ def load_recording(file_path, channel=0, load_kwargs={},
         if len(species) > 0:
             species += ' '
         info_dict = dict(path=all_data.filepath,
-                          basename=all_data.basename(),
-                          species=species,
-                          channel=channel)
+                         name=all_data.basename(),
+                         species=species,
+                         channel=channel)
         if all_data.channels > 1:
             if all_data.channels > 100:
                 info_dict['chanstr'] = f'-c{channel:03d}'
