@@ -105,7 +105,8 @@ snippet_style = dict(scaley=False, lw=0.5, color='0.6')
 wave_spec_styles = dict(mstyle=dict(color=spectrum_color, markersize=10),
                         sstyle=dict(color=spectrum_color, alpha=0.5, lw=2))
 
-pulse_spec_styles = dict(sstyle=dict(color=spectrum_color, lw=2),
+pulse_spec_styles = dict(max_freq=40_000,
+                         sstyle=dict(color=spectrum_color, lw=2),
                          astyle=dict(color=analytic_spectrum_color, lw=2),
                          pstyle=dict(ls='', marker='o', markersize=12,
                                      color=spectrum_color, mec='none', mew=0,
@@ -1171,7 +1172,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
 
 def thunderfish_plot(files, data_path=None, load_kwargs={},
                      all_eods=False, spec_plots='auto', skip_bad=True,
-                     title_str='{basename}', save_plot=False, multi_pdf=None,
+                     title_str='{name}', save_plot=False, multi_pdf=None,
                      save_subplots='', tfac=1, log_freq=False,
                      min_freq=0.0, max_freq=3000.0, output_folder='.',
                      keep_path=False, verbose=0):
@@ -1319,7 +1320,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 mode='wp', tfac=1, log_freq=False, min_freq=0.0, max_freq=3000,
                 save_data=False, zip_file=False,
                 all_eods=False, spec_plots='auto', skip_bad=True,
-                title_str='{basename}', save_plot=False, multi_pdf=None, save_subplots='',
+                title_str='{name}', save_plot=False, multi_pdf=None, save_subplots='',
                 output_folder='.', keep_path=False,
                 verbose=0, plot_level=0):
     """Automatically detect and analyze all EOD waveforms in a short recording.
@@ -1411,7 +1412,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         if len(species) > 0:
             species += ' '
         title_dict = dict(path=all_data.filepath,
-                          basename=all_data.basename(),
+                          name=all_data.basename(),
                           species=species)
     except IOError as e:
         return f'{filename}: failed to open file:' + str(e)
@@ -1614,7 +1615,7 @@ def main(cargs=None):
                         help='save all summary plots of all recordings in a multi page pdf file. Disables parallel jobs.')
     parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwsed',
                         help='show or save subplots separately: r) recording with analysis window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra, d) the default summary plot. Capital letters produce a single multipage pdf containing plots of all detected fish')
-    parser.add_argument('--title', default='{species}{basename}{chanstr}{time}', type=str,
+    parser.add_argument('--title', default='{species}{name}{chanstr}{time}', type=str,
                         help='title string for plots with fields {path}, {basename}, {species}, {channel}, {chanstr}, and {time}')
     parser.add_argument('-d', dest='rawdata_path', default='.', type=str, metavar='PATH',
                         help='path to raw EOD recordings needed for plotting based on analysis results')
