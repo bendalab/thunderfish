@@ -596,9 +596,9 @@ def add_best_window_config(cfg, win_pos='best', win_size=1., win_shift=0.5,
     """
     cfg.add_section('Analysis window:')
     cfg.add('windowPosition', win_pos, '', 'Position of the analysis window: "beginning", "center", "end", "best", or a time in seconds.')
-    cfg.add('windowSize', win_size, 's', 'Size of the best window. This should be much larger than the expected period of the signal. If 0 select the whole time series.')
+    cfg.add('windowSize', win_size, 's', 'Size of the analysis window. This should be much larger than the expected period of the signal. If 0 select the whole time series.')
     cfg.add('bestWindowShift', win_shift, 's',
-            'Increment for shifting the analysis windows trough the data. Should be larger than the expected period of the signal.')
+            'For finding the best analysis window, increment for shifting a windows trough the data. Should be larger than the expected period of the signal.')
     cfg.add('bestWindowThresholdPercentile', percentile, '%',
             'Percentile for estimating interpercentile range. Should be smaller than the duty cycle of the periodic signal.')
     cfg.add('bestWindowThresholdFactor', thresh_fac, '',
@@ -612,7 +612,7 @@ def add_best_window_config(cfg, win_pos='best', win_size=1., win_shift=0.5,
     cfg.add('bestWindowTolerance', tolerance, '',
             'Add this to the minimum value of the cost function to get a threshold for selecting the largest best window.')
     cfg.add('expandBestWindow', expand, '',
-            'Return the largest valid best window. If False return sole best window. ')
+            'Return the largest valid best window. If False return the sole best window. ')
 
 
 def best_window_args(cfg):

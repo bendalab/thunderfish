@@ -9,7 +9,7 @@ Run it from the thunderfish development directory as:
 ```
 Or install thunderfish
 ```sh
-> sudo pip3 install .
+> pip install .
 ```
 Then you can run it directly from every directory:
 ```sh
@@ -164,7 +164,7 @@ def save_configuration(cfg, config_file):
         del cfg['fileMissing']
         del cfg['fileLaTeXLabelCommand']
         del cfg['fileLaTeXMergeStd']
-        cfg.dump(config_file)
+        cfg.write(config_file)
 
 
 def detect_eods(data, rate, min_clip, max_clip, name, mode,
@@ -1578,6 +1578,11 @@ def main(cargs=None):
                         help='verbosity level. Increase by specifying -v multiple times, or like -vvv')
     parser.add_argument('-V', action='count', dest='plot_level', default=0,
                         help='level for debugging plots. Increase by specifying -V multiple times, or like -VVV')
+    parser.add_argument('-C', dest='config_params', default=[],
+                        action='append', metavar='KEY:VAL',
+                        help='set configuration values from key:value pairs')
+    parser.add_argument('-L', dest='list_config', action='count', default=0,
+                        help='list configuration settings. If specified twice also print explanations.')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help=f'save configuration to file {cfgfile} after reading all configuration files')
     parser.add_argument('--channel', default=0, type=int,
@@ -1636,7 +1641,7 @@ def main(cargs=None):
     # help:
     if args.help:
         parser.print_help()
-        print('')
+        print()
         print('examples:')
         print('- analyze the single file data.wav interactively:')
         print('  > thunderfish data.wav')
@@ -1648,6 +1653,7 @@ def main(cargs=None):
         print('  > thunderfish -j -s -p -o results/ river1/*.wav')
         print('- analyze all wav files in the river1/ directory and write results combined in zip files to "results/river1/":')
         print('  > thunderfish -s -z -p -o results/ -k river1/*.wav')
+        print()
         print('- write configuration file:')
         print('  > thunderfish -c')
         parser.exit()
@@ -1670,23 +1676,27 @@ def main(cargs=None):
     else:
         files = [f for f in args.file if '-message' not in f]
 
-    # save configuration:
-    if args.save_config:
-        file_name = files[0] if len(files) else ''
-        cfg = configuration()
-        cfg.load_files(cfgfile, file_name, 4, verbose)
-        save_configuration(cfg, cfgfile)
-        exit()
-    elif len(files) == 0:
-        parser.error('you need to specify at least one file for the analysis')
-
     # configure:
+    file_name = files[0] if len(files) > 0 else ''
     cfg = configuration()
-    cfg.load_files(cfgfile, files[0], 4, verbose)
+    cfg.load_files(cfgfile, file_name, 4, verbose)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
     if args.unwrap:
         cfg.set('unwrapData', not cfg.value('unwrapData'))
+    cfg.set_values(args.config_params)
+
+    # list or save configuration:
+    if args.list_config > 0:
+        cfg.write(comments=args.list_config > 1)
+        exit()
+    elif args.save_config:
+        save_configuration(cfg, cfgfile)
+        exit()
+
+    # no files:
+    if len(files) == 0:
+        parser.error('you need to specify at least one file for the analysis')
         
     # plot parameter:
     spec_plots = 'auto'

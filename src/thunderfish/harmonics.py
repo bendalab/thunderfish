@@ -1593,7 +1593,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
     cfg.add('maximumPowerDifference', max_db_diff, 'dB', 'If larger than zero, maximum standard deviation allowed for difference in logarithmic power between successive harmonics. Smaller values enforce smoother spectra.')
     cfg.add('maximumHarmonicsPower', max_harmonics_db, 'dB', 'Maximum allowed power of the minimumGroupSize-th and higher harmonics relative to peak power.')
-    cfg.add('maximumHarmonics', max_harmonics, '', '0: keep all, >0 only keep the first # harmonics.')
+    cfg.add('maximumHarmonics', max_harmonics, '', 'Only keep the first # harmonics. If 0 keep all.')
     cfg.add('maximumGroups', max_groups, '', 'Maximum number of harmonic groups. If 0 process all.')
 
 
