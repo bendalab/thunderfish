@@ -34,7 +34,8 @@ from pathlib import Path
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
-from audioio import parse_load_kwargs, get_str, play, fade, load_audio
+from audioio.audioconverter import parse_load_kwargs
+from audioio import get_str, play, fade, load_audio
 from thunderlab.configfile import ConfigFile
 from thunderlab.dataloader import DataLoader
 from thunderlab.powerspectrum import decibel, plot_decibel_psd, multi_psd
@@ -151,14 +152,13 @@ def save_configuration(cfg, config_file):
     ----------
     cfg: ConfigFile
         Configuration parameters and their values.
-    config_file: string
-        Name of the configuration file to be loaded.
+    config_file: Path
+        Path and name of the configuration file to be loaded.
     """
-    ext = os.path.splitext(config_file)[1]
-    if ext != os.extsep + 'cfg':
+    if config_file.suffix != '.cfg':
         print('configuration file name must have .cfg as extension!')
     else:
-        print('write configuration to %s ...' % config_file)
+        print(f'write configuration to {config_file} ...')
         del cfg['fileColumnNumbers']
         del cfg['fileShrinkColumnWidth']
         del cfg['fileMissing']
@@ -1563,13 +1563,13 @@ def run_thunderfish(file_args):
 
 def main(cargs=None):
     # config file name:
-    cfgfile = __package__ + '.cfg'
+    cfgfile = Path(__package__ + '.cfg')
     
     # command line arguments:
     if cargs is None:
         cargs = sys.argv[1:]
     parser = argparse.ArgumentParser(add_help=False,
-        description='Analyze EOD waveforms of weakly electric fish.',
+        description='Extract and analyze EOD waveforms of electric fish.',
         epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
     parser.add_argument('-h', '--help', action='store_true',
                         help='show this help message and exit')
@@ -1579,7 +1579,7 @@ def main(cargs=None):
     parser.add_argument('-V', action='count', dest='plot_level', default=0,
                         help='level for debugging plots. Increase by specifying -V multiple times, or like -VVV')
     parser.add_argument('-c', dest='save_config', action='store_true',
-                        help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
+                        help=f'save configuration to file {cfgfile} after reading all configuration files')
     parser.add_argument('--channel', default=0, type=int,
                         help='channel to be analyzed (defaults to first channel, negative channel selects all channels)')
     parser.add_argument('-t', dest='time', default=None, type=str, metavar='TIME',
@@ -1642,12 +1642,12 @@ def main(cargs=None):
         print('  > thunderfish data.wav')
         print('- extract wavefish only:')
         print('  > thunderfish -m w data.wav')
-        print('- automatically analyze all wav files in the current working directory and save analysis results and plot to files:')
+        print('- analyze all wav files in the current working directory and save analysis results and plot to files:')
         print('  > thunderfish -s -p *.wav')
         print('- analyze all wav files in the river1/ directory, use all CPUs, and write files directly to "results/":')
         print('  > thunderfish -j -s -p -o results/ river1/*.wav')
-        print('- analyze all wav files in the river1/ directory and write files to "results/river1/":')
-        print('  > thunderfish -s -p -o results/ -k river1/*.wav')
+        print('- analyze all wav files in the river1/ directory and write results combined in zip files to "results/river1/":')
+        print('  > thunderfish -s -z -p -o results/ -k river1/*.wav')
         print('- write configuration file:')
         print('  > thunderfish -c')
         parser.exit()
