@@ -2342,8 +2342,9 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         
 def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       unit=None, tfac=1,
+                      magnification_factor=20,
                       wstyle=dict(lw=2, color='tab:red'),
-                      mstyle=dict(lw=1, color='tab:orange'),
+                      mstyle=dict(lw=1, color='tab:red'),
                       pstyle=dict(facecolor='tab:green', alpha=0.2,
                                   edgecolor='none'),
                       nstyle=dict(facecolor='tab:blue', alpha=0.2,
@@ -2374,6 +2375,9 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Optional unit of the data used for y-label.
     tfac: float
         Factor scaling the time axis limits.
+    magnification_factor: float
+        If larger than one, plot a magnified version of the EOD
+        waveform magnified by this factor.
     wstyle: dict
         Arguments passed on to the plot command for the EOD waveform.
     mstyle: dict
@@ -2391,6 +2395,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Arguments passed on to the plot command for the fitted EOD.
     zstyle: dict
         Arguments passed on to the plot command for the zero line.
+
     """
     ax.autoscale(True)
     time = 1000 * eod_waveform[:, 0]
@@ -2424,14 +2429,31 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=-10, **sstyle)
     # plot magnified pulse waveform:
-    if phases is not None and len(phases) > 0:
+    magnification_mask = np.zeros(len(time), dtype=bool)
+    if magnification_factor > 1:
         ax.autoscale_view(False)
         ax.autoscale(False)
-        thresh = np.max(np.abs(mean_eod))*0.05
-        i0 = np.argmax(np.abs(mean_eod) > thresh)
-        ax.plot(time[:i0], 20*mean_eod[:i0], zorder=9, **mstyle)
-        i1 = len(mean_eod) - 1 - np.argmax(np.abs(mean_eod[::-1]) > thresh)
-        ax.plot(time[i1:], 20*mean_eod[i1:], zorder=9, **mstyle)
+        mag_thresh = np.max(np.abs(mean_eod))/magnification_factor
+        i0 = np.argmax(np.abs(mean_eod) > mag_thresh)
+        left_eod = magnification_factor*mean_eod[:i0]
+        magnification_mask[:i0] = True
+        ax.plot(time[:i0], left_eod, zorder=9, **mstyle)
+        if left_eod[-1] > 0:
+            it = np.argmax(left_eod > 0.95*np.max(mean_eod))
+            if it < len(left_eod)//2:
+                it = len(left_eod) - 1
+            ty = left_eod[it] if left_eod[it] < np.max(mean_eod) else np.max(mean_eod)
+            ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='top')
+        else:
+            it = np.argmax(left_eod < 0.95*np.min(mean_eod))
+            if it < len(left_eod)//2:
+                it = len(left_eod) - 1
+            ty = left_eod[it] if left_eod[it] > np.min(mean_eod) else np.min(mean_eod)
+            ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='bottom')
+        i1 = len(mean_eod) - 1 - np.argmax(np.abs(mean_eod[::-1]) > mag_thresh)
+        right_eod = magnification_factor*mean_eod[i1:]
+        magnification_mask[i1:] = True
+        ax.plot(time[i1:], right_eod, zorder=9, **mstyle)
     # ax height dimensions:
     pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
     dxu = (time[-1] - time[0])/pixelx
@@ -2459,29 +2481,33 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     # annotate phases:
     if phases is not None and len(phases) > 0:
         for i, p in enumerate(phases):
-            ax.plot(1000*p[1], p[2], 'o', clip_on=False, zorder=0,
-                    alpha=0.4, color=wstyle['color'], ms=12,
+            ptime = 1000*p[1]
+            pi = np.argmin(np.abs(time - ptime))
+            mfac = magnification_factor if magnification_mask[pi] else 1
+            pampl = mfac*p[2]
+            ax.plot(ptime, pampl, 'o', clip_on=False, zorder=0,
+                    alpha=0.4, color=wstyle['color'], ms=10,
                     mec='none', mew=0)
             label = f'P{p[0]:.0f}'
             if p[0] != 1:
-                if np.abs(p[1]) < 0.001:
-                    ts = f'{1.0e6*p[1]:.0f}\u00b5s'
-                elif np.abs(p[1]) < 0.01:
-                    ts = f'{1.0e3*p[1]:.2f}ms'
+                if np.abs(ptime) < 1:
+                    ts = f'{1000*ptime:.0f}\u00b5s'
+                elif np.abs(ptime) < 10:
+                    ts = f'{ptime:.2f}ms'
                 else:
-                    ts = f'{1.0e3*p[1]:.3g}ms'
+                    ts = f'{ptime:.3g}ms'
                 if np.abs(p[3]) < 0.05:
                     ps = f'{100*p[3]:.1f}%'
                 else:
                     ps = f'{100*p[3]:.0f}%'
                 label += f'({ps} @ {ts})'
-            left_text = (p[2] > 0 and p[1] >= 0.0) or \
-                (p[2] < 0 and p[1] >= phases[np.argmin(phases[:, 2]), 1])
+            left_text = (pampl > 0 and ptime >= 0.0) or \
+                (pampl < 0 and ptime >= 1000*phases[np.argmin(phases[:, 2]), 1])
             va = 'baseline'
             dy = 0.6*yfs
-            sign = np.sign(p[2])
+            sign = np.sign(pampl)
             if i > 0 and i < len(phases) - 1:
-                if phases[i - 1][2] > p[2] and phases[i + 1][2] > p[2]:
+                if phases[i - 1][2] > pampl and phases[i + 1][2] > pampl:
                     va = 'top'
                     dy = -dy
             elif sign < 0:
@@ -2489,17 +2515,17 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 dy = -dy
             if p[0] == 1:
                 dy = 0.0
-            if p[2] + dy < ymin + 1.3*yfs:
-                dy = ymin + 1.3*yfs - p[2]
-            if p[0] == np.max(phases[:, 0]) and ty*p[2] > 0.0 and \
-               sign*p[2] + dy < sign*ty + 1.2*yfs:
-                dy = ty + sign*1.2*yfs - p[2]
+            if pampl + dy < ymin + 1.3*yfs:
+                dy = ymin + 1.3*yfs - pampl
+            if p[0] == np.max(phases[:, 0]) and ty*pampl > 0.0 and \
+               sign*pampl + dy < sign*ty + 1.2*yfs:
+                dy = ty + sign*1.2*yfs - pampl
             dx = 0.5*xfs
             if left_text:
-                ax.text(1000*p[1] + dx, p[2] + dy, label,
+                ax.text(ptime + dx, pampl + dy, label,
                         ha='left', va=va, zorder=20)
             else:
-                ax.text(1000*p[1] - dx, p[2] + dy, label,
+                ax.text(ptime - dx, pampl + dy, label,
                         ha='right', va=va, zorder=20)
             # area:
             if len(p) > 6:
@@ -2509,14 +2535,14 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                     label = f'{100*p[6]:.1f}%'
                 else:
                     label = f'{100*p[6]:.0f}%'
-                x = 1000*p[1]
+                x = ptime
                 if i > 0 and i < len(phases) - 1:
                     xl = 1000*phases[i - 1][1]
                     xr = 1000*phases[i + 1][1]
                     tsnippet = time[(time > xl) & (time < xr)]
                     snippet = mean_eod[(time > xl) & (time < xr)]
-                    tsnippet = tsnippet[np.sign(p[2])*snippet > 0]
-                    snippet = snippet[np.sign(p[2])*snippet > 0]
+                    tsnippet = tsnippet[np.sign(pampl)*snippet > 0]
+                    snippet = snippet[np.sign(pampl)*snippet > 0]
                     xc = np.sum(tsnippet*snippet)/np.sum(snippet)
                     x = xc
                 if abs(p[3]) > 0.5:
