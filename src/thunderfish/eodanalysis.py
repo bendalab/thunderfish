@@ -2342,7 +2342,8 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         
 def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       unit=None, tfac=1,
-                      mstyle=dict(lw=2, color='tab:red'),
+                      wstyle=dict(lw=2, color='tab:red'),
+                      mstyle=dict(lw=1, color='tab:orange'),
                       pstyle=dict(facecolor='tab:green', alpha=0.2,
                                   edgecolor='none'),
                       nstyle=dict(facecolor='tab:blue', alpha=0.2,
@@ -2373,8 +2374,10 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Optional unit of the data used for y-label.
     tfac: float
         Factor scaling the time axis limits.
+    wstyle: dict
+        Arguments passed on to the plot command for the EOD waveform.
     mstyle: dict
-        Arguments passed on to the plot command for the mean EOD.
+        Arguments passed on to the plot command for the magnified EOD waveform.
     pstyle: dict
         Arguments passed on to the fill_between command for coloring
         positive phases.
@@ -2411,7 +2414,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             fs['lw'] *= 2
         ax.plot(time, eod_waveform[:, 4], zorder=5, **fs)
     # plot waveform:
-    ax.plot(time, mean_eod, zorder=10, **mstyle)
+    ax.plot(time, mean_eod, zorder=10, **wstyle)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:, 2]
@@ -2420,6 +2423,15 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ax.autoscale(False)
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=-10, **sstyle)
+    # plot magnified pulse waveform:
+    if phases is not None and len(phases) > 0:
+        ax.autoscale_view(False)
+        ax.autoscale(False)
+        thresh = np.max(np.abs(mean_eod))*0.05
+        i0 = np.argmax(np.abs(mean_eod) > thresh)
+        ax.plot(time[:i0], 20*mean_eod[:i0], zorder=9, **mstyle)
+        i1 = len(mean_eod) - 1 - np.argmax(np.abs(mean_eod[::-1]) > thresh)
+        ax.plot(time[i1:], 20*mean_eod[i1:], zorder=9, **mstyle)
     # ax height dimensions:
     pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
     dxu = (time[-1] - time[0])/pixelx
@@ -2448,7 +2460,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     if phases is not None and len(phases) > 0:
         for i, p in enumerate(phases):
             ax.plot(1000*p[1], p[2], 'o', clip_on=False, zorder=0,
-                    alpha=0.4, color=mstyle['color'], ms=12,
+                    alpha=0.4, color=wstyle['color'], ms=12,
                     mec='none', mew=0)
             label = f'P{p[0]:.0f}'
             if p[0] != 1:
