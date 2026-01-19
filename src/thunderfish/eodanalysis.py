@@ -2341,7 +2341,7 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
 
         
 def plot_eod_waveform(ax, eod_waveform, props, phases=None,
-                      unit=None, tfac=1,
+                      unit=None, wave_periods=2, pulse_trange=0.003,
                       magnification_factor=20,
                       wave_style=dict(lw=2, color='tab:red'),
                       magnified_style=dict(lw=1, color='tab:red'),
@@ -2373,8 +2373,11 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         as returned by `analyze_pulse()`.
     unit: string
         Optional unit of the data used for y-label.
-    tfac: float
-        Factor scaling the time axis limits.
+    wave_periods: float
+        How many periods of a wave EOD are shown.
+    pulse_trange: float
+        Full range of the time axis for pulse EODs in seconds.
+        If zero, adapt range to waveform.
     magnification_factor: float
         If larger than one, plot a magnified version of the EOD
         waveform magnified by this factor.
@@ -2398,17 +2401,17 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
 
     """
     ax.autoscale(True)
-    time = 1000 * eod_waveform[:, 0]
-    mean_eod = eod_waveform[:, 1]
+    time = 1000*eod_waveform[:, 0]
+    eod = eod_waveform[:, 1]
     # plot zero line:
     ax.axhline(0.0, zorder=-5, **zero_style)
     # plot areas:
     if phases is not None and len(phases) > 0:
         if positive_style is not None and len(positive_style) > 0:
-            ax.fill_between(time, mean_eod, 0, mean_eod >= 0, zorder=4,
+            ax.fill_between(time, eod, 0, eod >= 0, zorder=4,
                             **positive_style)
         if negative_style is not None and len(negative_style) > 0:
-                ax.fill_between(time, mean_eod, 0, mean_eod <= 0, zorder=4,
+                ax.fill_between(time, eod, 0, eod <= 0, zorder=4,
                                 **negative_style)
     # plot fits:
     if eod_waveform.shape[1] > 3 and np.all(np.isfinite(eod_waveform[:, 3])):
@@ -2419,39 +2422,40 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             fs['lw'] *= 2
         ax.plot(time, eod_waveform[:, 4], zorder=5, **fs)
     # plot waveform:
-    ax.plot(time, mean_eod, zorder=10, **wave_style)
+    ax.plot(time, eod, zorder=10, **wave_style)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:, 2]
-        if np.mean(std_eod)/(np.max(mean_eod) - np.min(mean_eod)) > 0.1:
+        if np.mean(std_eod)/(np.max(eod) - np.min(eod)) > 0.1:
             ax.autoscale_view(False)
             ax.autoscale(False)
-        ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
+        ax.fill_between(time, eod + std_eod, eod - std_eod,
                         zorder=-10, **sem_style)
     # plot magnified pulse waveform:
     magnification_mask = np.zeros(len(time), dtype=bool)
     if magnification_factor > 1 and phases is not None and len(phases) > 0:
         ax.autoscale_view(False)
         ax.autoscale(False)
-        mag_thresh = np.max(np.abs(mean_eod))/magnification_factor
-        i0 = np.argmax(np.abs(mean_eod) > mag_thresh)
-        left_eod = magnification_factor*mean_eod[:i0]
-        magnification_mask[:i0] = True
-        ax.plot(time[:i0], left_eod, zorder=9, **magnified_style)
-        if left_eod[-1] > 0:
-            it = np.argmax(left_eod > 0.95*np.max(mean_eod))
-            if it < len(left_eod)//2:
-                it = len(left_eod) - 1
-            ty = left_eod[it] if left_eod[it] < np.max(mean_eod) else np.max(mean_eod)
-            ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='top')
-        else:
-            it = np.argmax(left_eod < 0.95*np.min(mean_eod))
-            if it < len(left_eod)//2:
-                it = len(left_eod) - 1
-            ty = left_eod[it] if left_eod[it] > np.min(mean_eod) else np.min(mean_eod)
-            ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='bottom')
-        i1 = len(mean_eod) - 1 - np.argmax(np.abs(mean_eod[::-1]) > mag_thresh)
-        right_eod = magnification_factor*mean_eod[i1:]
+        mag_thresh = np.max(np.abs(eod))/magnification_factor
+        i0 = np.argmax(np.abs(eod) > mag_thresh)
+        if i0 > 0:
+            left_eod = magnification_factor*eod[:i0]
+            magnification_mask[:i0] = True
+            ax.plot(time[:i0], left_eod, zorder=9, **magnified_style)
+            if left_eod[-1] > 0:
+                it = np.argmax(left_eod > 0.95*np.max(eod))
+                if it < len(left_eod)//2:
+                    it = len(left_eod) - 1
+                ty = left_eod[it] if left_eod[it] < np.max(eod) else np.max(eod)
+                ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='top')
+            else:
+                it = np.argmax(left_eod < 0.95*np.min(eod))
+                if it < len(left_eod)//2:
+                    it = len(left_eod) - 1
+                ty = left_eod[it] if left_eod[it] > np.min(eod) else np.min(eod)
+                ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='bottom')
+        i1 = len(eod) - 1 - np.argmax(np.abs(eod[::-1]) > mag_thresh)
+        right_eod = magnification_factor*eod[i1:]
         magnification_mask[i1:] = True
         ax.plot(time[i1:], right_eod, zorder=9, **magnified_style)
     # ax height dimensions:
@@ -2540,7 +2544,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                     xl = 1000*phases[i - 1][1]
                     xr = 1000*phases[i + 1][1]
                     tsnippet = time[(time > xl) & (time < xr)]
-                    snippet = mean_eod[(time > xl) & (time < xr)]
+                    snippet = eod[(time > xl) & (time < xr)]
                     tsnippet = tsnippet[np.sign(pampl)*snippet > 0]
                     snippet = snippet[np.sign(pampl)*snippet > 0]
                     xc = np.sum(tsnippet*snippet)/np.sum(snippet)
@@ -2578,10 +2582,13 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                     va='top', zorder=20)
     # axis:                
     if props is not None and props['type'] == 'wave':
-        lim = tfac*1000.0/props['EODf']
-        ax.set_xlim([-lim, +lim])
+        lim = 0.5*wave_periods*1000.0/props['EODf']
+        ax.set_xlim(-lim, +lim)
+    elif pulse_trange > 0:
+        ax.set_xlim(-1000*pulse_trange/2, 1000*pulse_trange/2)
     else:
-        ax.set_xlim(tfac*time[0], tfac*time[-1])
+        lim = 0.75*max(time[0], time[-1])
+        ax.set_xlim(-lim, +lim)
     ax.set_xlabel('Time [msec]')
     if unit:
         ax.set_ylabel(f'Amplitude [{unit}]')

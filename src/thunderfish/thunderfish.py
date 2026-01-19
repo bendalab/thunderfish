@@ -479,7 +479,7 @@ def axes_style(ax):
 def plot_eods(title, message_filename,
               raw_data, rate, channel, idx0, idx1, clipped,
               psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
-              peak_data, pulse_data, spec_data, indices, unit, zoom_window, tfac=1,
+              peak_data, pulse_data, spec_data, indices, unit, zoom_window,
               n_snippets=10, power_thresh=None, label_power=True,
               all_eods=False, spec_plots='auto', skip_bad=True,
               log_freq=False, min_freq=0.0, max_freq=3000.0,
@@ -540,8 +540,6 @@ def plot_eods(title, message_filename,
         Unit of the trace and the mean EOD.
     zoom_window: tuple of floats
         Start and endtime of suggested window for plotting pulse EOD timepoints.
-    tfac: float
-        Factor scaling the time axis limits of the EOD waveform plot.
     n_snippets: int
         Number of EOD waveform snippets to be plotted. If zero do not plot any.
     power_thresh:  2 D array or None
@@ -835,7 +833,7 @@ def plot_eods(title, message_filename,
                                markersize=p[pk].get_markersize(), mec='none', clip_on=False,
                                label=p[pk].get_label(), transform=ax.transAxes)
                 ax.add_line(ma)
-        plot_eod_waveform(ax, mean_eod, props, peaks, unit, tfac, **eod_styles)
+        plot_eod_waveform(ax, mean_eod, props, peaks, unit, **eod_styles)
         if props['type'] == 'pulse' and 'times' in props:
             plot_eod_snippets(ax, data, rate, mean_eod[0,0], mean_eod[-1,0],
                               props['times'], n_snippets, props['flipped'],
@@ -888,7 +886,7 @@ def plot_eods(title, message_filename,
 def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx0, idx1,
                       clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
                       eod_props, peak_data, pulse_data, spec_data,
-                      unit, zoom_window, tfac=1,
+                      unit, zoom_window,
                       n_snippets=10, power_thresh=None, label_power=True,
                       skip_bad=True, log_freq=False,
                       min_freq=0.0, max_freq=3000.0, save=True):
@@ -946,8 +944,6 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
         Unit of the trace and the mean EOD.
     zoom_window: tuple of floats
         Start and endtime of suggested window for plotting pulse EOD timepoints.
-    tfac: float
-        Factor scaling the time axis limits of the EOD waveform plot.
     n_snippets: int
         Number of EOD waveform snippets to be plotted. If zero do not plot any.
     power_thresh:  2 D array or None
@@ -1067,7 +1063,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
             fig.subplots_adjust(left=0.18, right=0.98, bottom=0.14, top=0.9-top)
             if not props is None:
                 ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
-            plot_eod_waveform(ax, meod, props, peaks, unit, tfac, **eod_styles)
+            plot_eod_waveform(ax, meod, props, peaks, unit, **eod_styles)
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if not props is None and props['type'] == 'pulse' and \
                'times' in props:
@@ -1137,7 +1133,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
             ax1 = fig.add_subplot(gs[:,0])
             if not props is None:
                 ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
-            plot_eod_waveform(ax1, meod, props, peaks, unit, tfac, **eod_styles)
+            plot_eod_waveform(ax1, meod, props, peaks, unit, **eod_styles)
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if not props is None and props['type'] == 'pulse' and 'times' in props:
                 plot_eod_snippets(ax1, data, rate, meod[0,0],
@@ -1181,7 +1177,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
 def thunderfish_plot(files, data_path=None, load_kwargs={},
                      all_eods=False, spec_plots='auto', skip_bad=True,
                      title_str='{name}', save_plot=False, multi_pdf=None,
-                     save_subplots='', tfac=1, log_freq=False,
+                     save_subplots='', log_freq=False,
                      min_freq=0.0, max_freq=3000.0, output_folder='.',
                      keep_path=False, verbose=0):
     """Generate plots from saved analysis results.
@@ -1212,8 +1208,6 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD
         waveform and spectra. Capital letters produce a single
         multipage pdf containing plots of all detected fish.
-    tfac: float
-        Factor scaling the time axis limits of the EOD waveform plot.
     log_freq: boolean
         Logarithmic (True) or linear (False) frequency axis of
         power spectrum of recording.
@@ -1299,7 +1293,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
                         channel, idx0, idx1, clipped, psd_data,
                         wave_eodfs, wave_indices, mean_eods,
                         eod_props, peak_data, pulse_data, spec_data, None, unit,
-                        zoom_window, tfac, 10, None, True, all_eods,
+                        zoom_window, 10, None, True, all_eods,
                         spec_plots, skip_bad, log_freq, min_freq,
                         max_freq, interactive=not save_plot,
                         verbose=verbose-1)
@@ -1317,7 +1311,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         plot_eod_subplots(output_basename, multi_pdf, save_subplots, title,
                           data, rate, idx0, idx1, clipped, psd_data, wave_eodfs,
                           wave_indices, mean_eods, eod_props,
-                          peak_data, pulse_data, spec_data, unit, zoom_window, tfac, 10,
+                          peak_data, pulse_data, spec_data, unit, zoom_window, 10,
                           None, True, skip_bad, log_freq, min_freq,
                           max_freq, save_plot)
     return None
@@ -1325,7 +1319,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
                 
 def thunderfish(filename, load_kwargs, cfg, channel=0,
                 time=None, time_file=False,
-                mode='wp', tfac=1, log_freq=False, min_freq=0.0, max_freq=3000,
+                mode='wp', log_freq=False, min_freq=0.0, max_freq=3000,
                 save_data=False, zip_file=False,
                 all_eods=False, spec_plots='auto', skip_bad=True,
                 title_str='{name}', save_plot=False, multi_pdf=None, save_subplots='',
@@ -1351,8 +1345,6 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
     mode: 'w', 'p', 'P', 'wp', or 'wP'
         Analyze wavefish ('w'), all pulse fish ('p'), or largest pulse
         fish only ('P').
-    tfac: float
-        Factor scaling the time axis limits of the EOD waveform plot.
     log_freq: boolean
         Logarithmic (True) or linear (False) frequency axis of
         power spectrum of recording.
@@ -1518,7 +1510,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                                 clipped, psd_data[0], wave_eodfs,
                                 wave_indices, mean_eods, eod_props,
                                 peak_data, pulse_data, spec_data, None, unit,
-                                zoom_window, tfac, n_snippets, power_thresh,
+                                zoom_window, n_snippets, power_thresh,
                                 True, all_eods, spec_plots, skip_bad,
                                 log_freq, min_freq, max_freq,
                                 interactive=not save_plot,
@@ -1539,7 +1531,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                                   psd_data[0], wave_eodfs,
                                   wave_indices, mean_eods, eod_props,
                                   peak_data, pulse_data, spec_data, unit,
-                                  zoom_window, tfac, n_snippets,
+                                  zoom_window, n_snippets,
                                   power_thresh, True, skip_bad,
                                   log_freq, min_freq, max_freq,
                                   save_plot)
@@ -1611,9 +1603,6 @@ def main(cargs=None):
                         help='plot spectra for all EOD waveforms in the summary plot')
     parser.add_argument('-b', dest='skip_bad', action='store_false',
                         help='indicate bad EODs in legend of power spectrum')
-    parser.add_argument('-r', dest='tfac', default=0.75, type=float,
-                        metavar='FACTOR',
-                        help='factor scaling the time axis of EOD waveform plots')
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
                         nargs='?', const=100.0, default=0.0,
                         help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
@@ -1771,7 +1760,7 @@ def main(cargs=None):
     
     # run on pool:
     pool_args = (results, load_kwargs, cfg, args.channel, args.time,
-                 args.time_file, args.mode, args.tfac, log_freq, min_freq,
+                 args.time_file, args.mode, log_freq, min_freq,
                  max_freq, args.save_data, args.zip_file,
                  args.all_eods, spec_plots, args.skip_bad, args.title,
                  args.save_plot, multi_pdf, args.save_subplots,
@@ -1780,7 +1769,7 @@ def main(cargs=None):
         pool_args = (results, args.rawdata_path, load_kwargs,
                      args.all_eods, spec_plots, args.skip_bad, args.title,
                      args.save_plot, multi_pdf, args.save_subplots,
-                     args.tfac, log_freq, min_freq, max_freq, args.outpath,
+                     log_freq, min_freq, max_freq, args.outpath,
                      args.keep_path, v)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(files) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
