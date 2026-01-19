@@ -2152,7 +2152,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
 
 
 def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
-                       toffs=0.0, pstyle=dict(lw=2, color='tab:red')):
+                       toffs=0.0, rec_style=dict(lw=2, color='tab:red')):
     """Plot a zoomed in range of the recorded trace.
 
     Parameters
@@ -2169,7 +2169,7 @@ def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
         Width of data segment to be plotted in seconds.
     toffs: float
         Time of first data value in seconds.
-    pstyle: dict
+    rec_style: dict
         Arguments passed on to the plot command for the recorded trace.
     """
     widx2 = int(width*rate)//2
@@ -2185,7 +2185,7 @@ def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
     if np.abs(time[i0]) < 1.0 and np.abs(time[i1]) < 1.0:
         time *= 1000.0
         tunit = 'ms'
-    ax.plot(time, data, **pstyle)
+    ax.plot(time, data, **rec_style)
     ax.set_xlim(time[i0], time[i1])
 
     ax.set_xlabel('Time [%s]' % tunit)
@@ -2296,8 +2296,8 @@ def plot_pulse_eods(ax, data, rate, zoom_window, width, eod_props,
         
 def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
                       n_snippets=10, flip=False,
-                      sstyle=dict(scaley=False,
-                                  lw=0.5, color='0.6')):
+                      snippet_style=dict(scaley=False,
+                                         lw=0.5, color='0.6')):
     """Plot a few EOD waveform snippets.
 
     Parameters
@@ -2318,7 +2318,7 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         Number of snippets to be plotted. If zero do not plot anything.
     flip: bool
         If True flip the snippets upside down.
-    sstyle: dict
+    snippet_style: dict
         Arguments passed on to the plot command for plotting the snippets.
     """
     if data is None or n_snippets <= 0:
@@ -2337,21 +2337,21 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         if flip:
             snippet *= -1
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]),
-                zorder=-5, **sstyle)
+                zorder=-5, **snippet_style)
 
         
 def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       unit=None, tfac=1,
                       magnification_factor=20,
-                      wstyle=dict(lw=2, color='tab:red'),
-                      mstyle=dict(lw=1, color='tab:red'),
-                      pstyle=dict(facecolor='tab:green', alpha=0.2,
-                                  edgecolor='none'),
-                      nstyle=dict(facecolor='tab:blue', alpha=0.2,
-                                  edgecolor='none'),
-                      sstyle=dict(color='0.8'),
-                      fstyle=dict(lw=3, color='tab:blue'),
-                      zstyle=dict(lw=1, color='0.7')):
+                      wave_style=dict(lw=2, color='tab:red'),
+                      magnified_style=dict(lw=1, color='tab:red'),
+                      positive_style=dict(facecolor='tab:green', alpha=0.2,
+                                          edgecolor='none'),
+                      negative_style=dict(facecolor='tab:blue', alpha=0.2,
+                                          edgecolor='none'),
+                      sem_style=dict(color='0.8'),
+                      fit_style=dict(lw=3, color='tab:blue'),
+                      zero_style=dict(lw=1, color='0.7')):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
     Parameters
@@ -2378,22 +2378,22 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     magnification_factor: float
         If larger than one, plot a magnified version of the EOD
         waveform magnified by this factor.
-    wstyle: dict
+    wave_style: dict
         Arguments passed on to the plot command for the EOD waveform.
-    mstyle: dict
+    magnified_style: dict
         Arguments passed on to the plot command for the magnified EOD waveform.
-    pstyle: dict
+    positive_style: dict
         Arguments passed on to the fill_between command for coloring
         positive phases.
-    nstyle: dict
+    negative_style: dict
         Arguments passed on to the fill_between command for coloring
         negative phases.
-    sstyle: dict
+    sem_style: dict
         Arguments passed on to the fill_between command for the
         standard error of the EOD.
-    fstyle: dict
+    fit_style: dict
         Arguments passed on to the plot command for the fitted EOD.
-    zstyle: dict
+    zero_style: dict
         Arguments passed on to the plot command for the zero line.
 
     """
@@ -2401,25 +2401,25 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     time = 1000 * eod_waveform[:, 0]
     mean_eod = eod_waveform[:, 1]
     # plot zero line:
-    ax.axhline(0.0, zorder=-5, **zstyle)
+    ax.axhline(0.0, zorder=-5, **zero_style)
     # plot areas:
     if phases is not None and len(phases) > 0:
-        if pstyle is not None and len(pstyle) > 0:
+        if positive_style is not None and len(positive_style) > 0:
             ax.fill_between(time, mean_eod, 0, mean_eod >= 0, zorder=4,
-                            **pstyle)
-        if nstyle is not None and len(nstyle) > 0:
+                            **positive_style)
+        if negative_style is not None and len(negative_style) > 0:
                 ax.fill_between(time, mean_eod, 0, mean_eod <= 0, zorder=4,
-                                **nstyle)
+                                **negative_style)
     # plot fits:
     if eod_waveform.shape[1] > 3 and np.all(np.isfinite(eod_waveform[:, 3])):
-        ax.plot(time, eod_waveform[:, 3], zorder=4, **fstyle)
+        ax.plot(time, eod_waveform[:, 3], zorder=4, **fit_style)
     if eod_waveform.shape[1] > 4:
-        fs = dict(**fstyle)
+        fs = dict(**fit_style)
         if 'lw' in fs:
             fs['lw'] *= 2
         ax.plot(time, eod_waveform[:, 4], zorder=5, **fs)
     # plot waveform:
-    ax.plot(time, mean_eod, zorder=10, **wstyle)
+    ax.plot(time, mean_eod, zorder=10, **wave_style)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:, 2]
@@ -2427,17 +2427,17 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ax.autoscale_view(False)
             ax.autoscale(False)
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
-                        zorder=-10, **sstyle)
+                        zorder=-10, **sem_style)
     # plot magnified pulse waveform:
     magnification_mask = np.zeros(len(time), dtype=bool)
-    if magnification_factor > 1:
+    if magnification_factor > 1 and phases is not None and len(phases) > 0:
         ax.autoscale_view(False)
         ax.autoscale(False)
         mag_thresh = np.max(np.abs(mean_eod))/magnification_factor
         i0 = np.argmax(np.abs(mean_eod) > mag_thresh)
         left_eod = magnification_factor*mean_eod[:i0]
         magnification_mask[:i0] = True
-        ax.plot(time[:i0], left_eod, zorder=9, **mstyle)
+        ax.plot(time[:i0], left_eod, zorder=9, **magnified_style)
         if left_eod[-1] > 0:
             it = np.argmax(left_eod > 0.95*np.max(mean_eod))
             if it < len(left_eod)//2:
@@ -2453,7 +2453,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         i1 = len(mean_eod) - 1 - np.argmax(np.abs(mean_eod[::-1]) > mag_thresh)
         right_eod = magnification_factor*mean_eod[i1:]
         magnification_mask[i1:] = True
-        ax.plot(time[i1:], right_eod, zorder=9, **mstyle)
+        ax.plot(time[i1:], right_eod, zorder=9, **magnified_style)
     # ax height dimensions:
     pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
     dxu = (time[-1] - time[0])/pixelx
@@ -2486,7 +2486,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             mfac = magnification_factor if magnification_mask[pi] else 1
             pampl = mfac*p[2]
             ax.plot(ptime, pampl, 'o', clip_on=False, zorder=0,
-                    alpha=0.4, color=wstyle['color'], ms=10,
+                    alpha=0.4, color=wave_style['color'], ms=10,
                     mec='none', mew=0)
             label = f'P{p[0]:.0f}'
             if p[0] != 1:
@@ -2590,8 +2590,10 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
-                       mstyle=dict(color='tab:blue', markersize=10),
-                       sstyle=dict(color='tab:blue', alpha=0.5, lw=2)):
+                       ampl_style=dict(marker='o', color='tab:blue', markersize=10),
+                       ampl_stem_style=dict(color='tab:blue', alpha=0.5, lw=2),
+                       phase_style=dict(marker='d', color='tab:blue', markersize=10),
+                       phase_stem_style=dict(color='tab:blue', alpha=0.5, lw=2)):
     """Plot and annotate spectrum of wave EOD.
 
     Parameters
@@ -2613,17 +2615,22 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
         returned by `analyze_wave()`.
     unit: string
         Optional unit of the data used for y-label.
-    mstyle: dict
-        Arguments passed on to the stem plot command for the markers.
-    sstyle: dict
-        Arguments passed on to the stem plot command for the stem lines.
+    ampl_style: dict
+        Properties of the markers of the amplitude plot.
+    ampl_stem_style: dict
+        Properties of the stems of the amplitude plot.
+    phase_style: dict
+        Properties of the markers of the phase plot.
+    phase_stem_style: dict
+        Properties of the stems of the phase plot.
     """
     n = min(9, np.sum(np.isfinite(spec[:, 2])))
     # amplitudes:
-    markers, stemlines, _ = axa.stem(spec[:n,0]+1, spec[:n,2], basefmt='none')
-    plt.setp(markers, clip_on=False, **mstyle)
-    plt.setp(stemlines, **sstyle)
-    axa.set_xlim(0.5, n+0.5)
+    markers, stemlines, _ = axa.stem(spec[:n, 0] + 1, spec[:n, 2],
+                                     basefmt='none')
+    plt.setp(markers, clip_on=False, **ampl_style)
+    plt.setp(stemlines, **ampl_stem_style)
+    axa.set_xlim(0.5, n + 0.5)
     axa.set_ylim(bottom=0)
     axa.xaxis.set_major_locator(plt.MultipleLocator(1))
     axa.tick_params('x', direction='out')
@@ -2632,28 +2639,29 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
     else:
         axa.set_ylabel('Amplitude')
     # phases:
-    phases = spec[:n,5]
-    phases[phases<0.0] = phases[phases<0.0] + 2.0*np.pi
-    markers, stemlines, _ = axp.stem(spec[:n,0]+1, phases[:n], basefmt='none')
-    plt.setp(markers, clip_on=False, **mstyle)
-    plt.setp(stemlines, **sstyle)
-    axp.set_xlim(0.5, n+0.5)
+    phases = spec[:n, 5]
+    phases[phases<0.0] = phases[phases<0.0] + 2*np.pi
+    markers, stemlines, _ = axp.stem(spec[:n, 0] + 1, phases[:n],
+                                     basefmt='none')
+    plt.setp(markers, clip_on=False, **phase_style)
+    plt.setp(stemlines, **phase_stem_style)
+    axp.set_xlim(0.5, n + 0.5)
     axp.xaxis.set_major_locator(plt.MultipleLocator(1))
     axp.tick_params('x', direction='out')
-    axp.set_ylim(0, 2.0*np.pi)
-    axp.set_yticks([0, np.pi, 2.0*np.pi])
+    axp.set_ylim(0, 2*np.pi)
+    axp.set_yticks([0, np.pi, 2*np.pi])
     axp.set_yticklabels(['0', '\u03c0', '2\u03c0'])
     axp.set_xlabel('Harmonics')
     axp.set_ylabel('Phase')
 
 
 def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
-                        sstyle=dict(lw=3, color='tab:blue'),
-                        astyle=dict(lw=4, color='tab:cyan'),
-                        pstyle=dict(ls='', marker='o', markersize=10,
-                                    color='tab:blue', mec='none', mew=0,
-                                    alpha=0.4),
-                        cstyle=dict(lw=1, ls='-', color='0.5'),
+                        spec_style=dict(lw=3, color='tab:blue'),
+                        analytic_style=dict(lw=4, color='tab:cyan'),
+                        peak_style=dict(ls='', marker='o', markersize=10,
+                                        color='tab:blue', mec='none', mew=0,
+                                        alpha=0.4),
+                        cutoff_style=dict(lw=1, ls='-', color='0.5'),
                         att5_color='0.8', att50_color='0.9'):
     """Plot and annotate spectrum of single pulse EOD.
 
@@ -2672,18 +2680,19 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
         Minimun frequency of the spectrum to be plotted (logscale!).
     max_freq: float
         Maximun frequency of the spectrum to be plotted (logscale!).
-    sstyle: dict
+    spec_style: dict
         Arguments passed on to the plot command for the energy spectrum
         computed from the data.
-    astyle: dict
+    analytic_style: dict
         Arguments passed on to the plot command for the energy spectrum
         that was analytically computed from the Gaussian fits
         (optional third column in `energy`).
-    pstyle: dict
-        Arguments passed on to the plot command for marking the peak frequency.
-    cstyle: dict
-        Arguments passed on to the plot command for the line marking
-        the lower cutoff frequency.
+    peak_style: dict
+        Arguments passed on to the plot commands for marking the peak
+        and trough frequency.
+    cutoff_style: dict
+        Arguments passed on to the plot command for the lines marking
+        cutoff frequencies.
     att5_color: matplotlib color specification
         Color for the rectangular patch marking the first 5 Hz.
     att50_color: matplotlib color specification
@@ -2708,28 +2717,28 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
         ax.plot([lowcutoff, lowcutoff, 1], [-60, 0.5*att, 0.5*att],
-                zorder=30, **cstyle)
+                zorder=30, **cutoff_style)
         ax.text(1.2*lowcutoff, 0.5*att - 1, f'{lowcutoff:.0f}Hz',
                 ha='left', va='top', zorder=100)
     highcutoff = props['highcutoff']
-    ax.plot([highcutoff, highcutoff], [-60, -3], zorder=30, **cstyle)
+    ax.plot([highcutoff, highcutoff], [-60, -3], zorder=30, **cutoff_style)
     ax.text(1.2*highcutoff, -3, f'{highcutoff:.0f}Hz',
             ha='left', va='center', zorder=100)
     ref_energy = np.max(energy[:, 1])
-    if energy.shape[1] > 2 and np.all(np.isfinite(energy[:, 2])) and len(astyle) > 0:
+    if energy.shape[1] > 2 and np.all(np.isfinite(energy[:, 2])) and len(analytic_style) > 0:
         db = decibel(energy[:, 2], ref_energy)
-        ax.plot(energy[:, 0], db, zorder=45, **astyle)
+        ax.plot(energy[:, 0], db, zorder=45, **analytic_style)
     db = decibel(energy[:, 1], ref_energy)
-    ax.plot(energy[:, 0], db, zorder=50, **sstyle)
+    ax.plot(energy[:, 0], db, zorder=50, **spec_style)
     peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
-        ax.plot(peakfreq, 0, zorder=60, clip_on=False, **pstyle)
+        ax.plot(peakfreq, 0, zorder=60, clip_on=False, **peak_style)
         ax.text(peakfreq*1.2, 1, f'{peakfreq:.0f}Hz',
                 va='bottom', zorder=100)
     troughfreq = props['troughfreq']
     if troughfreq >= min_freq:
         troughenergy = decibel(props['troughenergy'], ref_energy)
-        ax.plot(troughfreq, troughenergy, zorder=60, **pstyle)
+        ax.plot(troughfreq, troughenergy, zorder=60, **peak_style)
         ax.text(troughfreq, troughenergy - 3,
                 f'{troughenergy:.0f}dB @ {troughfreq:.0f}Hz',
                 ha='center', va='top', zorder=100)

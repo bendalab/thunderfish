@@ -87,32 +87,39 @@ analytic_spectrum_color = '#00D0B0'
 data_styles = dict(dstyle=dict(color=data_color, lw=1.4),
                    wstyle=dict(color=trace_color, lw=1.4))
 
-trace_style = dict(color=trace_color, lw=2)
+rec_style = dict(color=trace_color, lw=2)
                            
 spectrum_style = dict(color=spectrum_color, lw=2)
 
-eod_styles = dict(wstyle=dict(color=trace_color, lw=2),
-                  mstyle=dict(color=trace_color, lw=1),
-                  pstyle=dict(facecolor='#00A050', alpha=0.2,
-                              edgecolor='none'),
-                  nstyle=dict(facecolor='#1040C0', alpha=0.2,
-                              edgecolor='none'),
-                  sstyle=dict(color='0.8'),
-                  fstyle=dict(color=fit_color, lw=2),
-                  zstyle=dict(color='0.3', lw=1))
+eod_styles = dict(wave_style=dict(color=trace_color, lw=2),
+                  magnified_style=dict(color=trace_color, lw=1),
+                  positive_style=dict(facecolor='#00A050', alpha=0.2,
+                                      edgecolor='none'),
+                  negative_style=dict(facecolor='#1040C0', alpha=0.2,
+                                      edgecolor='none'),
+                  sem_style=dict(color='0.8'),
+                  fit_style=dict(color=fit_color, lw=2),
+                  zero_style=dict(color='0.3', lw=1))
                       
 snippet_style = dict(scaley=False, lw=0.5, color='0.6')
 
-wave_spec_styles = dict(mstyle=dict(color=spectrum_color, markersize=10),
-                        sstyle=dict(color=spectrum_color, alpha=0.5, lw=2))
+wave_spec_styles = dict(ampl_style=dict(marker='o', color=spectrum_color,
+                                        markersize=10),
+                        ampl_stem_style=dict(color=spectrum_color, alpha=0.5,
+                                             lw=2),
+                        phase_style=dict(marker='d', color=spectrum_color,
+                                         markersize=10),
+                        phase_stem_style=dict(color=spectrum_color, alpha=0.5,
+                                              lw=2))
 
 pulse_spec_styles = dict(max_freq=40_000,
-                         sstyle=dict(color=spectrum_color, lw=2),
-                         astyle=dict(color=analytic_spectrum_color, lw=2),
-                         pstyle=dict(ls='', marker='o', markersize=12,
-                                     color=spectrum_color, mec='none', mew=0,
-                                     alpha=0.6),
-                         cstyle=dict(ls='-', color='0.5', lw=1),
+                         spec_style=dict(color=spectrum_color, lw=2),
+                         analytic_style=dict(color=analytic_spectrum_color,
+                                             lw=2),
+                         peak_style=dict(ls='', marker='o', markersize=10,
+                                         color=spectrum_color, mec='none',
+                                         mew=0, alpha=0.6),
+                         cutoff_style=dict(ls='-', color='0.5', lw=1),
                          att5_color='0.8',
                          att50_color='0.9')
 
@@ -703,7 +710,7 @@ def plot_eods(title, message_filename,
             twidth = (1+twidth//0.005)*0.005
         if data is not None and len(data) > 0:
             plot_eod_recording(axr, data, rate, unit, twidth,
-                               idx0/rate, trace_style)
+                               idx0/rate, rec_style)
             plot_pulse_eods(axr, data, rate,
                             zoom_window, twidth, eod_props,
                             idx0/rate, colors=pulse_colors,
@@ -994,7 +1001,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
         pulse_colors = pulse_colors[3:]
         pulse_markers = pulse_markers[3:]
         plot_eod_recording(ax, raw_data[idx0:idx1], rate, unit,
-                           twidth, idx0/rate, trace_style)
+                           twidth, idx0/rate, rec_style)
         plot_pulse_eods(ax, raw_data[idx0:idx1], rate, zoom_window,
                         twidth, eod_props, idx0/rate,
                         colors=pulse_colors, markers=pulse_markers,
