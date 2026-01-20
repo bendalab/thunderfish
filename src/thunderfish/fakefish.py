@@ -933,7 +933,7 @@ def generate_waveform(filename):
     print(f'\nWrote fakefish data to file "{filename}".')
             
 
-def generate_testfiles():
+def generate_testfiles(log_freq=True):
     """Generate recordings of various pulse EODs and their spectrum.
 
     The spectrum is analytically computed and thus can be used to test
@@ -1050,9 +1050,12 @@ def generate_testfiles():
         ax2.plot(nfreqs, nlevel + 0.5, color='C1', label='numeric')
         ax2.plot(freqs, level, color='C3', label='analytic')
         ax2.plot(fmaxpos, pmax, 'o', color='C3')
-        ax2.set_xlim(1, 1e4)
+        if log_freq:
+            ax2.set_xlim(1, 1e4)
+            ax2.set_xscale('log')
+        else:
+            ax2.set_xlim(0, 4000)
         ax2.set_ylim(-60, 10)
-        ax2.set_xscale('log')
         ax2.set_xlabel('frequency [Hz]')
         ax2.set_ylabel('energy [dB]')
         ax2.legend(loc='lower left', frameon=False)
@@ -1161,19 +1164,22 @@ def main(args=[]):
     from .version import __year__
     
     if len(args) > 0:
-        if (len(args) == 1 and args[0] != '-t') and args[0] != '-s':
-            print('usage: fakefish [-h|--help] [-s audiofile] [-t]')
+        if (len(args) == 1 and args[0].lower() != '-t') and args[0] != '-s':
+            print('usage: fakefish [-h|--help] [-s audiofile] [-t] [-T]')
             print('')
             print('Without arguments, run a demo for illustrating fakefish functionality.')
             print('')
             print('-s audiofile: writes audiofile with user defined simulated electric fishes.')
-            print('-t: write audiofiles for a number of pulse waveforms and corresponding analytic spectra in csv files for testing.')
+            print('-t: write audiofiles for a number of pulse waveforms and corresponding analytic spectra in csv files for testing. Plot frequency axis logarithmically.')
+            print('-T: write audiofiles for a number of pulse waveforms and corresponding analytic spectra in csv files for testing. Plot frequency axis linearly.')
             print('')
             print(f'by bendalab ({__year__})')
         elif args[0] == '-s':
             generate_waveform(args[1])
         elif args[0] == '-t':
-            generate_testfiles()
+            generate_testfiles(True)
+        elif args[0] == '-T':
+            generate_testfiles(False)
     else:
         demo()
 
