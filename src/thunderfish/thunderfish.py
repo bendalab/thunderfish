@@ -91,32 +91,34 @@ rec_style = dict(color=trace_color, lw=2)
                            
 spectrum_style = dict(color=spectrum_color, lw=2)
 
-eod_styles = dict(wave_style=dict(color=trace_color, lw=2),
-                  magnified_style=dict(color=trace_color, lw=1),
+eod_styles = dict(wave_style=dict(color=trace_color, lw=1.3),
+                  magnified_style=dict(color=trace_color, lw=0.8),
                   positive_style=dict(facecolor='#00A050', alpha=0.2,
                                       edgecolor='none'),
                   negative_style=dict(facecolor='#1040C0', alpha=0.2,
                                       edgecolor='none'),
                   sem_style=dict(color='0.8'),
-                  fit_style=dict(color=fit_color, lw=2),
-                  zero_style=dict(color='0.3', lw=1))
+                  fit_style=dict(color=fit_color, lw=1),
+                  phase_style=dict(zorder=0, ls='', marker='o', color=trace_color,
+                                   markersize=6, mec='none', mew=0, alpha=0.4),
+                  zero_style=dict(color='0.3', lw=0.5))
                       
 snippet_style = dict(scaley=False, lw=0.5, color='0.6')
 
 wave_spec_styles = dict(ampl_style=dict(marker='o', color=spectrum_color,
-                                        markersize=10),
+                                        markersize=6),
                         ampl_stem_style=dict(color=spectrum_color, alpha=0.5,
-                                             lw=2),
-                        phase_style=dict(marker='d', color=spectrum_color,
-                                         markersize=10),
+                                             lw=1),
+                        phase_style=dict(marker='p', color=spectrum_color,
+                                         markersize=6),
                         phase_stem_style=dict(color=spectrum_color, alpha=0.5,
-                                              lw=2))
+                                              lw=1))
 
 pulse_spec_styles = dict(max_freq=40_000,
                          spec_style=dict(color=spectrum_color, lw=2),
                          analytic_style=dict(color=analytic_spectrum_color,
                                              lw=2),
-                         peak_style=dict(ls='', marker='o', markersize=10,
+                         peak_style=dict(ls='', marker='o', markersize=6,
                                          color=spectrum_color, mec='none',
                                          mew=0, alpha=0.6),
                          cutoff_style=dict(ls='-', color='0.5', lw=1),
@@ -303,7 +305,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 eod_waveform(data, rate, eod_ts, win_fac=0.8,
                              min_win=cfg.value('eodMinPulseSnippet'),
                              min_sem=False, **eod_waveform_args(cfg))
-            mean_eod, props, peaks, pulse, power = analyze_pulse(mean_eod, eod_times0,
+            mean_eod, props, peaks, pulse, power = analyze_pulse(mean_eod, eod_times0, verbose=verbose-1,
                                                                  **analyze_pulse_args(cfg))
             if len(peaks) == 0:
                 print('error: no peaks in pulse EOD detected')
@@ -1411,9 +1413,17 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         species = get_str(all_data.metadata(), ['species'], default='')
         if len(species) > 0:
             species += ' '
-        title_dict = dict(path=all_data.filepath,
-                          name=all_data.basename(),
-                          species=species)
+        info_dict = dict(path=os.fsdecode(all_data.filepath),
+                         name=all_data.basename(),
+                         species=species)
+        offs = 1
+        for k, part in enumerate(all_data.filepath.parts):
+            if k == 0 and part == all_data.filepath.anchor:
+                offs = 0
+                continue
+            if part == all_data.filepath.name:
+                break
+            info_dict[f'part{k + offs}'] = part
     except IOError as e:
         return f'{filename}: failed to open file:' + str(e)
     # select channel:
@@ -1467,24 +1477,24 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 print(filename + ': no fish found.')
 
         # format plot title:
-        title_dict['channel'] = chan
+        info_dict['channel'] = chan
         if channels > 1:
             if channels > 100:
-                title_dict['chanstr'] = f'-c{chan:03d}'
+                info_dict['chanstr'] = f'-c{chan:03d}'
             elif channels > 10:
-                title_dict['chanstr'] = f'-c{chan:02d}'
+                info_dict['chanstr'] = f'-c{chan:02d}'
             else:
-                title_dict['chanstr'] = f'-c{chan:d}'
+                info_dict['chanstr'] = f'-c{chan:d}'
         else:
-            title_dict['chanstr'] = ''
+            info_dict['chanstr'] = ''
         if time_file:
-            title_dict['time'] = '-t{idx0/rate:.0f}s'
+            info_dict['time'] = '-t{idx0/rate:.0f}s'
         else:
-            title_dict['time'] = ''
-        title = title_str.format(**title_dict)
+            info_dict['time'] = ''
+        title = title_str.format(**info_dict)
         # file name for output files:
         output_basename = os.path.join(output_folder,
-                                       outfilename + title_dict['chanstr'] + title_dict['time'])
+                                       outfilename + info_dict['chanstr'] + info_dict['time'])
         # make directory if necessary:
         if keep_path and found_bestwindow:
             outpath = os.path.dirname(output_basename)

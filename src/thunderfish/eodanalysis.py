@@ -91,6 +91,7 @@ Analysis of EOD waveforms.
 - `pulse_quality_args()`: retrieve parameters for `pulse_quality()` from configuration.
 """
 
+import os
 import io
 import glob
 import zipfile
@@ -1077,7 +1078,7 @@ def gaussian_sum_costs(pas, time, eod, freqs, energy):
     return costs
 
 
-def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
+def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5, verbose=0):
     """Decompose single pulse waveform into sum of Gaussians.
 
     Use the output to simulate pulse-type EODs using the functions
@@ -1097,6 +1098,8 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
     width_frac: float
         The width of a peak is measured at this fraction of a peak's
         height (0-1).
+    verbose: int
+        Verbosity level passed for error and info messages.
 
     Returns
     -------
@@ -1129,15 +1132,16 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
     try:
         tas, _ = curve_fit(gaussian_sum, time, eod, tas)
     except RuntimeError as e:
-        print('Fit gaussian_sum failed in decompose_pulse():', e)
+        if verbose > 0:
+            print('Fit gaussian_sum failed in decompose_pulse():', e)
         return pulse
     # fit EOD waveform and spectrum:
     bnds = [(1e-5, None) if k%3 == 2 else (None, None)
             for k in range(len(tas))]
     res = minimize(gaussian_sum_costs, tas,
                    args=(time, eod, freqs, energy), bounds=bnds)
-    if not res.success:
-        print('Optimization gaussian_sum_costs failed in decompose_pulse():',
+    if not res.success and verbose > 0:
+        print('warning: optimization gaussian_sum_costs failed in decompose_pulse():',
               res.message)
     else:
         tas = res.x
@@ -1146,7 +1150,8 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
         rms_old = np.sqrt(np.mean((gaussian_sum(time, *tas) - eod)**2))/rms_norm
         eod_diff = np.abs(gaussian_sum(time, *tas) - eod)/rms_norm
         if np.max(eod_diff) > 0.1:
-            print('add Gaussian', np.max(eod_diff))
+            if verbose > 1:
+                print(f'decompose_pulse(): added Gaussian because maximum rms error was {100*np.max(eod_diff):.0f}%')
             ntas = np.concatenate((tas, (time[np.argmax(eod_diff)], np.max(eod_diff),
                                          np.mean(tas[2::3]))))
             bnds = [(1e-5, None) if k%3 == 2 else (None, None)
@@ -1157,10 +1162,10 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5):
                 rms_new = np.sqrt(np.mean((gaussian_sum(time, *res.x) - eod)**2))/rms_norm
                 if rms_new < 0.8*rms_old:
                     tas = res.x
-                else:
-                    print('removed new Gaussian')
-            else:
-                print('Optimization gaussian_sum_costs for additional Gaussian failed in decompose_pulse():',
+                elif verbose > 1:
+                    print('decompose_pulse(): removed added Gaussian because it did not improve the fit')
+            elif verbose > 0:
+                print('warnong: optimization gaussian_sum_costs for additional Gaussian failed in decompose_pulse():',
                       res.message)
     times = np.asarray(tas[0::3])
     ampls = np.asarray(tas[1::3])
@@ -1323,7 +1328,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
                   width_frac=0.5, fit_frac=0.5,
                   freq_resolution=1.0, fade_frac=0.0,
                   flip_pulse='none', ipi_cv_thresh=0.5,
-                  ipi_percentile=30.0):
+                  ipi_percentile=30.0, verbose=0):
     """Analyze the EOD waveform of a pulse fish.
     
     Parameters
@@ -1367,6 +1372,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         When computing the statistics of IPIs from a subset of the
         IPIs, only intervals smaller than this percentile (between 0
         and 100) are used.
+    verbose: int
+        Verbosity level passed for error and info messages.
     
     Returns
     -------
@@ -1590,7 +1597,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         analyze_pulse_spectrum(freqs, energy)
 
     # decompose EOD waveform:
-    pulse = decompose_pulse(meod, freqs, energy, phases, width_frac)
+    pulse = decompose_pulse(meod, freqs, energy, phases, width_frac, verbose=verbose)
     if len(pulse['amplitudes']) > 0:
         eod_fit = pulsefish_waveform(pulse, meod[:, 0])
         meod[:, -2] = eod_fit
@@ -2344,15 +2351,18 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       unit=None, wave_periods=2,
                       pulse_trange=(0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1),
                       magnification_factor=20,
-                      wave_style=dict(lw=2, color='tab:red'),
-                      magnified_style=dict(lw=1, color='tab:red'),
+                      wave_style=dict(lw=1.5, color='tab:red'),
+                      magnified_style=dict(lw=0.8, color='tab:red'),
                       positive_style=dict(facecolor='tab:green', alpha=0.2,
                                           edgecolor='none'),
                       negative_style=dict(facecolor='tab:blue', alpha=0.2,
                                           edgecolor='none'),
                       sem_style=dict(color='0.8'),
-                      fit_style=dict(lw=3, color='tab:blue'),
-                      zero_style=dict(lw=1, color='0.7')):
+                      fit_style=dict(lw=1.5, color='tab:blue'),
+                      phase_style=dict(zorder=0, ls='', marker='o', color='tab:red',
+                                       markersize=6, mec='none', mew=0,
+                                       alpha=0.4),
+                      zero_style=dict(lw=0.5, color='0.7')):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
     Parameters
@@ -2397,6 +2407,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         standard error of the EOD.
     fit_style: dict
         Arguments passed on to the plot command for the fitted EOD.
+    phase_style: dict
+        Arguments passed on to the plot command for marking EOD phases.
     zero_style: dict
         Arguments passed on to the plot command for the zero line.
 
@@ -2404,6 +2416,35 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     ax.autoscale(True)
     time = 1000*eod_waveform[:, 0]
     eod = eod_waveform[:, 1]
+    # axis:                
+    if props is not None and props['type'] == 'wave':
+        xlim = 0.5*wave_periods*1000.0/props['EODf']
+    elif pulse_trange:
+        if props is not None and 'tstart' in  props and 'tend' in props:
+            trange = 1000*(props['tend'] - props['tstart'])
+        else:
+            trange = 0.6*(time[-1] - time[0])
+        for tr in pulse_trange:
+            if 1000*tr > trange:
+                break
+        xlim = 1000*tr/2
+    else:
+        xlim = 0.75*max(time[0], time[-1])
+    ax.set_xlim(-xlim, +xlim)
+    ax.set_xlabel('Time [msec]')
+    ylim = 1.1*np.max(np.abs(eod[(time >= -xlim) & (time <= xlim)])) 
+    ax.set_ylim(-ylim, +ylim)
+    if unit:
+        ax.set_ylabel(f'Amplitude [{unit}]')
+    else:
+        ax.set_ylabel('Amplitude')
+    # ax height dimensions:
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
+    dxu = 2*xlim/pixelx
+    xfs = plt.rcParams['font.size']*dxu
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:, 1]))[0]
+    dyu = 2*ylim/pixely
+    yfs = plt.rcParams['font.size']*dyu
     # plot zero line:
     ax.axhline(0.0, zorder=-5, **zero_style)
     # plot areas:
@@ -2459,15 +2500,6 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         right_eod = magnification_factor*eod[i1:]
         magnification_mask[i1:] = True
         ax.plot(time[i1:], right_eod, zorder=9, **magnified_style)
-    # ax height dimensions:
-    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
-    dxu = (time[-1] - time[0])/pixelx
-    xfs = plt.rcParams['font.size']*dxu
-    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:, 1]))[0]
-    ymin, ymax = ax.get_ylim()
-    unity = ymax - ymin
-    dyu = np.abs(unity)/pixely
-    yfs = plt.rcParams['font.size']*dyu
     # annotate fit:
     tau = None if props is None else props.get('tau', None)
     ty = 0.0
@@ -2490,9 +2522,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             pi = np.argmin(np.abs(time - ptime))
             mfac = magnification_factor if magnification_mask[pi] else 1
             pampl = mfac*p[2]
-            ax.plot(ptime, pampl, 'o', clip_on=False, zorder=0,
-                    alpha=0.4, color=wave_style['color'], ms=10,
-                    mec='none', mew=0)
+            ax.plot(ptime, pampl, **phase_style)
             label = f'P{p[0]:.0f}'
             if p[0] != 1:
                 if np.abs(ptime) < 1:
@@ -2520,8 +2550,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 dy = -dy
             if p[0] == 1:
                 dy = 0.0
-            if pampl + dy < ymin + 1.3*yfs:
-                dy = ymin + 1.3*yfs - pampl
+            if pampl + dy < -ylim + 1.3*yfs:
+                dy = -ylim + 1.3*yfs - pampl
             if p[0] == np.max(phases[:, 0]) and ty*pampl > 0.0 and \
                sign*pampl + dy < sign*ty + 1.2*yfs:
                 dy = ty + sign*1.2*yfs - pampl
@@ -2534,7 +2564,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                         ha='right', va=va, zorder=20)
             # area:
             if len(p) > 6:
-                if np.abs(p[6]) < 1e-8:
+                if np.abs(p[6]) < 0.01:
                     continue
                 elif np.abs(p[6]) < 0.05:
                     label = f'{100*p[6]:.1f}%'
@@ -2575,40 +2605,18 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             label += 'flipped\n'
         if 'polaritybalance' in props:
             label += f'PB={100*props["polaritybalance"]:.0f} %\n'
-        if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:
-            ax.text(0.97, 0.97, label, transform=ax.transAxes,
+        if -eod_waveform[0, 0] < 0.6*eod_waveform[-1, 0]:
+            ax.text(0.97, 1, label, transform=ax.transAxes,
                     va='top', ha='right', zorder=20)
         else:
-            ax.text(0.03, 0.97, label, transform=ax.transAxes,
+            ax.text(0.03, 1, label, transform=ax.transAxes,
                     va='top', zorder=20)
-    # axis:                
-    if props is not None and props['type'] == 'wave':
-        xlim = 0.5*wave_periods*1000.0/props['EODf']
-    elif pulse_trange:
-        if props is not None and 'tstart' in  props and 'tend' in props:
-            trange = 1000*(props['tend'] - props['tstart'])
-        else:
-            trange = 0.6*(time[-1] - time[0])
-        for tr in pulse_trange:
-            if 1000*tr > trange:
-                break
-        xlim = 1000*tr/2
-    else:
-        xlim = 0.75*max(time[0], time[-1])
-    ax.set_xlim(-xlim, +xlim)
-    ax.set_xlabel('Time [msec]')
-    ylim = 1.05*np.max(np.abs(eod[(time >= -xlim) & (time <= xlim)])) 
-    ax.set_ylim(-ylim, +ylim)
-    if unit:
-        ax.set_ylabel(f'Amplitude [{unit}]')
-    else:
-        ax.set_ylabel('Amplitude')
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
-                       ampl_style=dict(marker='o', color='tab:blue', markersize=10),
+                       ampl_style=dict(ls='', marker='o', color='tab:blue', markersize=6),
                        ampl_stem_style=dict(color='tab:blue', alpha=0.5, lw=2),
-                       phase_style=dict(marker='d', color='tab:blue', markersize=10),
+                       phase_style=dict(ls='', marker='p', color='tab:blue', markersize=6),
                        phase_stem_style=dict(color='tab:blue', alpha=0.5, lw=2)):
     """Plot and annotate spectrum of wave EOD.
 
@@ -2674,7 +2682,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
 def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
                         spec_style=dict(lw=3, color='tab:blue'),
                         analytic_style=dict(lw=4, color='tab:cyan'),
-                        peak_style=dict(ls='', marker='o', markersize=10,
+                        peak_style=dict(ls='', marker='o', markersize=6,
                                         color='tab:blue', mec='none', mew=0,
                                         alpha=0.4),
                         cutoff_style=dict(lw=1, ls='-', color='0.5'),
@@ -3969,10 +3977,18 @@ def load_recording(file_path, channel=0, load_kwargs={},
         species = get_str(all_data.metadata(), ['species'], default='')
         if len(species) > 0:
             species += ' '
-        info_dict = dict(path=all_data.filepath,
+        info_dict = dict(path=os.fsdecode(all_data.filepath),
                          name=all_data.basename(),
                          species=species,
                          channel=channel)
+        offs = 1
+        for k, part in enumerate(all_data.filepath.parts):
+            if k == 0 and part == all_data.filepath.anchor:
+                offs = 0
+                continue
+            if part == all_data.filepath.name:
+                break
+            info_dict[f'part{k + offs}'] = part
         if all_data.channels > 1:
             if all_data.channels > 100:
                 info_dict['chanstr'] = f'-c{channel:03d}'
