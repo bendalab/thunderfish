@@ -920,6 +920,7 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
         - "widths": widths of each phase at `width_frac` height
         - "areas": areas of each phase
         - "relareas": areas of the phases relative to total area
+        - "zeros": time of zero crossing towards next phase in seconds
     
         Empty dictionary if waveform is not a pulse EOD.
 
@@ -966,8 +967,9 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     # amplitudes:
     amplitudes = eod[phase_list]
     max_ampl = np.abs(amplitudes[p1i])
-    # phase areas:
+    # phase areas and zeros:
     phase_areas = np.zeros(len(phase_list))
+    zero_times = np.zeros(len(phase_list))
     for i in range(len(phase_list)):
         sign_fac = np.sign(eod[phase_list[i]])
         i0 = phase_list[i - 1] if i > 0 else 0
@@ -979,6 +981,23 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
             snippet = sign_fac*eod[i0:i1]
             phase_areas[i] = np.sum(snippet[snippet > 0])*dt
             phase_areas[i] *= sign_fac
+        if i < len(phase_list) - 1:
+            i0 = phase_list[i]
+            snippet = eod[i0:i1]
+            stimes = time[i0:i1]
+            zidx = np.nonzero(snippet[:-1]*snippet[1:] < 0)[0]
+            if len(zidx) == 0:
+                zero_times[i] = np.nan
+            else:
+                zidx = zidx[len(zidx)//2]  # reduce to single zero crossing
+                if sign_fac > 0:
+                    zero_times[i] = np.interp(0, snippet[zidx + 1:zidx - 1:-1],
+                                              stimes[zidx + 1:zidx - 1:-1])
+                else:
+                    zero_times[i] = np.interp(0, snippet[zidx:zidx + 2],
+                                              stimes[zidx:zidx + 2])
+        else:
+            zero_times[i] = np.nan
     total_area = np.sum(np.abs(phase_areas))
     # store phase properties:
     phases = dict(indices=np.arange(len(phase_list)) + 1 - p1i,
@@ -987,7 +1006,8 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
                   relamplitudes=amplitudes/max_ampl,
                   widths=width_list,
                   areas=phase_areas,
-                  relareas=phase_areas/total_area)
+                  relareas=phase_areas/total_area,
+                  zeros=zero_times)
     return phases
 
 
@@ -1452,6 +1472,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - "widths": widths of each phase at `width_frac` height
         - "areas": areas of each phase
         - "relareas": areas of the phases relative to total area
+        - "zeros": time of zero crossing towards next phase in seconds
     
         Empty dictionary if waveform is not a pulse EOD.
     pulse: dict
@@ -2383,6 +2404,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       phase_style=dict(zorder=0, ls='', marker='o', color='tab:red',
                                        markersize=6, mec='none', mew=0,
                                        alpha=0.4),
+                      zerox_style=dict(zorder=50, ls='', marker='o', color='tab:red',
+                                       markersize=5, mec='white', mew=1),
                       zero_style=dict(lw=0.5, color='0.7')):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
@@ -2430,6 +2453,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Arguments passed on to the plot command for the fitted EOD.
     phase_style: dict
         Arguments passed on to the plot command for marking EOD phases.
+    zerox_style: dict
+        Arguments passed on to the plot command for marking zero crossings.
     zero_style: dict
         Arguments passed on to the plot command for the zero line.
 
@@ -2536,6 +2561,9 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ty = 0.5*yfs*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
         ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
+    # mark zero crossings:
+    zeros = 1000*phases['zeros']
+    ax.plot(zeros, np.zeros(len(zeros)), **zerox_style)
     # annotate phases:
     if phases is not None and len(phases) > 0:
         for i in range(len(phases['times'])):
@@ -3414,6 +3442,7 @@ def save_pulse_phases(phases, unit, idx, basename, **kwargs):
         - "widths": widths of each phase at `width_frac` height
         - "areas": areas of each phase
         - "relareas": areas of the phases relative to total area
+        - "zeros": time of zero crossing towards next phase in seconds
     
         as returned by `analyze_pulse_phases()` and  `analyze_pulse()`.
     unit: string
@@ -3444,12 +3473,13 @@ def save_pulse_phases(phases, unit, idx, basename, **kwargs):
     td = TableData()
     td.append('type', '', '%s', value=['P']*len(phases['indices']))
     td.append('index', '', '%.0f', value=phases['indices'])
-    td.append('time', 'ms', '%.3f', value=phases['times'], fac=1000)
+    td.append('time', 'ms', '%.4f', value=phases['times'], fac=1000)
     td.append('amplitude', unit, '%.5f', value=phases['amplitudes'])
     td.append('relampl', '%', '%.2f', value=phases['relamplitudes'], fac=100)
-    td.append('width', 'ms', '%.3f', value=phases['widths'], fac=1000)
+    td.append('width', 'ms', '%.4f', value=phases['widths'], fac=1000)
     td.append('area', f'{unit}*ms', '%.4f', value=phases['areas'], fac=1000)
     td.append('relarea', '%', '%.2f', value=phases['relareas'], fac=100)
+    td.append('zeros', 'ms', '%.4f', value=phases['zeros'], fac=1000)
     fp = ''
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
@@ -3480,6 +3510,8 @@ def load_pulse_phases(file_path):
         - "widths": widths of each phase at `width_frac` height
         - "areas": areas of each phase
         - "relareas": areas of the phases relative to total area
+        - "zeros": time of zero crossing towards next phase in seconds
+    
     unit: string
         Unit of phase amplitudes.
 
@@ -3499,7 +3531,8 @@ def load_pulse_phases(file_path):
                   relamplitudes=data['relampl']*0.01,
                   widths=data['width']*0.001,
                   areas=data['area']*0.001,
-                  relareas=data['relarea']*0.01)
+                  relareas=data['relarea']*0.01,
+                  zeros=data['zeros']*0.001)
     return phases, data.unit('amplitude')
 
 
@@ -3884,7 +3917,7 @@ def load_analysis(file_pathes):
         frequency and energy.
     phase_data: list of dict
         Properties of phases of pulse-type EODs with keys
-        indices, times, amplitudes, relamplitudes, widths, areas, relareas
+        indices, times, amplitudes, relamplitudes, widths, areas, relareas, zeros
     pulse_data: list of dict
         For each pulse fish a dictionary with phase times, amplitudes and standard
         deviations of Gaussians fitted to the pulse waveform.  Use the

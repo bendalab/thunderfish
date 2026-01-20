@@ -101,6 +101,8 @@ eod_styles = dict(wave_style=dict(color=trace_color, lw=1.3),
                   fit_style=dict(color=fit_color, lw=1),
                   phase_style=dict(zorder=0, ls='', marker='o', color=trace_color,
                                    markersize=8, mec='none', mew=0, alpha=0.4),
+                  zerox_style=dict(zorder=50, ls='', marker='o', color=trace_color,
+                                   markersize=5, mec='white', mew=1),
                   zero_style=dict(color='0.3', lw=0.5))
                       
 snippet_style = dict(scaley=False, lw=0.5, color='0.6')
@@ -226,7 +228,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
         each wavefish the relative amplitudes and phases of the harmonics.
     phase_data: list of dict
         For each pulse fish a dictionary with phase properties
-        (indices, times, amplitudes, relamplitudes, widths, areas, relareas),
+        (indices, times, amplitudes, relamplitudes, widths, areas, relareas, zeros),
         empty dict for wave fish.
     pulse_data: list of dict
         For each pulse fish a dictionary with phase times, amplitudes and standard
@@ -526,7 +528,7 @@ def plot_eods(title, message_filename,
         Properties for each waveform in mean_eods.
     phase_data: list of dict
         For each pulsefish a list of phase properties
-        (indices, times, amplitudes, relamplitudes, widths, areas, relareas),
+        (indices, times, amplitudes, relamplitudes, widths, areas, relareas, zeros),
         empty dict for wave fish.
     pulse_data: list of dict
         For each pulse fish a dictionary with phase times, amplitudes and standard
@@ -933,7 +935,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
         Properties for each waveform in mean_eods.
     phase_data: list of dict
         For each pulsefish a list of phase properties
-        (indices, times, amplitudes, relamplitudes, widths, areas, relareas),
+        (indices, times, amplitudes, relamplitudes, widths, areas, relareas, zeros),
         empty dict for wave fish.
     pulse_data: list of dict
         For each pulse fish a dictionary with phase times, amplitudes and standard
