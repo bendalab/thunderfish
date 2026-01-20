@@ -933,7 +933,7 @@ def generate_waveform(filename):
     print(f'\nWrote fakefish data to file "{filename}".')
             
 
-def generate_testfiles(log_freq=True):
+def generate_testfiles(log_spec=True):
     """Generate recordings of various pulse EODs and their spectrum.
 
     The spectrum is analytically computed and thus can be used to test
@@ -955,6 +955,12 @@ def generate_testfiles(log_freq=True):
     5. `energy`: energy spectrum, i.e. squared amplitude
     6. `level`: energy sepctrum in decibel relative to maximum energy
 
+
+    Parameters
+    ----------
+    log_spec: bool
+        If True, plot decibel agains logarithmic frequency axis.
+        If False, plot energy agains linear frequency axis.
     """
     import matplotlib.pyplot as plt
     from scipy.signal import find_peaks
@@ -1045,23 +1051,31 @@ def generate_testfiles(log_freq=True):
         # plot spectrum:
         ip = np.argmax(level)
         fmax = freqs[ip]
-        pmax = level[ip]
         fmaxpos = fmax if fmax > 1 else 1
-        ax2.plot(nfreqs, nlevel + 0.5, color='C1', label='numeric')
-        ax2.plot(freqs, level, color='C3', label='analytic')
-        ax2.plot(fmaxpos, pmax, 'o', color='C3')
-        if log_freq:
+        if log_spec:
+            pmax = level[ip]
+            ax2.plot(nfreqs, nlevel + 0.5, color='C1', label='numeric')
+            ax2.plot(freqs, level, color='C3', label='analytic')
+            ax2.plot(fmaxpos, pmax, 'o', color='C3')
             ax2.set_xlim(1, 1e4)
             ax2.set_xscale('log')
+            ax2.set_ylim(-60, 10)
+            ax2.set_ylabel('energy [dB]')
+            dc = level[0]
+            ax2.text(2, dc - 4, f'{dc:.0f}dB')
+            ax2.text(fmaxpos*1.05, pmax + 1, f'{fmax:.0f}Hz')
+            ax2.legend(loc='lower left', frameon=False)
         else:
-            ax2.set_xlim(0, 4000)
-        ax2.set_ylim(-60, 10)
+            pmax = energy[ip]
+            ax2.plot(nfreqs, nenergy, color='C1', label='numeric')
+            ax2.plot(freqs, energy, color='C3', label='analytic')
+            ax2.plot(fmaxpos, pmax, 'o', color='C3')
+            ax2.set_xlim(0, 3000)
+            ax2.set_ylim(bottom=0)
+            ax2.set_ylabel('energy')
+            ax2.text(fmaxpos + 200, pmax, f'{fmax:.0f}Hz', va='center')
+            ax2.legend(loc='upper right', frameon=False)
         ax2.set_xlabel('frequency [Hz]')
-        ax2.set_ylabel('energy [dB]')
-        ax2.legend(loc='lower left', frameon=False)
-        dc = level[0]
-        ax2.text(2, dc - 4, f'{dc:.0f}dB')
-        ax2.text(fmaxpos*1.05, pmax + 1, f'{fmax:.0f}Hz')
         fig.savefig(pulse['name'] + '.pdf')
         plt.show()
         plt.close(fig)
