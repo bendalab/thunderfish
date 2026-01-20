@@ -104,6 +104,7 @@ except ImportError:
 from pathlib import Path
 from scipy.optimize import curve_fit, minimize
 from numba import jit
+from audioio import get_str
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
 from thunderlab.powerspectrum import next_power_of_two, nfft, decibel
@@ -885,7 +886,7 @@ def analyze_pulse_spectrum(freqs, energy):
 
 def analyze_pulse_phases(threshold, eod, ratetime=None,
                          min_dist=50.0e-6, width_frac=0.5):
-    """ Characterize all phases of a pulse-type EOD.
+    """Characterize all phases of a pulse-type EOD.
     
     Parameters
     ----------
@@ -908,14 +909,20 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     
     Returns
     -------
-    phases: 2-D array
-        For each peak and trough (rows) of the EOD waveform
-        7 columns: the peak index (1 is P1, i.e. the largest positive peak),
-        time relative to largest positive peak, amplitude,
-        amplitude normalized to P1 phase,
-        width of peak/trough at `width_frac` height,
-        area under the peak, and area under the peak relative to total area.
-        Empty if waveform is not a pulse EOD.
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase relative to P1 in seconds
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase at `width_frac` height
+        - "areas": areas of each phase
+        - "relareas": areas of the phases relative to total area
+    
+        Empty dictionary if waveform is not a pulse EOD.
+
     """
     if eod.ndim == 2:
         time = eod[:, 0]
@@ -928,7 +935,7 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     # find peaks and troughs:
     peak_idx, trough_idx = detect_peaks(eod, threshold)
     if len(peak_idx) == 0:
-        return np.zeros((0, 7))
+        return {}
     # and their width:
     peak_widths = peak_width(time, eod, peak_idx, trough_idx,
                              peak_frac=width_frac, base='max')
@@ -953,14 +960,9 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
         phase_list = np.delete(phase_list, rmidx)
         width_list = np.delete(width_list, rmidx)
     if len(phase_list) == 0:
-        return np.zeros((0, 7))
+        return {}
     # find P1:
     p1i = np.argmax(phase_list == max_idx)
-    ## truncate peaks to the left: # TODO: REALLY? WHY?
-    #offs = 0 if p1i <= 2 else p1i - 2
-    #phase_list = phase_list[offs:]
-    #width_list = width_list[offs:]
-    #p1i -= offs
     # amplitudes:
     amplitudes = eod[phase_list]
     max_ampl = np.abs(amplitudes[p1i])
@@ -979,11 +981,13 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
             phase_areas[i] *= sign_fac
     total_area = np.sum(np.abs(phase_areas))
     # store phase properties:
-    phases = np.zeros((len(phase_list), 7))
-    for i, pi in enumerate(phase_list):
-        phases[i, :] = [i + 1 - p1i, time[pi], amplitudes[i],
-                       amplitudes[i]/max_ampl, width_list[i],
-                       phase_areas[i], phase_areas[i]/total_area]
+    phases = dict(indices=np.arange(len(phase_list)) + 1 - p1i,
+                  times=time[phase_list],
+                  amplitudes=amplitudes,
+                  relamplitudes=amplitudes/max_ampl,
+                  widths=width_list,
+                  areas=phase_areas,
+                  relareas=phase_areas/total_area)
     return phases
 
 
@@ -1093,7 +1097,7 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5, verbose=0):
         The frequency components of the spectrum.
     energy: 1-D array of float
         The energy spectrum of the real pulse.
-    phases: 2-D array of float
+    phases: dict
         Properties of the EOD phases as returned by analyze_pulse_phases(). 
     width_frac: float
         The width of a peak is measured at this fraction of a peak's
@@ -1104,15 +1108,20 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5, verbose=0):
     Returns
     -------
     pulse: dict
-        Dictionary with phase times, amplitudes and standard
-        deviations of Gaussians fitted to the pulse waveform.  Use the
-        functions provided in thunderfish.fakefish to simulate pulse
-        fish EODs from this data.
+        Dictionary with
+    
+        - "times": phase times in seconds,
+        - "amplitudes": amplitudes, and
+        - "stdevs": standard deviations in seconds
+    
+        of Gaussians fitted to the pulse waveform.  Use the functions
+        provided in thunderfish.fakefish to simulate pulse fish EODs
+        from this data.
 
     """
     pulse = dict(times=np.zeros(0), amplitudes=np.zeros(0),
                  stdevs=np.zeros(0))
-    if len(phases) < 1:
+    if len(phases) == 0:
         return pulse
     if eod.ndim == 2:
         time = eod[:, 0]
@@ -1125,7 +1134,8 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5, verbose=0):
     fac = 0.5/np.sqrt(-2*np.log(width_frac))
     # fit parameter as single list:
     tas = []
-    for t, a, s in zip(phases[:, 1], phases[:, 2], phases[:, 4]*fac):
+    for t, a, s in zip(phases['times'], phases['amplitudes'],
+                       phases['widths']*fac):
         tas.extend((t, a, s))
     tas = np.asarray(tas)
     # fit EOD waveform:
@@ -1431,19 +1441,29 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
           if provided.
 
         Empty if waveform is not a pulse EOD.
-    phases: 2-D array
-        For each phase (rows) of the EOD waveform
-        7 columns: the phase index (1 is P1, i.e. the largest positive phase),
-        time relative to largest positive phase, amplitude,
-        amplitude normalized to P1 phase,
-        width of phase at half height,
-        area under the phase, and area under the phase relative to total area.
-        Empty if waveform is not a pulse EOD.
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase relative to P1 in seconds
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase at `width_frac` height
+        - "areas": areas of each phase
+        - "relareas": areas of the phases relative to total area
+    
+        Empty dictionary if waveform is not a pulse EOD.
     pulse: dict
-        Dictionary with phase times, amplitudes and standard
-        deviations of Gaussians fitted to the pulse waveform.  Use the
-        functions provided in thunderfish.fakefish to simulate pulse
-        fish EODs from this data.
+        Dictionary with
+    
+        - "times": phase times in seconds,
+        - "amplitudes": amplitudes, and
+        - "stdevs": standard deviations in seconds
+    
+        of Gaussians fitted to the pulse waveform.  Use the functions
+        provided in thunderfish.fakefish to simulate pulse fish EODs
+        from this data.
     energy: 2-D array
         The energy spectrum of a single pulse. First column are the
         frequencies, second column the energy in x^2 s/Hz.
@@ -1578,8 +1598,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
                                   min_dist=min_dist, width_frac=width_frac)
         
     # fit exponential to last peak/trough:
-    if len(phases) > 1:
-        pi = np.argmin(np.abs(meod[:, 0] - phases[-1, 1]))
+    if len(phases) > 0 and len(phases['times']) > 1:
+        pi = np.argmin(np.abs(meod[:, 0] - phases['times'][-1]))
         tau, fit = analyze_pulse_tail(pi, meod, None,
                                       threshold, fit_frac)
         if fit is not None:
@@ -1597,7 +1617,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         analyze_pulse_spectrum(freqs, energy)
 
     # decompose EOD waveform:
-    pulse = decompose_pulse(meod, freqs, energy, phases, width_frac, verbose=verbose)
+    pulse = decompose_pulse(meod, freqs, energy, phases,
+                            width_frac, verbose=verbose)
     if len(pulse['amplitudes']) > 0:
         eod_fit = pulsefish_waveform(pulse, meod[:, 0])
         meod[:, -2] = eod_fit
@@ -1626,8 +1647,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     props['peak-dist'] = dist
     if tau:
         props['tau'] = tau
-    props['firstphase'] = phases[0, 0] if len(phases) > 0 else 1
-    props['lastphase'] = phases[-1, 0] if len(phases) > 0 else 1
+    props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
+    props['lastphase'] = phases['indices'][-1] if len(phases) > 0 else 1
     props['totalarea'] = total_area
     props['positivearea'] = pos_area/total_area
     props['negativearea'] = neg_area/total_area
@@ -2378,10 +2399,10 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_wave()` and `analyze_pulse()`.
-    phases: 2_D arrays or None
-        List of phase properties (index, time, amplitude,
-        relative amplitude, width, area) of a EOD pulse
-        as returned by `analyze_pulse()`.
+    phases: dict
+        Dictionary with phase properties as returned by
+        `analyze_pulse_phases()`, `analyze_pulse()`, and
+        `load_pulse_phases()`.
     unit: string
         Optional unit of the data used for y-label.
     wave_periods: float
@@ -2517,42 +2538,46 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
     # annotate phases:
     if phases is not None and len(phases) > 0:
-        for i, p in enumerate(phases):
-            ptime = 1000*p[1]
+        for i in range(len(phases['times'])):
+            index = phases['indices'][i]
+            ptime = 1000*phases['times'][i]
             pi = np.argmin(np.abs(time - ptime))
             mfac = magnification_factor if magnification_mask[pi] else 1
-            pampl = mfac*p[2]
+            pampl = mfac*phases['amplitudes'][i]
+            relampl = phases['relamplitudes'][i]
+            relarea = phases['relareas'][i]
             ax.plot(ptime, pampl, **phase_style)
-            label = f'P{p[0]:.0f}'
-            if p[0] != 1:
+            label = f'P{index:.0f}'
+            if index != 1:
                 if np.abs(ptime) < 1:
                     ts = f'{1000*ptime:.0f}\u00b5s'
                 elif np.abs(ptime) < 10:
                     ts = f'{ptime:.2f}ms'
                 else:
                     ts = f'{ptime:.3g}ms'
-                if np.abs(p[3]) < 0.05:
-                    ps = f'{100*p[3]:.1f}%'
+                if np.abs(relampl) < 0.05:
+                    ps = f'{100*relampl:.1f}%'
                 else:
-                    ps = f'{100*p[3]:.0f}%'
+                    ps = f'{100*relampl:.0f}%'
                 label += f'({ps} @ {ts})'
             left_text = (pampl > 0 and ptime >= 0.0) or \
-                (pampl < 0 and ptime >= 1000*phases[np.argmin(phases[:, 2]), 1])
+                (pampl < 0 and ptime >= 1000*phases['times'][np.argmin(phases['amplitudes'])])
             va = 'baseline'
             dy = 0.6*yfs
             sign = np.sign(pampl)
-            if i > 0 and i < len(phases) - 1:
-                if phases[i - 1][2] > pampl and phases[i + 1][2] > pampl:
+            if i > 0 and i < len(phases['times']) - 1:
+                if phases['amplitudes'][i - 1] > pampl and \
+                   phases['amplitudes'][i + 1] > pampl:
                     va = 'top'
                     dy = -dy
             elif sign < 0:
                 va = 'top'
                 dy = -dy
-            if p[0] == 1:
+            if index == 1:
                 dy = 0.0
             if pampl + dy < -ylim + 1.3*yfs:
                 dy = -ylim + 1.3*yfs - pampl
-            if p[0] == np.max(phases[:, 0]) and ty*pampl > 0.0 and \
+            if index == np.max(phases['indices']) and ty*pampl > 0.0 and \
                sign*pampl + dy < sign*ty + 1.2*yfs:
                 dy = ty + sign*1.2*yfs - pampl
             dx = 0.5*xfs
@@ -2563,36 +2588,35 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 ax.text(ptime - dx, pampl + dy, label,
                         ha='right', va=va, zorder=20)
             # area:
-            if len(p) > 6:
-                if np.abs(p[6]) < 0.01:
-                    continue
-                elif np.abs(p[6]) < 0.05:
-                    label = f'{100*p[6]:.1f}%'
-                else:
-                    label = f'{100*p[6]:.0f}%'
-                x = ptime
-                if i > 0 and i < len(phases) - 1:
-                    xl = 1000*phases[i - 1][1]
-                    xr = 1000*phases[i + 1][1]
-                    tsnippet = time[(time > xl) & (time < xr)]
-                    snippet = eod[(time > xl) & (time < xr)]
-                    tsnippet = tsnippet[np.sign(pampl)*snippet > 0]
-                    snippet = snippet[np.sign(pampl)*snippet > 0]
-                    xc = np.sum(tsnippet*snippet)/np.sum(snippet)
-                    x = xc
-                if abs(p[3]) > 0.5:
-                    ax.text(x, sign*0.6*yfs, label,
-                            rotation='vertical',
-                            va='top' if sign < 0 else 'bottom',
-                            ha='center', zorder=20)
-                elif abs(p[3]) > 0.25:
-                    ax.text(x, sign*0.6*yfs, label,
-                            va='top' if sign < 0 else 'baseline',
-                            ha='center', zorder=20)
-                else:
-                    ax.text(x, -sign*0.4*yfs, label,
-                            va='baseline' if sign < 0 else 'top',
-                            ha='center', zorder=20)
+            if np.abs(relarea) < 0.01:
+                continue
+            elif np.abs(relarea) < 0.05:
+                label = f'{100*relarea:.1f}%'
+            else:
+                label = f'{100*relarea:.0f}%'
+            x = ptime
+            if i > 0 and i < len(phases['times']) - 1:
+                xl = 1000*phases['times'][i - 1]
+                xr = 1000*phases['times'][i + 1]
+                tsnippet = time[(time > xl) & (time < xr)]
+                snippet = eod[(time > xl) & (time < xr)]
+                tsnippet = tsnippet[np.sign(pampl)*snippet > 0]
+                snippet = snippet[np.sign(pampl)*snippet > 0]
+                xc = np.sum(tsnippet*snippet)/np.sum(snippet)
+                x = xc
+            if abs(relampl) > 0.5:
+                ax.text(x, sign*0.6*yfs, label,
+                        rotation='vertical',
+                        va='top' if sign < 0 else 'bottom',
+                        ha='center', zorder=20)
+            elif abs(relampl) > 0.25:
+                ax.text(x, sign*0.6*yfs, label,
+                        va='top' if sign < 0 else 'baseline',
+                        ha='center', zorder=20)
+            else:
+                ax.text(x, -sign*0.4*yfs, label,
+                        va='baseline' if sign < 0 else 'top',
+                        ha='center', zorder=20)
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
@@ -3374,14 +3398,24 @@ def load_pulse_spectrum(file_path):
     return spec
 
 
-def save_pulse_phases(phase_data, unit, idx, basename, **kwargs):
+def save_pulse_phases(phases, unit, idx, basename, **kwargs):
     """Save phase properties of pulse EOD to file.
 
     Parameters
     ----------
-    phase_data: 2D array of floats
-        Properties of phases of pulse EOD as returned by
-        `analyze_pulse()`.
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase relative to P1 in seconds
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase at `width_frac` height
+        - "areas": areas of each phase
+        - "relareas": areas of the phases relative to total area
+    
+        as returned by `analyze_pulse_phases()` and  `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -3405,12 +3439,17 @@ def save_pulse_phases(phase_data, unit, idx, basename, **kwargs):
     --------
     load_pulse_phases()
     """
-    if len(phase_data) == 0:
+    if len(phases) == 0:
         return None
-    td = TableData(phase_data[:, :7]*[1, 1000, 1, 100, 1000, 1000, 100],
-                   ['P', 'time', 'amplitude', 'relampl', 'width', 'area', 'relarea'],
-                   ['', 'ms', unit, '%', 'ms', f'{unit}*ms', '%'],
-                   ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f', '%.4f', '%.2f'])
+    td = TableData()
+    td.append('type', '', '%s', value=['P']*len(phases['indices']))
+    td.append('index', '', '%.0f', value=phases['indices'])
+    td.append('time', 'ms', '%.3f', value=phases['times'], fac=1000)
+    td.append('amplitude', unit, '%.5f', value=phases['amplitudes'])
+    td.append('relampl', '%', '%.2f', value=phases['relamplitudes'], fac=100)
+    td.append('width', 'ms', '%.3f', value=phases['widths'], fac=1000)
+    td.append('area', f'{unit}*ms', '%.4f', value=phases['areas'], fac=1000)
+    td.append('relarea', '%', '%.2f', value=phases['relareas'], fac=100)
     fp = ''
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
@@ -3430,9 +3469,17 @@ def load_pulse_phases(file_path):
 
     Returns
     -------
-    phase_data: 2D array of floats
-        Properties of phases of pulse EOD:
-        P, time, amplitude, relampl, width
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase relative to P1 in seconds
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase at `width_frac` height
+        - "areas": areas of each phase
+        - "relareas": areas of the phases relative to total area
     unit: string
         Unit of phase amplitudes.
 
@@ -3446,12 +3493,13 @@ def load_pulse_phases(file_path):
     save_pulse_phases()
     """
     data = TableData(file_path)
-    phases = data.array()
-    phases[:, 1] *= 0.001
-    phases[:, 3] *= 0.01
-    phases[:, 4] *= 0.001
-    phases[:, 5] *= 0.001
-    phases[:, 6] *= 0.01
+    phases = dict(indices=data['index'].astype(int),
+                  times=data['time']*0.001,
+                  amplitudes=data['amplitude'],
+                  relamplitudes=data['relampl']*0.01,
+                  widths=data['width']*0.001,
+                  areas=data['area']*0.001,
+                  relareas=data['relarea']*0.01)
     return phases, data.unit('amplitude')
 
 
@@ -3461,9 +3509,14 @@ def save_pulse_gaussians(pulse_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     pulse: dict
-        Dictionary with phase times, amplitudes and standard
-        deviations of Gaussians fitted to the pulse waveform
-        as returned by `decompose_pulse()` and `analyze_pulse()`.
+        Dictionary with
+    
+        - "times": phase times in seconds,
+        - "amplitudes": amplitudes, and
+        - "stdevs": standard deviations in seconds
+    
+        of Gaussians fitted to the pulse waveform as returned by
+        `decompose_pulse()` and `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -3486,6 +3539,7 @@ def save_pulse_gaussians(pulse_data, unit, idx, basename, **kwargs):
     See Also
     --------
     load_pulse_gaussians()
+
     """
     if len(pulse_data) == 0:
         return None
@@ -3514,8 +3568,13 @@ def load_pulse_gaussians(file_path):
     Returns
     -------
     pulse: dict
-        Dictionary with phase times, amplitudes and standard
-        deviations of Gaussians fitted to the pulse waveform.
+        Dictionary with
+    
+        - "times": phase times in seconds,
+        - "amplitudes": amplitudes, and
+        - "stdevs": standard deviations in seconds
+    
+        of Gaussians fitted to the pulse waveform.
         Use the functions provided in thunderfish.fakefish to simulate
         pulse fish EODs from this data.
     unit: string
@@ -3712,9 +3771,9 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
     spec_data: list of 2D array of floats
         Energy spectra of single pulses as returned by
         `analyze_pulse()`.
-    phase_data: list of 2D array of floats
+    phase_data: list of dict
         Properties of phases of pulse EODs as returned by
-        `analyze_pulse()`.
+        `analyze_pulse()` and `analyze_pulse_phases()`.
     pulse_data: list of dict
         For each pulse fish a dictionary with phase times, amplitudes and standard
         deviations of Gaussians fitted to the pulse waveform.
@@ -3823,9 +3882,9 @@ def load_analysis(file_pathes):
         relative power in dB, phase, data power in unit squared.
         Energy spectrum of single pulse-type EODs with columns
         frequency and energy.
-    phase_data: list of 2D array of floats
-        Properties of phases of pulse-type EODs with columns
-        P, time, amplitude, relampl, width, area, relarea
+    phase_data: list of dict
+        Properties of phases of pulse-type EODs with keys
+        indices, times, amplitudes, relamplitudes, widths, areas, relareas
     pulse_data: list of dict
         For each pulse fish a dictionary with phase times, amplitudes and standard
         deviations of Gaussians fitted to the pulse waveform.  Use the
@@ -3957,8 +4016,15 @@ def load_recording(file_path, channel=0, load_kwargs={},
     rate = 0.0
     idx0 = 0
     idx1 = 0
-    data_file = ''
-    info_dict = {}
+    info_dict = dict(path='',
+                     name='',
+                     species='',
+                     channel=0,
+                     chanstr='',
+                     time='')
+    for k in range(1, 10):
+        info_dict[f'part{k}'] = ''
+    data_file = Path()
     file_path = Path(file_path)
     if len(file_path.suffix) > 1:
         data_file = file_path
@@ -3977,7 +4043,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
         species = get_str(all_data.metadata(), ['species'], default='')
         if len(species) > 0:
             species += ' '
-        info_dict = dict(path=os.fsdecode(all_data.filepath),
+        info_dict.update(path=os.fsdecode(all_data.filepath),
                          name=all_data.basename(),
                          species=species,
                          channel=channel)
@@ -4004,7 +4070,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
             idx0 = int(eod_props[0]['twin']*rate)
         if len(eod_props) > 0 and 'window' in eod_props[0]:
             idx1 = idx0 + int(eod_props[0]['window']*rate)
-        info_dict['time'] = '-t{idx0/rate:.0f}s'
+        info_dict['time'] = f'-t{idx0/rate:.0f}s'
         all_data.close()
             
     return data, rate, idx0, idx1, info_dict
