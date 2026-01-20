@@ -2341,7 +2341,8 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
 
         
 def plot_eod_waveform(ax, eod_waveform, props, phases=None,
-                      unit=None, wave_periods=2, pulse_trange=0.003,
+                      unit=None, wave_periods=2,
+                      pulse_trange=(0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1),
                       magnification_factor=20,
                       wave_style=dict(lw=2, color='tab:red'),
                       magnified_style=dict(lw=1, color='tab:red'),
@@ -2375,9 +2376,9 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Optional unit of the data used for y-label.
     wave_periods: float
         How many periods of a wave EOD are shown.
-    pulse_trange: float
-        Full range of the time axis for pulse EODs in seconds.
-        If zero, adapt range to waveform.
+    pulse_trange: list of float
+        Possible full ranges of the time axis for pulse EODs in seconds.
+        If empty or zero, adapt range to waveform.
     magnification_factor: float
         If larger than one, plot a magnified version of the EOD
         waveform magnified by this factor.
@@ -2582,14 +2583,22 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                     va='top', zorder=20)
     # axis:                
     if props is not None and props['type'] == 'wave':
-        lim = 0.5*wave_periods*1000.0/props['EODf']
-        ax.set_xlim(-lim, +lim)
-    elif pulse_trange > 0:
-        ax.set_xlim(-1000*pulse_trange/2, 1000*pulse_trange/2)
+        xlim = 0.5*wave_periods*1000.0/props['EODf']
+    elif pulse_trange:
+        if props is not None and 'tstart' in  props and 'tend' in props:
+            trange = 1000*(props['tend'] - props['tstart'])
+        else:
+            trange = 0.6*(time[-1] - time[0])
+        for tr in pulse_trange:
+            if 1000*tr > trange:
+                break
+        xlim = 1000*tr/2
     else:
-        lim = 0.75*max(time[0], time[-1])
-        ax.set_xlim(-lim, +lim)
+        xlim = 0.75*max(time[0], time[-1])
+    ax.set_xlim(-xlim, +xlim)
     ax.set_xlabel('Time [msec]')
+    ylim = 1.05*np.max(np.abs(eod[(time >= -xlim) & (time <= xlim)])) 
+    ax.set_ylim(-ylim, +ylim)
     if unit:
         ax.set_ylabel(f'Amplitude [{unit}]')
     else:
