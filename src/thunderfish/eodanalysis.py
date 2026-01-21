@@ -2653,8 +2653,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 snippet = eod[(time > xl) & (time < xr)]
                 tsnippet = tsnippet[np.sign(pampl)*snippet > 0]
                 snippet = snippet[np.sign(pampl)*snippet > 0]
-                xc = np.sum(tsnippet*snippet)/np.sum(snippet)
-                x = xc
+                x = np.sum(tsnippet*snippet)/np.sum(snippet)
             if abs(relampl) > 0.5:
                 ax.text(x, sign*0.6*yfs, label,
                         rotation='vertical',
@@ -2665,9 +2664,10 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                         va='top' if sign < 0 else 'baseline',
                         ha='center', zorder=20)
             else:
-                ax.text(x, -sign*0.4*yfs, label,
+                dx = -0.3*xfs if right_phase else 0.3*xfs
+                ax.text(ltime + dx, -sign*0.4*yfs, label,
                         va='baseline' if sign < 0 else 'top',
-                        ha='center', zorder=20)
+                        ha=halign, zorder=100)
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
