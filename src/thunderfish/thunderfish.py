@@ -852,7 +852,7 @@ def plot_eods(title, message_filename,
             spec = spec_data[idx]
             if  props['type'] == 'pulse':
                 pulse = pulse_data[idx]
-                if len(pulse) > 0 and len(pulse['amplitudes']) > 0:
+                if pulse:
                     aspec = pulsefish_spectrum(pulse, spec[:, 0])
                     aspec = np.abs(aspec)**2
                     spec = np.hstack((spec, aspec.reshape((-1, 1))))

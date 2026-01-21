@@ -1139,8 +1139,7 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5, verbose=0):
         from this data.
 
     """
-    pulse = dict(times=np.zeros(0), amplitudes=np.zeros(0),
-                 stdevs=np.zeros(0))
+    pulse = {}
     if len(phases) == 0:
         return pulse
     if eod.ndim == 2:
@@ -1640,7 +1639,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     # decompose EOD waveform:
     pulse = decompose_pulse(meod, freqs, energy, phases,
                             width_frac, verbose=verbose)
-    if len(pulse['amplitudes']) > 0:
+    if len(pulse) > 0:
         eod_fit = pulsefish_waveform(pulse, meod[:, 0])
         meod[:, -2] = eod_fit
 
@@ -2567,6 +2566,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         zeros = 1000*phases['zeros']
         ax.plot(zeros, np.zeros(len(zeros)), **zerox_style)
         # phase peaks and troughs:
+        max_peak_idx = np.argmax(phases['amplitudes'])
+        min_trough_idx = np.argmin(phases['amplitudes'])
         for i in range(len(phases['times'])):
             index = phases['indices'][i]
             ptime = 1000*phases['times'][i]
@@ -2575,9 +2576,25 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             pampl = mfac*phases['amplitudes'][i]
             relampl = phases['relamplitudes'][i]
             relarea = phases['relareas'][i]
+            # classify phase:
+            ampl_phase = phases['amplitudes'][i]
+            ampl_left = phases['amplitudes'][i - 1] if i > 0 else 0
+            ampl_right = phases['amplitudes'][i + 1] if i + 1 < len(phases['amplitudes']) else 0
+            local_maximum = ampl_phase > ampl_left and ampl_phase > ampl_right
+            if local_maximum:
+                right_phase = (i >= max_peak_idx)
+                min_max_phase = (i == max_peak_idx)
+                local_phase = (ampl_phase < 0)
+            else:
+                right_phase = i >= min_trough_idx 
+                min_max_phase = (i == min_trough_idx)
+                local_phase = (ampl_phase > 0)
+            sign = np.sign(pampl)
+            # mark phase peak/trough:
             ax.plot(ptime, pampl, **phase_style)
+            # text for phase label:
             label = f'P{index:.0f}'
-            if index != 1:
+            if index != 1 and not local_phase:
                 if np.abs(ptime) < 1:
                     ts = f'{1000*ptime:.0f}\u00b5s'
                 elif np.abs(ptime) < 10:
@@ -2589,33 +2606,38 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 else:
                     ps = f'{100*relampl:.0f}%'
                 label += f'({ps} @ {ts})'
-            left_text = (pampl > 0 and ptime >= 0.0) or \
-                (pampl < 0 and ptime >= 1000*phases['times'][np.argmin(phases['amplitudes'])])
-            va = 'baseline'
-            dy = 0.6*yfs
-            sign = np.sign(pampl)
-            if i > 0 and i < len(phases['times']) - 1:
-                if phases['amplitudes'][i - 1] > pampl and \
-                   phases['amplitudes'][i + 1] > pampl:
-                    va = 'top'
-                    dy = -dy
-            elif sign < 0:
-                va = 'top'
-                dy = -dy
-            if index == 1:
-                dy = 0.0
-            if pampl + dy < -ylim + 1.3*yfs:
-                dy = -ylim + 1.3*yfs - pampl
-            if index == np.max(phases['indices']) and ty*pampl > 0.0 and \
-               sign*pampl + dy < sign*ty + 1.2*yfs:
-                dy = ty + sign*1.2*yfs - pampl
-            dx = 0.5*xfs
-            if left_text:
-                ax.text(ptime + dx, pampl + dy, label,
-                        ha='left', va=va, zorder=20)
+            # position of phase label:
+            ltime = ptime
+            lampl = pampl
+            valign = 'top' if sign < 0 else 'baseline'
+            if local_phase:
+                halign = 'center'
+                dx = 0
+                dy = 0.6*yfs
+            elif min_max_phase:
+                halign = 'left' if right_phase else 'right'
+                dx = xfs if right_phase else -xfs
+                dy = 0
             else:
-                ax.text(ptime - dx, pampl + dy, label,
-                        ha='right', va=va, zorder=20)
+                dx = 0
+                dy = 0.8*yfs
+                if right_phase:
+                    halign = 'left'
+                    if i > 0 and np.isfinite(phases['zeros'][i - 1]):
+                        ltime = 1000*phases['zeros'][i - 1]
+                    else:
+                        dx = -2*xfs
+                    #np.sum(phases['amplitudes'][i + 1:]*pampl > 0)
+                else:
+                    halign = 'right'
+                    if np.isfinite(phases['zeros'][i]):
+                        ltime = 1000*phases['zeros'][i]
+                    else:
+                        dx = 2*xfs
+            if sign < 0:
+                dy = -dy
+            ax.text(ltime + dx, lampl + dy, label,
+                    ha=halign, va=valign, zorder=100)
             # area:
             if np.abs(relarea) < 0.01:
                 continue
@@ -3537,7 +3559,7 @@ def load_pulse_phases(file_path):
     return phases, data.unit('amplitude')
 
 
-def save_pulse_gaussians(pulse_data, unit, idx, basename, **kwargs):
+def save_pulse_gaussians(pulse, unit, idx, basename, **kwargs):
     """Save Gaussian phase properties of pulse EOD to file.
 
     Parameters
@@ -3575,13 +3597,13 @@ def save_pulse_gaussians(pulse_data, unit, idx, basename, **kwargs):
     load_pulse_gaussians()
 
     """
-    if len(pulse_data) == 0:
+    if len(pulse) == 0:
         return None
-    td = TableData(pulse_data,
+    td = TableData(pulse,
                    units=['ms', unit, 'ms'],
                    formats=['%.3f', '%.5f', '%.3f'])
-    td[:, 'times'] *= 1000
-    td[:, 'stdevs'] *= 1000
+    td['times'] *= 1000
+    td['stdevs'] *= 1000
     fp = ''
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:
@@ -3626,11 +3648,9 @@ def load_pulse_gaussians(file_path):
     """
     data = TableData(file_path)
     pulses = data.dict()
-    pulses['times'] = np.asarray(pulses['times'])
-    pulses['amplitudes'] = np.asarray(pulses['amplitudes'])
-    pulses['stdevs'] = np.asarray(pulses['stdevs'])
-    pulses['times'] *= 0.001
-    pulses['stdevs'] *= 0.001
+    pulses['times'] = 0.001*np.array(data['times'])
+    pulses['amplitudes'] = np.array(data['amplitudes'])
+    pulses['stdevs'] = 0.001*np.array(data['stdevs'])
     return pulses, data.unit('amplitudes')
 
 
