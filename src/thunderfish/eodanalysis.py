@@ -2467,15 +2467,15 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         xlim = 0.5*wave_periods*1000.0/props['EODf']
     elif pulse_trange:
         if props is not None and 'tstart' in  props and 'tend' in props:
-            trange = 1000*(props['tend'] - props['tstart'])
+            tlim = max(abs(props['tstart']), abs(props['tend']))
         else:
-            trange = 0.6*(time[-1] - time[0])
+            tlim = 0.001*max(abs(time[0]), abs(time[-1]))
         for tr in pulse_trange:
-            if 1000*tr > trange:
+            if tr/2 >= tlim:
                 break
         xlim = 1000*tr/2
     else:
-        xlim = 0.75*max(time[0], time[-1])
+        xlim = max(time[0], time[-1])
     ax.set_xlim(-xlim, +xlim)
     ax.set_xlabel('Time [msec]')
     ylim = 1.1*np.max(np.abs(eod[(time >= -xlim) & (time <= xlim)])) 
@@ -2561,11 +2561,12 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ty = 0.5*yfs*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
         ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
-    # mark zero crossings:
-    zeros = 1000*phases['zeros']
-    ax.plot(zeros, np.zeros(len(zeros)), **zerox_style)
-    # annotate phases:
+    # plot and annotate phases:
     if phases is not None and len(phases) > 0:
+        # mark zero crossings:
+        zeros = 1000*phases['zeros']
+        ax.plot(zeros, np.zeros(len(zeros)), **zerox_style)
+        # phase peaks and troughs:
         for i in range(len(phases['times'])):
             index = phases['indices'][i]
             ptime = 1000*phases['times'][i]
