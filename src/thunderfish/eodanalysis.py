@@ -2405,7 +2405,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                                        alpha=0.4),
                       zerox_style=dict(zorder=50, ls='', marker='o', color='tab:red',
                                        markersize=5, mec='white', mew=1),
-                      zero_style=dict(lw=0.5, color='0.7')):
+                      zero_style=dict(lw=0.5, color='0.7'),
+                      fontsize='medium'):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
     Parameters
@@ -2456,6 +2457,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Arguments passed on to the plot command for marking zero crossings.
     zero_style: dict
         Arguments passed on to the plot command for the zero line.
+    fontsize: str or float or int
+        Fontsize for annotation text.
 
     """
     ax.autoscale(True)
@@ -2484,12 +2487,16 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     else:
         ax.set_ylabel('Amplitude')
     # ax height dimensions:
+    t = ax.text(0, 0, 'test', fontsize=fontsize)
+    fs = t.get_fontsize()
+    t.remove()
     pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
     dxu = 2*xlim/pixelx
-    xfs = plt.rcParams['font.size']*dxu
+    xfs = fs*dxu
     pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:, 1]))[0]
     dyu = 2*ylim/pixely
-    yfs = plt.rcParams['font.size']*dyu
+    yfs = fs*dyu
+    texts = []
     # plot zero line:
     ax.axhline(0.0, zorder=-5, **zero_style)
     # plot areas:
@@ -2534,13 +2541,16 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 if it < len(left_eod)//2:
                     it = len(left_eod) - 1
                 ty = left_eod[it] if left_eod[it] < np.max(eod) else np.max(eod)
-                ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='top')
+                ta = ax.text(time[it], ty, f'x{magnification_factor:.0f} ',
+                             ha='right', va='top', fontsize=fontsize)
             else:
                 it = np.argmax(left_eod < 0.95*np.min(eod))
                 if it < len(left_eod)//2:
                     it = len(left_eod) - 1
                 ty = left_eod[it] if left_eod[it] > np.min(eod) else np.min(eod)
-                ax.text(time[it], ty, f'x{magnification_factor:.0f} ', ha='right', va='bottom')
+                ta = ax.text(time[it], ty, f'x{magnification_factor:.0f} ',
+                             ha='right', va='bottom', fontsize=fontsize)
+            texts.append(ta)
         i1 = len(eod) - 1 - np.argmax(np.abs(eod[::-1]) > mag_thresh)
         right_eod = magnification_factor*eod[i1:]
         magnification_mask[i1:] = True
@@ -2559,9 +2569,12 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         if np.abs(ty) < 0.5*yfs:
             ty = 0.5*yfs*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
-        ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
+        ta = ax.text(1000*x, ty, label, ha='left', va=va, zorder=20, fontsize=fontsize)
+        texts.append(ta)
     # plot and annotate phases:
     if phases is not None and len(phases) > 0:
+        upper_area_text = False
+        lower_area_text = False
         # mark zero crossings:
         zeros = 1000*phases['zeros']
         ax.plot(zeros, np.zeros(len(zeros)), **zerox_style)
@@ -2610,7 +2623,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ltime = ptime
             lampl = pampl
             valign = 'top' if sign < 0 else 'baseline'
-            if local_phase:
+            if local_phase or (min_max_phase and abs(pampl)/ylim < 0.8):
                 halign = 'center'
                 dx = 0
                 dy = 0.6*yfs
@@ -2636,8 +2649,9 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                         dx = 2*xfs
             if sign < 0:
                 dy = -dy
-            ax.text(ltime + dx, lampl + dy, label,
-                    ha=halign, va=valign, zorder=100)
+            ta = ax.text(ltime + dx, lampl + dy, label,
+                         ha=halign, va=valign, zorder=100, fontsize=fontsize)
+            texts.append(ta)
             # area:
             if np.abs(relarea) < 0.01:
                 continue
@@ -2658,16 +2672,59 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 ax.text(x, sign*0.6*yfs, label,
                         rotation='vertical',
                         va='top' if sign < 0 else 'bottom',
-                        ha='center', zorder=20)
+                        ha='center', zorder=20, fontsize=fontsize)
             elif abs(relampl) > 0.25:
                 ax.text(x, sign*0.6*yfs, label,
                         va='top' if sign < 0 else 'baseline',
-                        ha='center', zorder=20)
+                        ha='center', zorder=20, fontsize=fontsize)
             else:
-                dx = -0.3*xfs if right_phase else 0.3*xfs
-                ax.text(ltime + dx, -sign*0.4*yfs, label,
-                        va='baseline' if sign < 0 else 'top',
-                        ha=halign, zorder=100)
+                dx = 0.5*xfs if right_phase else -0.5*xfs
+                ta = ax.text(ltime + dx, -sign*0.4*yfs, label,
+                             va='baseline' if sign < 0 else 'top',
+                             ha=halign, zorder=100, fontsize=fontsize)
+                if -sign > 0 and not upper_area_text:
+                    texts.append(ta)
+                    upper_area_text = True
+                if -sign < 0 and not lower_area_text:
+                    texts.append(ta)
+                    lower_area_text = True
+        # arrange text vertically to avoid overlaps:
+        ul_texts = []
+        ur_texts = []
+        ll_texts = []
+        lr_texts = []
+        for t in texts:
+            x, y = t.get_position()
+            if y > 0:
+                if x >= phases['times'][max_peak_idx]:
+                    ur_texts.append(t)
+                else:
+                    ul_texts.append(t)
+            else:
+                if x >= phases['times'][min_trough_idx]:
+                    lr_texts.append(t)
+                else:
+                    ll_texts.append(t)
+        for ts in [ul_texts, ur_texts, ll_texts, lr_texts]:
+            if len(ts) > 1:
+                ys = []
+                for t in ts:
+                    # alternative:
+                    #renderer = ax.get_fig().canvas.renderer
+                    #bbox = t.get_window_extent(renderer).transformed(ax.transData.inverted())
+                    x, y = t.get_position()
+                    ys.append(abs(y))
+                idx = np.argsort(ys)
+                x, y = ts[idx[0]].get_position()
+                yp = abs(y)
+                for i in idx[1:]:
+                    t = ts[i]
+                    x, y = t.get_position()
+                    if abs(y) < abs(yp) + 2*yfs:
+                        y = np.sign(y)*(abs(yp) + 2*yfs)
+                        t.set_y(y)
+                        print('moved', t.get_text())
+                    yp = y
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
@@ -2761,7 +2818,8 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
                                         color='tab:blue', mec='none', mew=0,
                                         alpha=0.4),
                         cutoff_style=dict(lw=1, ls='-', color='0.5'),
-                        att5_color='0.8', att50_color='0.9'):
+                        att5_color='0.8', att50_color='0.9',
+                        fontsize='medium'):
     """Plot and annotate spectrum of single pulse EOD.
 
     Parameters
@@ -2796,33 +2854,35 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
         Color for the rectangular patch marking the first 5 Hz.
     att50_color: matplotlib color specification
         Color for the rectangular patch marking the first 50 Hz.
+    fontsize: str or float or int
+        Fontsize for annotation text.
     """
     ax.axvspan(1, 50, color=att50_color, zorder=10)
     att = props['energyatt50']
     if att < -10:
         ax.text(10, att + 1, f'{att:.0f}dB',
-                ha='left', va='bottom', zorder=100)
+                ha='left', va='bottom', zorder=100, fontsize=fontsize)
     else:
         ax.text(10, att - 1, f'{att:.0f}dB',
-                ha='left', va='top', zorder=100)
+                ha='left', va='top', zorder=100, fontsize=fontsize)
     ax.axvspan(1, 5, color=att5_color, zorder=20)
     att = props['energyatt5']
     if att < -10:
         ax.text(4, att + 1, f'{att:.0f}dB',
-                ha='right', va='bottom', zorder=100)
+                ha='right', va='bottom', zorder=100, fontsize=fontsize)
     else:
         ax.text(4, att - 1, f'{att:.0f}dB',
-                ha='right', va='top', zorder=100)
+                ha='right', va='top', zorder=100, fontsize=fontsize)
     lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
         ax.plot([lowcutoff, lowcutoff, 1], [-60, 0.5*att, 0.5*att],
                 zorder=30, **cutoff_style)
         ax.text(1.2*lowcutoff, 0.5*att - 1, f'{lowcutoff:.0f}Hz',
-                ha='left', va='top', zorder=100)
+                ha='left', va='top', zorder=100, fontsize=fontsize)
     highcutoff = props['highcutoff']
     ax.plot([highcutoff, highcutoff], [-60, -3], zorder=30, **cutoff_style)
     ax.text(1.2*highcutoff, -3, f'{highcutoff:.0f}Hz',
-            ha='left', va='center', zorder=100)
+            ha='left', va='center', zorder=100, fontsize=fontsize)
     ref_energy = np.max(energy[:, 1])
     if energy.shape[1] > 2 and np.all(np.isfinite(energy[:, 2])) and len(analytic_style) > 0:
         db = decibel(energy[:, 2], ref_energy)
@@ -2833,14 +2893,14 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     if peakfreq >= min_freq:
         ax.plot(peakfreq, 0, zorder=60, clip_on=False, **peak_style)
         ax.text(peakfreq*1.2, 1, f'{peakfreq:.0f}Hz',
-                va='bottom', zorder=100)
+                va='bottom', zorder=100, fontsize=fontsize)
     troughfreq = props['troughfreq']
     if troughfreq >= min_freq:
         troughenergy = decibel(props['troughenergy'], ref_energy)
         ax.plot(troughfreq, troughenergy, zorder=60, **peak_style)
         ax.text(troughfreq, troughenergy - 3,
                 f'{troughenergy:.0f}dB @ {troughfreq:.0f}Hz',
-                ha='center', va='top', zorder=100)
+                ha='center', va='top', zorder=100, fontsize=fontsize)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
     ax.set_ylim(-60, 2)

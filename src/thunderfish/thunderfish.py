@@ -103,7 +103,8 @@ eod_styles = dict(wave_style=dict(color=trace_color, lw=1.3),
                                    markersize=5, mec='white', mew=1),
                   zerox_style=dict(zorder=50, ls='', marker='o', color='black',
                                    markersize=5, mec='white', mew=1),
-                  zero_style=dict(color='0.3', lw=0.5))
+                  zero_style=dict(color='0.3', lw=0.5),
+                  fontsize='small')
                       
 snippet_style = dict(scaley=False, lw=0.5, color='0.6')
 
@@ -125,7 +126,8 @@ pulse_spec_styles = dict(max_freq=40_000,
                                          mew=1),
                          cutoff_style=dict(ls='-', color='0.5', lw=1),
                          att5_color='0.8',
-                         att50_color='0.9')
+                         att50_color='0.9',
+                         fontsize='small')
 
 def configuration():
     """Assemble configuration parameter for thunderfish.
