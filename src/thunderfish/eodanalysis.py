@@ -1417,6 +1417,10 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         A dictionary with properties of the analyzed EOD waveform.
 
         - type: set to 'pulse'.
+        - flipped: True if the waveform was flipped.
+        - n: number of pulses analyzed  (i.e. `len(eod_times)`), if provided.
+        - times: the times of the detected EOD pulses (i.e. `eod_times`),
+          if provided.
         - EODf: the inverse of the median interval between `eod_times`,
           if provided.
         - period: the median interval between `eod_times`, if provided.
@@ -1454,10 +1458,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - lowcutoff: frequency at which the energy reached half of the
           peak energy relative to the DC energy in Hertz.
         - highcutoff: 3dB roll-off frequency of spectrum in Hertz.
-        - flipped: True if the waveform was flipped.
-        - n: number of pulses analyzed  (i.e. `len(eod_times)`), if provided.
-        - times: the times of the detected EOD pulses (i.e. `eod_times`),
-          if provided.
+        - rmserror: root-mean-square error between fit with sum of Gaussians and
+          EOD waveform relative to the p-p amplitude. Infinity if fit failed.
 
         Empty if waveform is not a pulse EOD.
     phases: dict
@@ -1500,28 +1502,28 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     # cut out stable estimate if standard deviation is available:
     if eod.shape[1] > 2 and np.max(meod[:, 2]) > 3*np.min(meod[:, 2]):
         n = len(meod)
-        idx0 = np.argmax(np.abs(meod[n//10:9*n//10,1])) + n//10
-        toffs += meod[idx0,0]
-        meod[:, 0] -= meod[idx0,0]
+        idx0 = np.argmax(np.abs(meod[n//10:9*n//10, 1])) + n//10
+        toffs += meod[idx0, 0]
+        meod[:, 0] -= meod[idx0, 0]
         # minimum in standard deviation:
-        lstd_idx = np.argmin(meod[:idx0-5,2])
-        rstd_idx = np.argmin(meod[idx0+5:, 2]) + idx0
+        lstd_idx = np.argmin(meod[:idx0 - 5, 2])
+        rstd_idx = np.argmin(meod[idx0 + 5:, 2]) + idx0
         # central, left, and right maximum of standard deviation:
-        max_std = np.max(meod[lstd_idx:rstd_idx,2])
-        l_std = np.max(meod[:len(meod)//4,2])
+        max_std = np.max(meod[lstd_idx:rstd_idx, 2])
+        l_std = np.max(meod[:len(meod)//4, 2])
         r_std = np.max(meod[len(meod)*3//4:, 2])
         lidx = 0
         ridx = len(meod)
         if l_std > max_std and lstd_idx > lidx:
-            lidx = lstd_idx - np.argmax(meod[lstd_idx:0:-1,2] >= 0.25*l_std + 0.75*meod[lstd_idx,2])
+            lidx = lstd_idx - np.argmax(meod[lstd_idx:0:-1, 2] >= 0.25*l_std + 0.75*meod[lstd_idx, 2])
         if r_std > max_std and rstd_idx < ridx:
-            ridx = rstd_idx + np.argmax(meod[rstd_idx:, 2] >= 0.25*r_std + 0.75*meod[rstd_idx,2])
+            ridx = rstd_idx + np.argmax(meod[rstd_idx:, 2] >= 0.25*r_std + 0.75*meod[rstd_idx, 2])
         #plt.plot(meod[:, 0], meod[:, 1])
         #plt.plot(meod[:, 0], meod[:, 2], '-r')
         #plt.plot([meod[lidx,0], meod[lidx,0]], [-0.1, 0.1], '-k')
         #plt.plot([meod[ridx-1,0], meod[ridx-1,0]], [-0.1, 0.1], '-b')
         #plt.show()
-        meod = meod[lidx:ridx,:]
+        meod = meod[lidx:ridx, :]
     
     # subtract mean computed from the ends of the snippet:
     n = len(meod)//20 if len(meod) >= 20 else 1
@@ -1597,9 +1599,6 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     toffs += meod[max_idx, 0]
     meod[:, 0] -= meod[max_idx, 0]
     
-    tau = None
-    dist = 0.0
-    peaks = []
 
     # amplitude and variance:
     ppampl = max_ampl + min_ampl
@@ -1617,7 +1616,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     phases = analyze_pulse_phases(threshold, meod, None,
                                   min_dist=min_dist, width_frac=width_frac)
         
-    # fit exponential to last peak/trough:
+    # fit exponential to last phase:
+    tau = None
     if len(phases) > 0 and len(phases['times']) > 1:
         pi = np.argmin(np.abs(meod[:, 0] - phases['times'][-1]))
         tau, fit = analyze_pulse_tail(pi, meod, None,
@@ -1625,7 +1625,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         if fit is not None:
             meod[:, -1] = fit
 
-    # energy spectrum of single pulse:
+    # energy spectrum of single EOD pulse:
     freqs, energy = pulse_spectrum(meod, None, freq_resolution, fade_frac)
     # store spectrum:
     eenergy = np.zeros((len(energy), 2))
@@ -1637,21 +1637,25 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         analyze_pulse_spectrum(freqs, energy)
 
     # decompose EOD waveform:
+    rmserror = np.inf
     pulse = decompose_pulse(meod, freqs, energy, phases,
                             width_frac, verbose=verbose)
     if len(pulse) > 0:
         eod_fit = pulsefish_waveform(pulse, meod[:, 0])
         meod[:, -2] = eod_fit
+        rmserror = np.sqrt(np.mean((meod[:, 1] - meod[:, -2])**2))/ppampl
 
     # analyze pulse intervals:
-    ipi_median, ipi_mean, ipi_std = analyze_pulse_intervals(eod_times,
-                                                            ipi_cv_thresh,
-                                                            ipi_percentile)
+    ipi_median, ipi_mean, ipi_std = \
+        analyze_pulse_intervals(eod_times,  ipi_cv_thresh, ipi_percentile)
     
     # store properties:
     props = {}
     props['type'] = 'pulse'
+    props['flipped'] = flipped
     if eod_times is not None:
+        props['n'] = len(eod_times)
+        props['times'] = eod_times + toffs
         props['EODf'] = 1.0/ipi_median
         props['period'] = ipi_median
         props['IPI-mean'] = ipi_mean
@@ -1681,10 +1685,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     props['energyatt50'] = att50
     props['lowcutoff'] = lowcutoff
     props['highcutoff'] = highcutoff
-    props['flipped'] = flipped
-    if eod_times is not None:
-        props['n'] = len(eod_times)
-        props['times'] = eod_times + toffs
+    props['rmserror'] = rmserror
     
     return meod, props, phases, pulse, eenergy
 
