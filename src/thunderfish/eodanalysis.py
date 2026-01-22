@@ -1353,7 +1353,7 @@ def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
 
             
 def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
-                  peak_thresh_fac=0.01, min_dist=50.0e-6,
+                  thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac=0.5, fit_frac=0.5,
                   freq_resolution=1.0, fade_frac=0.0,
                   flip_pulse='none', ipi_cv_thresh=0.5,
@@ -1371,7 +1371,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         List of times of detected EOD peaks.
     min_pulse_win: float
         The minimum size of cut-out EOD waveform.
-    peak_thresh_fac: float
+    thresh_fac: float
         Set the threshold for peak detection to the maximum pulse
         amplitude times this factor.
     min_dist: float
@@ -1432,6 +1432,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
         - noise: root-mean squared standard error mean of the averaged
           EOD waveform relative to the p-p amplitude.
+        - threshfac: Threshold for peak detection is at this factor times
+          maximum EOD amplitude.
         - tstart: time in seconds where the pulse starts,
           i.e. crosses the threshold for the first time.
         - tend: time in seconds where the pulse ends,
@@ -1561,14 +1563,15 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     thl_min = np.min(meod[:n, 1])
     thr_max = np.max(meod[-n:, 1])
     thr_min = np.min(meod[-n:, 1])
-    min_thresh = 2*np.max([thl_max, thr_max]) - np.min([thl_min, thr_min])
+    min_thresh = 2*max(thl_max, thr_max) - min(thl_min, thr_min)
     if min_thresh > 0.5*(max_ampl + min_ampl):
         min_thresh = 0.5*(max_ampl + min_ampl)
         fit_frac = None
     # threshold for peak detection:
-    threshold = max_ampl*peak_thresh_fac
+    threshold = max_ampl*thresh_fac
     if threshold < min_thresh:
         threshold = min_thresh
+        thresh_fac = threshold/max_ampl
     if threshold <= 0.0:
         return meod, {}, [], []
         
@@ -1598,7 +1601,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     # move peak of waveform to zero:
     toffs += meod[max_idx, 0]
     meod[:, 0] -= meod[max_idx, 0]
-    
+
+    ## analysis of pulse waveform
 
     # amplitude and variance:
     ppampl = max_ampl + min_ampl
@@ -1665,6 +1669,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     props['p-p-amplitude'] = ppampl
     if rmssem:
         props['noise'] = rmssem
+    props['threshfac'] = thresh_fac
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1 - t0
@@ -3252,7 +3257,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
         td.append('twin', 's', '%7.2f', value=pulse_props)
         td.append('window', 's', '%7.2f', value=pulse_props)
         td.append('winclipped', '%', '%.2f',
-                  value=pulse_props, fac=100.0)
+                  value=pulse_props, fac=100)
     if 'samplerate' in pulse_props[0]:
         td.append('samplerate', 'kHz', '%.3f', value=pulse_props,
                   fac=0.001)
@@ -3261,32 +3266,33 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
         td.append('dfreq', 'Hz', '%.2f', value=pulse_props)
     td.append_section('waveform')
     td.append('index', '', '%d', value=pulse_props)
+    td.append('n', '', '%d', value=pulse_props)
     td.append('EODf', 'Hz', '%7.2f', value=pulse_props)
-    td.append('period', 'ms', '%7.2f', value=pulse_props, fac=1000.0)
+    td.append('period', 'ms', '%7.2f', value=pulse_props, fac=1000)
     td.append('max-ampl', unit, '%.5f', value=pulse_props)
     td.append('min-ampl', unit, '%.5f', value=pulse_props)
     td.append('p-p-amplitude', unit, '%.5f', value=pulse_props)
     if 'noise' in pulse_props[0]:
-        td.append('noise', '%', '%.2f', value=pulse_props, fac=100.0)
+        td.append('noise', '%', '%.2f', value=pulse_props, fac=100)
     if 'clipped' in pulse_props[0]:
-        td.append('clipped', '%', '%.2f', value=pulse_props, fac=100.0)
+        td.append('clipped', '%', '%.2f', value=pulse_props, fac=100)
     td.append('flipped', '', '%d', value=pulse_props)
-    td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000.0)
-    td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000.0)
-    td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000.0)
-    td.append('peak-dist', 'ms', '%.3f', value=pulse_props, fac=1000.0)
-    td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000.0)
+    td.append('threshfac', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('peak-dist', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('firstphase', '', '%d', value=pulse_props)
     td.append('lastphase', '', '%d', value=pulse_props)
     td.append('totalarea', f'{unit}*ms', '%.4f',
-              value=pulse_props, fac=1000.0)
+              value=pulse_props, fac=1000)
     td.append('positivearea', '%', '%.2f',
-              value=pulse_props, fac=100.0)
+              value=pulse_props, fac=100)
     td.append('negativearea', '%', '%.2f',
-              value=pulse_props, fac=100.0)
+              value=pulse_props, fac=100)
     td.append('polaritybalance', '%', '%.2f',
-              value=pulse_props, fac=100.0)
-    td.append('n', '', '%d', value=pulse_props)
+              value=pulse_props, fac=100)
     td.append_section('spectrum')
     td.append('peakfreq', 'Hz', '%.2f', value=pulse_props)
     td.append('peakenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
@@ -3296,6 +3302,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('energyatt50', 'dB', '%.2f', value=pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', value=pulse_props)
     td.append('highcutoff', 'Hz', '%.2f', value=pulse_props)
+    td.append('rmserror', '%', '%.2f', value=pulse_props, fac=100)
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-pulsefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
@@ -3340,24 +3347,22 @@ def load_pulse_fish(file_path):
         props['n'] = int(props['n'])
         props['firstphase'] = int(props['firstphase'])
         props['lastphase'] = int(props['lastphase'])
-        if 'totalarea' in props:
-            props['totalarea'] /= 1000
-        if 'positivearea' in props:
-            props['positivearea'] /= 100
-        if 'negativearea' in props:
-            props['negativearea'] /= 100
-        if 'polaritybalance' in props:
-            props['polaritybalance'] /= 100
+        props['totalarea'] /= 1000
+        props['positivearea'] /= 100
+        props['negativearea'] /= 100
+        props['polaritybalance'] /= 100
         props['type'] = 'pulse'
         if 'clipped' in props:
             props['clipped'] /= 100
         props['period'] /= 1000
         props['noise'] /= 100
+        props['threshfac'] /= 100
         props['tstart'] /= 1000
         props['tend'] /= 1000
         props['width'] /= 1000
         props['peak-dist'] /= 1000
         props['tau'] /= 1000
+        props['rmserror'] /= 100
     return eod_props
 
 
@@ -4191,12 +4196,11 @@ def load_recording(file_path, channel=0, load_kwargs={},
     return data, rate, idx0, idx1, info_dict
 
         
-def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
-                            win_fac=2.0, min_win=0.01, max_eods=None,
+def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
                             min_sem=False, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
                             n_harm=10, min_pulse_win=0.001,
-                            peak_thresh_fac=0.01, min_dist=50.0e-6,
+                            thresh_fac=0.01, min_dist=50.0e-6,
                             width_frac = 0.5, fit_frac = 0.5,
                             freq_resolution=1.0, fade_frac=0.0,
                             ipi_cv_thresh=0.5, ipi_percentile=30.0):
@@ -4221,10 +4225,10 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse fish to make the first large peak positive (flip, none, or auto).')
     cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
     cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
-    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the pulse amplitude.')
+    cfg.add('eodPeakThresholdFactor', thresh_fac, '', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the pulse amplitude.')
     cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
-    cfg.add('eodPulseWidthFraction', width_frac, '', 'The width of a pulse is measured at this fraction of the pulse height.')
-    cfg.add('eodExponentialFitFraction', fit_frac, '', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
+    cfg.add('eodPulseWidthFraction', 100*width_frac, '%', 'The width of a pulse is measured at this fraction of the pulse height.')
+    cfg.add('eodExponentialFitFraction', 100*fit_frac, '%', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
     cfg.add('eodPulseFrequencyResolution', freq_resolution, 'Hz', 'Frequency resolution of single pulse spectrum.')
     cfg.add('eodPulseFadeFraction', 100*fade_frac, '%', 'Fraction of time of the EOD waveform snippet that is used to fade in and out to zero baseline.')
     cfg.add('ipiCVThresh', ipi_cv_thresh, '', 'If coefficient of variation of interpulse intervals is smaller than this threshold, then use all intervals for computing EOD frequency.')
@@ -4300,7 +4304,7 @@ def analyze_pulse_args(cfg):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
-                 'peak_thresh_fac': 'eodPeakThresholdFactor',
+                 'thresh_fac': 'eodPeakThresholdFactor',
                  'min_dist': 'eodMinimumDistance',
                  'width_frac': 'eodPulseWidthFraction',
                  'fit_frac': 'eodExponentialFitFraction',
@@ -4309,6 +4313,8 @@ def analyze_pulse_args(cfg):
                  'fade_frac': 'eodPulseFadeFraction',
                  'ipi_cv_thresh': 'ipiCVThresh',
                  'ipi_percentile': 'ipiPercentile'})
+    a['width_frac'] *= 0.01
+    a['fit_frac'] *= 0.01
     a['fade_frac'] *= 0.01
     return a
 
@@ -4355,7 +4361,7 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
     the remaining arguments.
     """
     cfg.add_section('Waveform selection:')
-    cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
+    cfg.add('maximumClippedFraction', 100*max_clipped_frac, '%', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
     cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard error of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
     cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error of the fit relative to the peak-to-peak amplitude is larger than this number.')
     cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave fish if its power is smaller than this value.')
@@ -4397,6 +4403,7 @@ def wave_quality_args(cfg):
                  'max_relampl_harm1': 'maximumFirstHarmonicAmplitude',
                  'max_relampl_harm2': 'maximumSecondHarmonicAmplitude',
                  'max_relampl_harm3': 'maximumThirdHarmonicAmplitude'})
+    a['max_clipped_frac'] *= 0.01
     return a
 
 
@@ -4420,6 +4427,7 @@ def pulse_quality_args(cfg):
     """
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
                  'max_rms_sem': 'maximumRMSNoise'})
+    a['max_clipped_frac'] *= 0.01
     return a
 
 
