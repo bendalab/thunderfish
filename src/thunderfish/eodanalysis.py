@@ -13,12 +13,13 @@ Analysis of EOD waveforms.
 
 ## Analysis of pulse-type EODs
 
-- `flip_pulse()`: flip pulse EOD waveform.
-- `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
-- `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
+- `condition_pulse()`: subtract offset, flip, shift, and cut out pulse EOD waveform.
+- `analyze_pulse_properties()`: characterize basic properties of a pulse-type EOD.
 - `analyze_pulse_phases()`: characterize all phases of a pulse-type EOD.
 - `decompose_pulse()`: decompose single pulse waveform into sum of Gaussians.
 - `analyze_pulse_tail()`: fit exponential to last peak/trough of pulse EOD.
+- `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
+- `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
 - `analyze_pulse_intervals()`: basic statistics of interpulse intervals.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 
@@ -766,8 +767,10 @@ def exp_decay(t, tau, ampl, offs):
     return offs + ampl*np.exp(-t/tau)
 
 
-def flip_pulse(eod, ratetime=None, flip='none'):
-    """ Flip pulse EOD waveform.
+def condition_pulse(eod, ratetime=None, sem=None, flip='none',
+                    baseline_frac=0.05, large_phase_frac=0.2,
+                    min_pulse_win=0.001):
+    """Subtract offset, flip, shift, and cut out pulse EOD waveform.
     
     Parameters
     ----------
@@ -776,69 +779,159 @@ def flip_pulse(eod, ratetime=None, flip='none'):
         If an 1-D array, then this is the waveform and you
         need to also pass a sampling rate in `rate`.
         If a 2-D array, then first column is time in seconds and second
-        column is the eod waveform. Further columns are ignored.
+        column is the eod waveform. If a third column is present,
+        it is interpreted as the standard error of the mean
+        corresponding to the averaged waveform.
+        Further columns are ignored.
     ratetime: None or float or array of float
         If a 1-D array is passed on to `eod` then either the sampling
         rate in Hertz or the time array corresponding to `eod`.
+    sem: None or float or array of float
+        If a 1-D array is passed on to `eod`, then the optional
+        standard error of the averaged waveform. Either as a single value
+        or as an 1-D array for the whole waveform.
     flip: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the first large extremum is positive.
         - 'flip' flip waveform.
         - 'none' do not flip waveform.
+    baseline_frac: float
+        Fraction of data points from which the amplitude offset is computed.
+    large_phase_frac: float
+        Minimum amplitude of a large phase as a fraction of the largest one.
+    min_pulse_win: float
+        The minimum size of the cut-out EOD waveform.
     
     Returns
     -------
     eod: 1-D or 2-D array of float
-        The flipped waveform in the format of the input `eod`.
+        The input `eod` in the format of the input `eod`
+        with the conditioned waveform and optional time.
     time: 1-D array of float
         In case `eod` is a 1-D array, then the time array is also returned.
+    toffs: float
+        Time that was subtracted from the time axis,
+        such that the maximum of the EOD waveform was shifted to zero.
+    aoffs: float
+        Offset that was subtracted from the EOD waveform.
+        This is the average over the first `baseline_frac` data points
+        of the EOD waveform.
+    flipped: bool
+        True if waveform was flipped.
+    noise_thresh: float
+        Minimum threshold that is just higher than the noise level
+        within the first `baseline_frac` data points of the EOD waveform.
+        
     """
-    # largest positive and negative peak and flip:
-    # TODO call after cutting after cutting!
-    # TODO add subtraction of offset
-    # TODO add moving time origin to peak
     if eod.ndim == 2:
         time = eod[:, 0]
         meod = eod[:, 1]
+        if eod.shape[1] > 2:
+            sem = eod[:, 2]
     else:
         meod = eod
         if isinstance(ratetime, (list, tuple, np.ndarray)):
             time = ratetime
         else:
-            time = np.arange(len(eod))/rate
+            time = np.arange(len(meod))/rate
+        if np.isscalar(sem):
+            sem = np.ones(len(meod))*sem
+            
+    # subtract mean computed from the left end:
+    n_base = int(baseline_frac*len(meod))
+    if n_base < 5:
+        n_base = 5
+    aoffs = np.mean(meod[:n_base])  # baseline
+    meod -= aoffs
+    
+    # flip waveform:
+    max_idx = np.argmax(meod)
+    min_idx = np.argmin(meod)
     flipped = 'flip' in flip.lower()
-    max_idx = np.argmax(eod)
-    min_idx = np.argmin(eod)
     if 'auto' in flip.lower():
-        max_ampl = abs(eod[max_idx])
-        min_ampl = abs(eod[min_idx])
+        max_ampl = abs(meod[max_idx])
+        min_ampl = abs(meod[min_idx])
         amplitude = max(max_ampl, min_ampl)
-        if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
+        if max_ampl > large_phase_frac*amplitude and \
+           min_ampl > large_phase_frac*amplitude:
             # two major peaks:
             if min_idx < max_idx:
                 flipped = True
-        elif min_ampl > 0.2*amplitude:
+        elif min_ampl > large_phase_frac*amplitude:
             flipped = True
     if flipped:
-        eod = -eod
+        meod = -meod
         idx = min_idx
         min_idx = max_idx
         max_idx = idx
-    max_ampl = abs(eod[max_idx])
-    min_ampl = abs(eod[min_idx])
-    if eod.ndim == 2:
-        meod[:, 1] = eod
-        return meod
-    else:
-        return eod, time
-
+    max_ampl = abs(meod[max_idx])
+    min_ampl = abs(meod[min_idx])
     
-def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
-    """Compute the spectrum of a single pulse-type EOD.
+    # shift maximum to zero:
+    toffs = time[max_idx]
+    time -= toffs
+    
+    # threshold from baseline maximum and minimum:
+    th_max = np.max(meod[:n_base])
+    th_min = np.min(meod[:n_base])
+    range_thresh = 2*(th_max - th_min)
+    # threshold from standard error:
+    if sem is not None:
+        msem = np.mean(sem[:n_base])
+        sem_thresh = 8*msem
+    # noise threshold:
+    noise_thresh = max(range_thresh, sem_thresh)
+
+    # generous left edge of waveform:
+    l1_idx = np.argmax(np.abs(meod) > noise_thresh)
+    l2_idx = np.argmax(np.abs(meod) > 2*noise_thresh)
+    w = 2*(l2_idx - l1_idx)
+    if w < n_base:
+        w = n_base
+    l_idx = l1_idx - w
+    if l_idx < 0:
+        l_idx = 0
+    # generous right edge of waveform:
+    r1_idx = len(meod) - 1 - np.argmax(np.abs(meod[::-1]) > noise_thresh)
+    r2_idx = len(meod) - 1 - np.argmax(np.abs(meod[::-1]) > 2*noise_thresh)
+    w = 2*(r1_idx - r2_idx)
+    if w < n_base:
+        w = n_base
+    r_idx = r1_idx + w
+    if r_idx >= len(meod):
+        r_idx = len(meod)
+    # cut out relevant signal:
+    if time[r_idx - 1] - time[l_idx] < min_pulse_win:
+        ct = time[(l_idx + r_idx)//2]
+        mask = (time >= ct - min_pulse_win/2) & (time <= ct + min_pulse_win/2)
+        meod = meod[mask]
+        time = time[mask]
+        if eod.ndim == 2:
+            eod = eod[mask, :]
+    else:
+        meod = meod[l_idx:r_idx]
+        time = time[l_idx:r_idx]
+        if eod.ndim == 2:
+            eod = eod[l_idx:r_idx, :]
+    
+    # return offset, flipped and, shifted waveform:
+    if eod.ndim == 2:
+        eod[:, 0] = time
+        eod[:, 1] = meod
+        return eod, toffs, aoffs, flipped, noise_thresh
+    else:
+        return meod, time, toffs, aoffs, flipped, noise_thresh
+
+
+def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
+    """Characterize basic properties of a pulse-type EOD.
     
     Parameters
     ----------
+    noise_thresh: float
+        Minimum threshold that is just higher than the baseline noise level.
+        As returned by `condition_pulse()`.
     eod: 1-D or 2-D array
-        The eod waveform of which the spectrum is computed.
+        The eod waveform to be analyzed.
         If an 1-D array, then this is the waveform and you
         need to also pass a sampling rate in `rate`.
         If a 2-D array, then first column is time in seconds and second
@@ -846,111 +939,55 @@ def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
     ratetime: None or float or array of float
         If a 1-D array is passed on to `eod` then either the sampling
         rate in Hertz or the time array corresponding to `eod`.
-    freq_resolution: float
-        The frequency resolution of the spectrum.
-    fade_frac: float
-        Fraction of time of the EOD waveform that is used to fade in
-        and out to zero baseline.
-    
+
     Returns
     -------
-    freqs: 1-D array of float
-        The frequency components of the energy spectrum.
-    energy: 1-D array of float
-        The energy spectrum of the single pulse EOD
-        with unit (x s)^2 = x^2 s/Hz.
-        The integral over the energy spectrum `np.sum(energy)*freqs[1]`
-        equals the integral over the squared eod, `np.sum(eod**2)/rate`.
-        That is, by making the energy spectrum a power sepctrum
-        (dividing the energy by the FFT window duration), the integral
-        over the power spectrum equals the mean-squared signal
-        (variance). But the single-pulse spectrum is not a power-spectrum.
-        because in the limit to infinitely long window, the power vanishes!
-
-    See Also
-    --------
-    thunderfish.fakefish.pulsefish_spectrum(): analytically computed spectra for simulated pulse EODs.
-
+    pos_ampl: float
+        Amplitude of largest positive peak.
+    neg_ampl: float
+        Amplitude of largest negative trough (absolute value).
+    dist: float
+        Temporal distance between largest negative trough and positive peak.
+    pos_area: float
+        Integral under all positive values of EOD waveform.
+    neg_area: float
+        Integral under all negative values of EOD waveform (absolute value).
+    polarity_balance: float
+        Contrast between positive and negative areas of EOD waveform, i.e.
+        (pos_area - neg_area)/(pos_area + neg_area).
     """
     if eod.ndim == 2:
-        rate = 1.0/(eod[1, 0] - eod[0, 0])
+        time = eod[:, 0]
         eod = eod[:, 1]
     elif isinstance(ratetime, (list, tuple, np.ndarray)):
-        rate = 1.0/(ratetime[1] - ratetime[0])
+        time = ratetime
     else:
-        rate = ratetime
-    n_fft = nfft(rate, freq_resolution)
-    # subtract mean computed from the ends of the EOD snippet:
-    n = len(eod)//20 if len(eod) >= 20 else 1
-    eod = eod - 0.5*(np.mean(eod[:n]) + np.mean(eod[-n:]))
-    # zero padding:
-    max_idx = np.argmax(eod)
-    n0 = max_idx
-    n1 = len(eod) - max_idx
-    n = 2*max(n0, n1)
-    if n_fft < n:
-        n_fft = next_power_of_two(n)
-    data = np.zeros(n_fft)
-    data[n_fft//2 - n0:n_fft//2 + n1] = eod
-    # fade in and out:
-    if fade_frac > 0:
-        fn = int(fade_frac*len(eod))
-        data[n_fft//2 - n0:n_fft//2 - n0 + fn] *= np.arange(fn)/fn
-        data[n_fft//2 + n1 - fn:n_fft//2 + n1] *= np.arange(fn)[::-1]/fn
-    # spectrum:
-    dt = 1/rate
-    freqs = np.fft.rfftfreq(n_fft, dt)
-    fourier = np.fft.rfft(data)*dt
-    energy = 2*np.abs(fourier)**2     # one-sided spectrum!
-    return freqs, energy
+        time = np.arange(len(eod))/rate
+    dt = time[1] - time[0]
 
+    # amplitudes:
+    pos_idx = np.argmax(eod)
+    pos_ampl = abs(eod[pos_idx])
+    if pos_ampl < noise_thresh:
+        pos_ampl = 0
+    neg_idx = np.argmin(eod)
+    neg_ampl = abs(eod[neg_idx])
+    if neg_ampl < noise_thresh:
+        neg_ampl = 0
+    dist = time[neg_idx] - time[pos_idx]
+    if pos_ampl < noise_thresh or neg_ampl < noise_thresh:
+        dist = np.inf
 
-def analyze_pulse_spectrum(freqs, energy):
-    """Analyze the spectrum of a pulse-type EOD.
+    # integrals (areas) and polarity balance:
+    pos_area = abs(np.sum(eod[eod >= 0]))*dt
+    neg_area = abs(np.sum(eod[eod < 0]))*dt
+    total_area = np.sum(np.abs(eod))*dt
+    integral_area = np.sum(eod)*dt   # = pos_area - neg_area
+    polarity_balance = integral_area/total_area
+
+    return pos_ampl, neg_ampl, dist, pos_area, neg_area, polarity_balance
+
     
-    Parameters
-    ----------
-    freqs: 1-D array of float
-        The frequency components of the energy spectrum.
-    energy: 1-D array of float
-        The energy spectrum of the single pulse-type EOD.
-    
-    Returns
-    -------
-    peak_freq: float
-        Frequency at peak energy of the spectrum in Hertz.
-    peak_energy: float
-        Peak energy of the pulse spectrum in x^2 s/Hz.
-    trough_freq: float
-        Frequency at trough before peak in Hertz.
-    trough_energy: float
-        Energy of trough before peak in x^2 s/Hz.
-    att5: float
-        Attenuation of average energy below 5 Hz relative to
-        peak energy in decibel.
-    att50: float
-        Attenuation of average energy below 50 Hz relative to
-        peak energy in decibel.
-    low_cutoff: float
-        Frequency at which the energy reached half of the
-        peak energy relative to the DC energy in Hertz.
-    high_cutoff: float
-        3dB roll-off frequency in Hertz.
-    """
-    ip = np.argmax(energy)
-    peak_freq = freqs[ip]
-    peak_energy = energy[ip]
-    it = np.argmin(energy[:ip]) if ip > 0 else 0
-    trough_freq = freqs[it]
-    trough_energy = energy[it]
-    att5 = decibel(np.mean(energy[freqs<5.0]), peak_energy)
-    att50 = decibel(np.mean(energy[freqs<50.0]), peak_energy)
-    low_cutoff = freqs[decibel(energy, peak_energy) > 0.5*att5][0]
-    high_cutoff = freqs[decibel(energy, peak_energy) > -3.0][-1]
-    return peak_freq, peak_energy, trough_freq, trough_energy, \
-        att5, att50, low_cutoff, high_cutoff
-
-
 def analyze_pulse_phases(threshold, eod, ratetime=None,
                          min_dist=50.0e-6, width_frac=0.5):
     """Characterize all phases of a pulse-type EOD.
@@ -976,6 +1013,10 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     
     Returns
     -------
+    tstart: float
+        Start time of EOD waveform, i.e. the first time it crosses `threshold`.
+    tend: float
+        End time of EOD waveform, i.e. the last time it falls under `threshold`.
     phases: dict
         Dictionary with
     
@@ -1000,10 +1041,15 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     else:
         time = np.arange(len(eod))/rate
     dt = time[1] - time[0]
+    # start and end time:
+    l_idx = np.argmax(np.abs(eod) > threshold)
+    r_idx = len(eod) - 1 - np.argmax(np.abs(eod[::-1]) > threshold)
+    tstart = time[l_idx]
+    tend = time[r_idx]
     # find peaks and troughs:
     peak_idx, trough_idx = detect_peaks(eod, threshold)
     if len(peak_idx) == 0:
-        return {}
+        return tstart, tend, {}
     # and their width:
     peak_widths = peak_width(time, eod, peak_idx, trough_idx,
                              peak_frac=width_frac, base='max')
@@ -1028,7 +1074,7 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
         phase_list = np.delete(phase_list, rmidx)
         width_list = np.delete(width_list, rmidx)
     if len(phase_list) == 0:
-        return {}
+        return tstart, tend, {}
     # find P1:
     p1i = np.argmax(phase_list == max_idx)
     # amplitudes:
@@ -1075,7 +1121,7 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
                   areas=phase_areas,
                   relareas=phase_areas/total_area,
                   zeros=zero_times)
-    return phases
+    return tstart, tend, phases
 
 
 def gaussian_sum(x, *pas):
@@ -1373,6 +1419,125 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
     fit[inx:rridx] = exp_decay(time[inx:rridx] - time[inx], *popt)
     return tau, fit
 
+    
+def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
+    """Compute the spectrum of a single pulse-type EOD.
+    
+    Parameters
+    ----------
+    eod: 1-D or 2-D array
+        The eod waveform of which the spectrum is computed.
+        If an 1-D array, then this is the waveform and you
+        need to also pass a sampling rate in `rate`.
+        If a 2-D array, then first column is time in seconds and second
+        column is the eod waveform. Further columns are ignored.
+    ratetime: None or float or array of float
+        If a 1-D array is passed on to `eod` then either the sampling
+        rate in Hertz or the time array corresponding to `eod`.
+    freq_resolution: float
+        The frequency resolution of the spectrum.
+    fade_frac: float
+        Fraction of time of the EOD waveform that is used to fade in
+        and out to zero baseline.
+    
+    Returns
+    -------
+    freqs: 1-D array of float
+        The frequency components of the energy spectrum.
+    energy: 1-D array of float
+        The energy spectrum of the single pulse EOD
+        with unit (x s)^2 = x^2 s/Hz.
+        The integral over the energy spectrum `np.sum(energy)*freqs[1]`
+        equals the integral over the squared eod, `np.sum(eod**2)/rate`.
+        That is, by making the energy spectrum a power sepctrum
+        (dividing the energy by the FFT window duration), the integral
+        over the power spectrum equals the mean-squared signal
+        (variance). But the single-pulse spectrum is not a power-spectrum.
+        because in the limit to infinitely long window, the power vanishes!
+
+    See Also
+    --------
+    thunderfish.fakefish.pulsefish_spectrum(): analytically computed spectra for simulated pulse EODs.
+
+    """
+    if eod.ndim == 2:
+        rate = 1.0/(eod[1, 0] - eod[0, 0])
+        eod = eod[:, 1]
+    elif isinstance(ratetime, (list, tuple, np.ndarray)):
+        rate = 1.0/(ratetime[1] - ratetime[0])
+    else:
+        rate = ratetime
+    n_fft = nfft(rate, freq_resolution)
+    # subtract mean computed from the ends of the EOD snippet:
+    n = len(eod)//20 if len(eod) >= 20 else 1
+    eod = eod - 0.5*(np.mean(eod[:n]) + np.mean(eod[-n:]))
+    # zero padding:
+    max_idx = np.argmax(eod)
+    n0 = max_idx
+    n1 = len(eod) - max_idx
+    n = 2*max(n0, n1)
+    if n_fft < n:
+        n_fft = next_power_of_two(n)
+    data = np.zeros(n_fft)
+    data[n_fft//2 - n0:n_fft//2 + n1] = eod
+    # fade in and out:
+    if fade_frac > 0:
+        fn = int(fade_frac*len(eod))
+        data[n_fft//2 - n0:n_fft//2 - n0 + fn] *= np.arange(fn)/fn
+        data[n_fft//2 + n1 - fn:n_fft//2 + n1] *= np.arange(fn)[::-1]/fn
+    # spectrum:
+    dt = 1/rate
+    freqs = np.fft.rfftfreq(n_fft, dt)
+    fourier = np.fft.rfft(data)*dt
+    energy = 2*np.abs(fourier)**2     # one-sided spectrum!
+    return freqs, energy
+
+
+def analyze_pulse_spectrum(freqs, energy):
+    """Analyze the spectrum of a pulse-type EOD.
+    
+    Parameters
+    ----------
+    freqs: 1-D array of float
+        The frequency components of the energy spectrum.
+    energy: 1-D array of float
+        The energy spectrum of the single pulse-type EOD.
+    
+    Returns
+    -------
+    peak_freq: float
+        Frequency at peak energy of the spectrum in Hertz.
+    peak_energy: float
+        Peak energy of the pulse spectrum in x^2 s/Hz.
+    trough_freq: float
+        Frequency at trough before peak in Hertz.
+    trough_energy: float
+        Energy of trough before peak in x^2 s/Hz.
+    att5: float
+        Attenuation of average energy below 5 Hz relative to
+        peak energy in decibel.
+    att50: float
+        Attenuation of average energy below 50 Hz relative to
+        peak energy in decibel.
+    low_cutoff: float
+        Frequency at which the energy reached half of the
+        peak energy relative to the DC energy in Hertz.
+    high_cutoff: float
+        3dB roll-off frequency in Hertz.
+    """
+    ip = np.argmax(energy)
+    peak_freq = freqs[ip]
+    peak_energy = energy[ip]
+    it = np.argmin(energy[:ip]) if ip > 0 else 0
+    trough_freq = freqs[it]
+    trough_energy = energy[it]
+    att5 = decibel(np.mean(energy[freqs<5.0]), peak_energy)
+    att50 = decibel(np.mean(energy[freqs<50.0]), peak_energy)
+    low_cutoff = freqs[decibel(energy, peak_energy) > 0.5*att5][0]
+    high_cutoff = freqs[decibel(energy, peak_energy) > -3.0][-1]
+    return peak_freq, peak_energy, trough_freq, trough_energy, \
+        att5, att50, low_cutoff, high_cutoff
+
 
 def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
                             ipi_percentile=30.0):
@@ -1419,7 +1584,8 @@ def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
     return ipi_median, ipi_mean, ipi_std
 
             
-def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
+def analyze_pulse(eod, ratetime=None, eod_times=None,
+                  min_pulse_win=0.001,
                   thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac=0.5, fit_frac=0.5,
                   freq_resolution=1.0, fade_frac=0.0,
@@ -1429,11 +1595,17 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     
     Parameters
     ----------
-    eod: 2-D array
-        The eod waveform. First column is time in seconds, second
+    eod: 1-D or 2-D array
+        The eod waveform to be analyzed.
+        If an 1-D array, then this is the waveform and you
+        need to also pass a time array or sampling rate in `ratetime`.
+        If a 2-D array, then first column is time in seconds, second
         column the EOD waveform, third column, if present, is the
-        standard error of the EOD waveform, Further columns are
+        standard error of the EOD waveform. Further columns are
         optional but not used.
+    ratetime: None or float or array of float
+        If a 1-D array is passed on to `eod` then either the sampling
+        rate in Hertz or the time array corresponding to `eod`.
     eod_times: 1-D array or None
         List of times of detected EOD peaks.
     min_pulse_win: float
@@ -1479,7 +1651,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         Further columns are kept from the input `eod`.
         As the two last columns the waveform resulting from the
         decomposition into Gaussians and the fit to the tail of the
-        last peak is appended.
+        last peak are appended.
     props: dict
         A dictionary with properties of the analyzed EOD waveform.
 
@@ -1497,8 +1669,10 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - max-ampl: the amplitude of the largest positive peak (P1).
         - min-ampl: the amplitude of the largest negative peak (P2).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
-        - noise: root-mean squared standard error mean of the averaged
+        - noise: average standard error mean of the averaged
           EOD waveform relative to the p-p amplitude.
+        - rmserror: root-mean-square error between fit with sum of Gaussians and
+          EOD waveform relative to the p-p amplitude. Infinity if fit failed.
         - threshfac: Threshold for peak detection is at this factor times
           maximum EOD amplitude.
         - tstart: time in seconds where the pulse starts,
@@ -1511,8 +1685,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - firstphase: index of the first phase in the pulse (i.e. -1 for P-1)
         - lastphase: index of the last phase in the pulse (i.e. 3 for P3)
         - totalarea: sum of areas under positive and negative peaks.
-        - positivearea: area under positive phases relative to total area.
-        - negativearea: area under negative phases relative to total area.
+        - pos-area: area under positive phases relative to total area.
+        - neg-area: area under negative phases relative to total area.
         - polaritybalance: contrast between areas under positive and
           negative phases.
         - peakfreq: frequency at peak energy of the single pulse spectrum
@@ -1527,8 +1701,6 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - lowcutoff: frequency at which the energy reached half of the
           peak energy relative to the DC energy in Hertz.
         - highcutoff: 3dB roll-off frequency of spectrum in Hertz.
-        - rmserror: root-mean-square error between fit with sum of Gaussians and
-          EOD waveform relative to the p-p amplitude. Infinity if fit failed.
 
         Empty if waveform is not a pulse EOD.
     phases: dict
@@ -1561,131 +1733,51 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         Empty if waveform is not a pulse EOD.
 
     """
+    if eod.ndim == 2:
+        eeod = eod
+    else:
+        if isinstance(ratetime, (list, tuple, np.ndarray)):
+            time = ratetime
+        else:
+            time = np.arange(len(eod))/rate
+        eeod = np.zeros((len(eod), 2))
+        eeod[:, 0] = time
+        eeod[:, 1] = eod
     # storage:
-    meod = np.zeros((eod.shape[0], eod.shape[1] + 2))
-    meod[:, :eod.shape[1]] = eod
+    meod = np.zeros((eeod.shape[0], eeod.shape[1] + 2))
+    meod[:, :eeod.shape[1]] = eeod
     meod[:, -2] = np.nan
     meod[:, -1] = np.nan
-    toffs = 0
-    
-    # cut out stable estimate if standard deviation is available:
-    if eod.shape[1] > 2 and np.max(meod[:, 2]) > 3*np.min(meod[:, 2]):
-        n = len(meod)
-        idx0 = np.argmax(np.abs(meod[n//10:9*n//10, 1])) + n//10
-        toffs += meod[idx0, 0]
-        meod[:, 0] -= meod[idx0, 0]
-        # minimum in standard deviation:
-        lstd_idx = np.argmin(meod[:idx0 - 5, 2])
-        rstd_idx = np.argmin(meod[idx0 + 5:, 2]) + idx0
-        # central, left, and right maximum of standard deviation:
-        max_std = np.max(meod[lstd_idx:rstd_idx, 2])
-        l_std = np.max(meod[:len(meod)//4, 2])
-        r_std = np.max(meod[len(meod)*3//4:, 2])
-        lidx = 0
-        ridx = len(meod)
-        if l_std > max_std and lstd_idx > lidx:
-            lidx = lstd_idx - np.argmax(meod[lstd_idx:0:-1, 2] >= 0.25*l_std + 0.75*meod[lstd_idx, 2])
-        if r_std > max_std and rstd_idx < ridx:
-            ridx = rstd_idx + np.argmax(meod[rstd_idx:, 2] >= 0.25*r_std + 0.75*meod[rstd_idx, 2])
-        #plt.plot(meod[:, 0], meod[:, 1])
-        #plt.plot(meod[:, 0], meod[:, 2], '-r')
-        #plt.plot([meod[lidx,0], meod[lidx,0]], [-0.1, 0.1], '-k')
-        #plt.plot([meod[ridx-1,0], meod[ridx-1,0]], [-0.1, 0.1], '-b')
-        #plt.show()
-        meod = meod[lidx:ridx, :]
-    
-    # subtract mean computed from the ends of the snippet:
-    n = len(meod)//20 if len(meod) >= 20 else 1
-    meod[:, 1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:, 1]))
 
-    # largest positive and negative peak and flip: # TODO move after cutting!
-    flipped = 'flip' in flip_pulse.lower()
-    max_idx = np.argmax(meod[:, 1])
-    min_idx = np.argmin(meod[:, 1])
-    if 'auto' in flip_pulse.lower():
-        max_ampl = abs(meod[max_idx, 1])
-        min_ampl = abs(meod[min_idx, 1])
-        amplitude = max(max_ampl, min_ampl)
-        if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
-            # two major peaks:
-            if min_idx < max_idx:
-                flipped = True
-        elif min_ampl > 0.2*amplitude:
-            flipped = True
-    if flipped:
-        meod[:, 1] = -meod[:, 1]
-        idx = min_idx
-        min_idx = max_idx
-        max_idx = idx
-    max_ampl = abs(meod[max_idx, 1])
-    min_ampl = abs(meod[min_idx, 1])
+    # conditioning of the waveform:
+    meod, toffs, aoffs, flipped, noise_thresh = \
+        condition_pulse(meod, flip=flip_pulse,
+                        baseline_frac=0.05, large_phase_frac=0.2,
+                        min_pulse_win=min_pulse_win)
 
-    # minimum threshold for peak detection: # return from cutting function
-    n = len(meod[:, 1])//10 if len(meod) >= 20 else 2
-    thl_max = np.max(meod[:n, 1])
-    thl_min = np.min(meod[:n, 1])
-    thr_max = np.max(meod[-n:, 1])
-    thr_min = np.min(meod[-n:, 1])
-    min_thresh = 2*max(thl_max, thr_max) - min(thl_min, thr_min)
-    if min_thresh > 0.5*(max_ampl + min_ampl):
-        min_thresh = 0.5*(max_ampl + min_ampl)
-        fit_frac = None
+    # analysis of pulse waveform:
+    pos_ampl, neg_ampl, dist, pos_area, neg_area, polarity_balance = \
+        analyze_pulse_properties(noise_thresh, meod)
+    pp_ampl = pos_ampl + neg_ampl
+    max_ampl = max(pos_ampl, neg_ampl)
+    total_area = pos_area + neg_area
+
     # threshold for peak detection:
-    threshold = max_ampl*thresh_fac
-    if threshold < min_thresh:
-        threshold = min_thresh
-        thresh_fac = threshold/max_ampl
-    if threshold <= 0.0:
-        return meod, {}, [], []
-        
-    # cut out relevant signal:
-    # TODO: this needs to be improved!
-    # more to the right in case of a shallow decay to baseline!
-    lidx = np.argmax(np.abs(meod[:, 1]) > threshold)
-    ridx = len(meod) - 1 - np.argmax(np.abs(meod[::-1,1]) > threshold)
-    t0 = meod[lidx,0]
-    t1 = meod[ridx,0]
-    width = t1 - t0
-    if width < min_pulse_win:
-        width = min_pulse_win
-    dt = meod[1, 0] - meod[0, 0]
-    width_idx = int(np.round(width/dt))
-    # expand width:
-    leidx = lidx - width_idx//2
-    if leidx < 0:
-        leidx = 0
-    reidx = ridx + width_idx//2
-    if reidx >= len(meod):
-        reidx = len(meod)
-    meod = meod[leidx:reidx,:]
-    max_idx -= leidx
-    min_idx -= leidx
-                
-    # move peak of waveform to zero:
-    toffs += meod[max_idx, 0]
-    meod[:, 0] -= meod[max_idx, 0]
-
-    ## analysis of pulse waveform
-
-    # amplitude and variance:
-    ppampl = max_ampl + min_ampl
-    dist = meod[min_idx, 0] - meod[max_idx, 0]  # TODO: move to analyze_pulse_phases() and handle non existent minimum
-    rmssem = np.sqrt(np.mean(meod[:, 2]**2.0))/ppampl if eod.shape[1] > 2 else None
-
-    # integrals and polarity balance:
-    pos_area = np.sum(meod[meod[:, 1] >= 0, 1])*dt
-    neg_area = np.sum(meod[meod[:, 1] < 0, 1])*dt
-    total_area = np.sum(np.abs(meod[:, 1]))*dt
-    integral_area = np.sum(meod[:, 1])*dt   # = pos_area - neg_area
-    polarity_balance = integral_area/total_area
+    threshold = pp_ampl*thresh_fac
+    if threshold < 2*noise_thresh:
+        threshold = 2*noise_thresh
+        thresh_fac = threshold/pp_ampl
             
     # characterize EOD phases:
-    phases = analyze_pulse_phases(threshold, meod, None,
-                                  min_dist=min_dist, width_frac=width_frac)
+    tstart, tend, phases = analyze_pulse_phases(threshold, meod,
+                                                min_dist=min_dist,
+                                                width_frac=width_frac)
         
     # fit exponential to last phase:
     tau = None
     if len(phases) > 0 and len(phases['times']) > 1:
+        if noise_thresh > fit_frac*max_ampl:
+            fit_frac = None
         pi = np.argmin(np.abs(meod[:, 0] - phases['times'][-1]))
         tau, fit = analyze_pulse_tail(pi, meod, None,
                                       threshold, fit_frac)
@@ -1710,7 +1802,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     if len(pulse) > 0:
         eod_fit = pulsefish_waveform(pulse, meod[:, 0])
         meod[:, -2] = eod_fit
-        rmserror = np.sqrt(np.mean((meod[:, 1] - meod[:, -2])**2))/ppampl
+        rmserror = np.sqrt(np.mean((meod[:, 1] - meod[:, -2])**2))/pp_ampl
 
     # analyze pulse intervals:
     ipi_median, ipi_mean, ipi_std = \
@@ -1727,23 +1819,27 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         props['period'] = ipi_median
         props['IPI-mean'] = ipi_mean
         props['IPI-std'] = ipi_std
+        props['IPI-CV'] = ipi_std/ipi_mean
+    props['aoffs'] = aoffs
+    props['pos-ampl'] = pos_ampl
+    props['neg-ampl'] = neg_ampl
     props['max-ampl'] = max_ampl
-    props['min-ampl'] = min_ampl
-    props['p-p-amplitude'] = ppampl
-    if rmssem:
-        props['noise'] = rmssem
+    props['p-p-amplitude'] = pp_ampl
+    props['p-p-dist'] = dist
+    if eod.shape[1] > 2:
+        props['noise'] = np.mean(meod[:, 2])/pp_ampl
+    props['rmserror'] = rmserror
     props['threshfac'] = thresh_fac
-    props['tstart'] = t0
-    props['tend'] = t1
-    props['width'] = t1 - t0
-    props['peak-dist'] = dist
+    props['tstart'] = tstart
+    props['tend'] = tend
+    props['width'] = tstart - tend
     if tau:
         props['tau'] = tau
     props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
     props['lastphase'] = phases['indices'][-1] if len(phases) > 0 else 1
     props['totalarea'] = total_area
-    props['positivearea'] = pos_area/total_area
-    props['negativearea'] = neg_area/total_area
+    props['pos-area'] = pos_area/total_area
+    props['neg-area'] = neg_area/total_area
     props['polaritybalance'] = polarity_balance
     props['peakfreq'] = peakfreq
     props['peakenergy'] = peakenergy
@@ -1753,7 +1849,6 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     props['energyatt50'] = att50
     props['lowcutoff'] = lowcutoff
     props['highcutoff'] = highcutoff
-    props['rmserror'] = rmserror
     
     return meod, props, phases, pulse, eenergy
 
@@ -2412,7 +2507,7 @@ def plot_pulse_eods(ax, data, rate, zoom_window, width, eod_props,
 
         
 def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
-                      n_snippets=10, flip=False,
+                      n_snippets=10, flip=False, aoffs=0,
                       snippet_style=dict(scaley=False,
                                          lw=0.5, color='0.6')):
     """Plot a few EOD waveform snippets.
@@ -2435,6 +2530,8 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         Number of snippets to be plotted. If zero do not plot anything.
     flip: bool
         If True flip the snippets upside down.
+    aoffs: float
+        Offset that was subtracted from the average EOD waveform.
     snippet_style: dict
         Arguments passed on to the plot command for plotting the snippets.
     """
@@ -2450,7 +2547,7 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         idx = int(np.round(t*rate))
         if idx + i0 < 0 or idx + i1 >= len(data):
             continue
-        snippet = data[idx + i0:idx + i1]
+        snippet = data[idx + i0:idx + i1] - aoffs
         if flip:
             snippet *= -1
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]),
@@ -2794,7 +2891,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                     if abs(y) < abs(yp) + 2*yfs:
                         y = np.sign(y)*(abs(yp) + 2*yfs)
                         t.set_y(y)
-                        print('moved', t.get_text())
+                        #print('moved', t.get_text())
                     yp = y
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
@@ -3334,11 +3431,15 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('n', '', '%d', value=pulse_props)
     td.append('EODf', 'Hz', '%7.2f', value=pulse_props)
     td.append('period', 'ms', '%7.2f', value=pulse_props, fac=1000)
+    td.append('aoffs', unit, '%.5f', value=pulse_props)
+    td.append('pos-ampl', unit, '%.5f', value=pulse_props)
+    td.append('neg-ampl', unit, '%.5f', value=pulse_props)
     td.append('max-ampl', unit, '%.5f', value=pulse_props)
-    td.append('min-ampl', unit, '%.5f', value=pulse_props)
     td.append('p-p-amplitude', unit, '%.5f', value=pulse_props)
+    td.append('p-p-dist', 'ms', '%.3f', value=pulse_props, fac=1000)
     if 'noise' in pulse_props[0]:
         td.append('noise', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('rmserror', '%', '%.2f', value=pulse_props, fac=100)
     if 'clipped' in pulse_props[0]:
         td.append('clipped', '%', '%.2f', value=pulse_props, fac=100)
     td.append('flipped', '', '%d', value=pulse_props)
@@ -3346,18 +3447,13 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000)
-    td.append('peak-dist', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('firstphase', '', '%d', value=pulse_props)
     td.append('lastphase', '', '%d', value=pulse_props)
-    td.append('totalarea', f'{unit}*ms', '%.4f',
-              value=pulse_props, fac=1000)
-    td.append('positivearea', '%', '%.2f',
-              value=pulse_props, fac=100)
-    td.append('negativearea', '%', '%.2f',
-              value=pulse_props, fac=100)
-    td.append('polaritybalance', '%', '%.2f',
-              value=pulse_props, fac=100)
+    td.append('totalarea', f'{unit}*ms', '%.4f', value=pulse_props, fac=1000)
+    td.append('pos-area', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('neg-area', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('polaritybalance', '%', '%.2f', value=pulse_props, fac=100)
     td.append_section('spectrum')
     td.append('peakfreq', 'Hz', '%.2f', value=pulse_props)
     td.append('peakenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
@@ -3367,7 +3463,6 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('energyatt50', 'dB', '%.2f', value=pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', value=pulse_props)
     td.append('highcutoff', 'Hz', '%.2f', value=pulse_props)
-    td.append('rmserror', '%', '%.2f', value=pulse_props, fac=100)
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-pulsefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
@@ -3413,8 +3508,8 @@ def load_pulse_fish(file_path):
         props['firstphase'] = int(props['firstphase'])
         props['lastphase'] = int(props['lastphase'])
         props['totalarea'] /= 1000
-        props['positivearea'] /= 100
-        props['negativearea'] /= 100
+        props['pos-area'] /= 100
+        props['neg-area'] /= 100
         props['polaritybalance'] /= 100
         props['type'] = 'pulse'
         if 'clipped' in props:
@@ -3424,8 +3519,8 @@ def load_pulse_fish(file_path):
         props['threshfac'] /= 100
         props['tstart'] /= 1000
         props['tend'] /= 1000
+        props['p-p-dist'] /= 1000
         props['width'] /= 1000
-        props['peak-dist'] /= 1000
         props['tau'] /= 1000
         props['rmserror'] /= 100
     return eod_props

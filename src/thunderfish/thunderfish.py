@@ -310,7 +310,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                              min_win=cfg.value('eodMinPulseSnippet'),
                              min_sem=False, **eod_waveform_args(cfg))
             mean_eod, props, phases, pulse, power = \
-                analyze_pulse(mean_eod, eod_times0, verbose=verbose-1,
+                analyze_pulse(mean_eod, None, eod_times0, verbose=verbose-1,
                               **analyze_pulse_args(cfg))
             if len(phases) == 0:
                 print('error: no phases in pulse EOD detected')
@@ -844,7 +844,7 @@ def plot_eods(title, message_filename,
         if props['type'] == 'pulse' and 'times' in props:
             plot_eod_snippets(ax, data, rate, mean_eod[0,0], mean_eod[-1,0],
                               props['times'], n_snippets, props['flipped'],
-                              snippet_style)
+                              props['aoffs'], snippet_style)
         if not large_plots and k < max_plots-2:
             ax.set_xlabel('')
         ax.format_coord = meaneod_format_coord
@@ -1076,7 +1076,8 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
                'times' in props:
                 plot_eod_snippets(ax, data, rate, meod[0,0],
                                   meod[-1,0], props['times'],
-                                  n_snippets, props['flipped'], snippet_style)
+                                  n_snippets, props['flipped'],
+                                  props['aoffs'], snippet_style)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if multi_pdf is not None:
@@ -1145,7 +1146,8 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data, rate, idx
             if not props is None and props['type'] == 'pulse' and 'times' in props:
                 plot_eod_snippets(ax1, data, rate, meod[0,0],
                                   meod[-1,0], props['times'],
-                                  n_snippets, props['flipped'], snippet_style)
+                                  n_snippets, props['flipped'],
+                                  props['aoffs'], snippet_style)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
             if not props is None and props['type'] == 'pulse':

@@ -738,10 +738,8 @@ The columns contain:
    of harmonics relative to amplitude of fundamental.
 13. `dbdiff` Smoothness of power spectrum as standard deviation of differences in decibel power.
 14. `maxdb` Maximum power of higher harmonics relative to peak power in decibel.
-15. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
-   peak-to_peak amplitude in percent.
-16. `rmserror` Root-mean-squared difference between the averaged EOD waveform and 
-   the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
+15. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the peak-to_peak amplitude in percent.
+16. `rmserror` Root-mean-squared difference between the averaged EOD waveform and the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
 17. `clipped` Percentage of recording that is clipped.
 18. `flipped` Whether the waveform was flipped.
 19. `n` Number of EODs used for computing the averaged EOD waveform.
@@ -864,8 +862,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">index</th>
     <th align="left">EODf</th>
     <th align="left">period</th>
-    <th align="left">max-ampl</th>
-    <th align="left">min-ampl</th>
+    <th align="left">pos-ampl</th>
+    <th align="left">neg-ampl</th>
     <th align="left">p-p-amplitude</th>
     <th align="left">noise</th>
     <th align="left">clipped</th>
@@ -878,8 +876,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">firstphase</th>
     <th align="left">lastphase</th>
     <th align="left">totalarea</th>
-    <th align="left">positivearea</th>
-    <th align="left">negativearea</th>
+    <th align="left">pos-area</th>
+    <th align="left">neg-area</th>
     <th align="left">polaritybalance</th>
     <th align="left">n</th>
     <th align="left">peakfreq</th>
@@ -981,33 +979,36 @@ The columns contain:
 7. `index` Index of the fish (the number that is also used to number the files).
 8. `EODf` EOD frequency in Hertz.
 9. `period` Period between two pulses (1/EODf) in milliseconds.
-10. `max-ampl` Amplitude of the largest phase (P1 phase) in the units of the input data.
-11. `min-ampl` Amplitude of the largest trough in the units of the input data.
-12. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
-13. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
+10. `pos-ampl` Amplitude of the largest phase (P1 phase) in the units of the input data.
+11. `neg-ampl` Amplitude of the largest trough in the units of the input data.
+12. `max-ampl` Maximum of largest peak or trough amplitude in the units of the input data.
+13. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
+14. `p-p-dist`: Distance between minimum and maximum phase in milliseconds.
+15. `noise` Average standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-14. `clipped` Percentage of recording that is clipped.
-15. `flipped` Whether the waveform was flipped.
-16. `tstart` Time where the pulse starts relative to P1 in milliseconds.
-17. `tend` Time where the pulse ends relative to P1 in milliseconds.
-18. `width` Total width of the pulse in milliseconds.
-19. `peak-dist`: Distance between minimum and maximum phase in milliseconds.
-20. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-21. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
-22. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
-23. `totalarea` Sum of areas under positive and negative phases.
-24. `positivearea` Area under positive phases relative to total area.
-25. `negativearea` Area under negative phases relative to total area.
-26. `polaritybalance` Contrast between areas under positive and negative phases.
-27. `n` Number of EODs used for computing the averaged EOD waveform.
-28. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
-29. `peakenergy` Peak energy of the single pulse spectrum.
-20. `troughfreq` Frequency at trough before peak in Hertz.
-31. `troughenergy` Energy of trough before peak in x^2 s/Hz.
-32. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
-33. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
-34. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
-35. `high_cutoff`: 3dB roll-off frequency in Hertz.
+16. `rmserror`: root-mean-square error between fit with sum of Gaussians and EOD waveform relative to the p-p amplitude. Infinity if fit failed.
+17. `clipped` Percentage of recording that is clipped.
+18. `flipped` Whether the waveform was flipped.
+19. `threshfac` The actually used threshold for peak detection as a fraction of the p-p amplitude in percent.
+20. `tstart` Time where the pulse starts relative to P1 in milliseconds.
+21. `tend` Time where the pulse ends relative to P1 in milliseconds.
+22. `width` Total width of the pulse in milliseconds.
+23. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
+24. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
+25. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
+26. `totalarea` Sum of areas under positive and negative phases.
+27. `pos-area` Area under positive phases relative to total area.
+28. `neg-area` Area under negative phases relative to total area.
+29. `polaritybalance` Contrast between areas under positive and negative phases.
+30. `n` Number of EODs used for computing the averaged EOD waveform.
+31. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
+32. `peakenergy` Peak energy of the single pulse spectrum.
+33. `troughfreq` Frequency at trough before peak in Hertz.
+34. `troughenergy` Energy of trough before peak in x^2 s/Hz.
+35. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
+36. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
+37. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
+38. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
 
 ### RECORDING-CHANNEL-TIME-pulsephases-N.EXT
