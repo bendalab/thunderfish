@@ -13,6 +13,7 @@ Analysis of EOD waveforms.
 
 ## Analysis of pulse-type EODs
 
+- `flip_pulse()`: flip pulse EOD waveform.
 - `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
 - `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
 - `analyze_pulse_phases()`: characterize all phases of a pulse-type EOD.
@@ -765,6 +766,72 @@ def exp_decay(t, tau, ampl, offs):
     return offs + ampl*np.exp(-t/tau)
 
 
+def flip_pulse(eod, ratetime=None, flip='none'):
+    """ Flip pulse EOD waveform.
+    
+    Parameters
+    ----------
+    eod: 1-D or 2-D array of float
+        The eod waveform of which the spectrum is computed.
+        If an 1-D array, then this is the waveform and you
+        need to also pass a sampling rate in `rate`.
+        If a 2-D array, then first column is time in seconds and second
+        column is the eod waveform. Further columns are ignored.
+    ratetime: None or float or array of float
+        If a 1-D array is passed on to `eod` then either the sampling
+        rate in Hertz or the time array corresponding to `eod`.
+    flip: 'auto', 'none', 'flip'
+        - 'auto' flip waveform such that the first large extremum is positive.
+        - 'flip' flip waveform.
+        - 'none' do not flip waveform.
+    
+    Returns
+    -------
+    eod: 1-D or 2-D array of float
+        The flipped waveform in the format of the input `eod`.
+    time: 1-D array of float
+        In case `eod` is a 1-D array, then the time array is also returned.
+    """
+    # largest positive and negative peak and flip:
+    # TODO call after cutting after cutting!
+    # TODO add subtraction of offset
+    # TODO add moving time origin to peak
+    if eod.ndim == 2:
+        time = eod[:, 0]
+        meod = eod[:, 1]
+    else:
+        meod = eod
+        if isinstance(ratetime, (list, tuple, np.ndarray)):
+            time = ratetime
+        else:
+            time = np.arange(len(eod))/rate
+    flipped = 'flip' in flip.lower()
+    max_idx = np.argmax(eod)
+    min_idx = np.argmin(eod)
+    if 'auto' in flip.lower():
+        max_ampl = abs(eod[max_idx])
+        min_ampl = abs(eod[min_idx])
+        amplitude = max(max_ampl, min_ampl)
+        if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
+            # two major peaks:
+            if min_idx < max_idx:
+                flipped = True
+        elif min_ampl > 0.2*amplitude:
+            flipped = True
+    if flipped:
+        eod = -eod
+        idx = min_idx
+        min_idx = max_idx
+        max_idx = idx
+    max_ampl = abs(eod[max_idx])
+    min_ampl = abs(eod[min_idx])
+    if eod.ndim == 2:
+        meod[:, 1] = eod
+        return meod
+    else:
+        return eod, time
+
+    
 def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
     """Compute the spectrum of a single pulse-type EOD.
     
@@ -1532,30 +1599,26 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     meod[:, 1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:, 1]))
 
     # largest positive and negative peak and flip: # TODO move after cutting!
-    flipped = False
+    flipped = 'flip' in flip_pulse.lower()
     max_idx = np.argmax(meod[:, 1])
-    max_ampl = np.abs(meod[max_idx,1])
     min_idx = np.argmin(meod[:, 1])
-    min_ampl = np.abs(meod[min_idx,1])
-    amplitude = np.max((max_ampl, min_ampl))
-    if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
-        # two major peaks:
-        if 'flip' in flip_pulse or ('auto' in flip_pulse and min_idx < max_idx):
-            # flip:
-            meod[:, 1] = -meod[:, 1]
-            peak_idx = min_idx
-            min_idx = max_idx
-            max_idx = peak_idx
+    if 'auto' in flip_pulse.lower():
+        max_ampl = abs(meod[max_idx, 1])
+        min_ampl = abs(meod[min_idx, 1])
+        amplitude = max(max_ampl, min_ampl)
+        if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
+            # two major peaks:
+            if min_idx < max_idx:
+                flipped = True
+        elif min_ampl > 0.2*amplitude:
             flipped = True
-    elif 'flip' in flip_pulse or ('auto' in flip_pulse and min_ampl > 0.2*amplitude):
-        # flip:
+    if flipped:
         meod[:, 1] = -meod[:, 1]
-        peak_idx = min_idx
+        idx = min_idx
         min_idx = max_idx
-        max_idx = peak_idx
-        flipped = True
-    max_ampl = np.abs(meod[max_idx, 1])
-    min_ampl = np.abs(meod[min_idx, 1])
+        max_idx = idx
+    max_ampl = abs(meod[max_idx, 1])
+    min_ampl = abs(meod[min_idx, 1])
 
     # minimum threshold for peak detection: # return from cutting function
     n = len(meod[:, 1])//10 if len(meod) >= 20 else 2
