@@ -2547,9 +2547,11 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         xlim = 1000*tr/2
     else:
         xlim = max(time[0], time[-1])
-    ax.set_xlim(-xlim, +xlim)
+    xlim_l = -2*xlim/3
+    xlim_r = 4*xlim/3
+    ax.set_xlim(xlim_l, xlim_r)
     ax.set_xlabel('Time [msec]')
-    ylim = 1.1*np.max(np.abs(eod[(time >= -xlim) & (time <= xlim)])) 
+    ylim = 1.1*np.max(np.abs(eod[(time >= xlim_l) & (time <= xlim_r)])) 
     ax.set_ylim(-ylim, +ylim)
     if unit:
         ax.set_ylabel(f'Amplitude [{unit}]')
@@ -2742,7 +2744,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                         rotation='vertical',
                         va='top' if sign < 0 else 'bottom',
                         ha='center', zorder=20, fontsize=fontsize)
-            elif abs(relampl) > 0.25:
+            elif abs(relampl) > 0.25 and abs(relarea) > 0.19:
                 ax.text(x, sign*0.6*yfs, label,
                         va='top' if sign < 0 else 'baseline',
                         ha='center', zorder=20, fontsize=fontsize)
@@ -2798,7 +2800,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
     if props is not None:
-        label = f'p-p amplitude = {props["p-p-amplitude"]:.3g} {unit}\n'
+        label = '' # f'p-p amplitude = {props["p-p-amplitude"]:.3g} {unit}\n'
         if 'n' in props:
             eods = 'EODs' if props['n'] > 1 else 'EOD'
             label += f'n = {props["n"]} {eods}\n'
