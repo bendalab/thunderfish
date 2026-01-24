@@ -961,6 +961,12 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     stdev: float
         Standard deviation of mass (square root of second central moment
         when treating the absolute value of the waveform as a distribution).
+    median: float
+        Median of the distribution of the absolute EOD waveform.
+    quartile1: float
+        First quartile of the distribution of the absolute EOD waveform.
+    quartile3: float
+        Third quartile of the distribution of the absolute EOD waveform.
     """
     if eod.ndim == 2:
         time = eod[:, 0]
@@ -991,14 +997,20 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     integral_area = np.sum(eod)*dt   # = pos_area - neg_area
     polarity_balance = integral_area/total_area
 
-    # moments:
-    center = np.sum(time*np.abs(eod))/np.sum(np.abs(eod))
-    var = np.sum((time - center)**2*np.abs(eod))/np.sum(np.abs(eod))
-    stdev = np.sqrt(var)
+    # moments (EOD waveforms are not Gaussian!):
+    #center = np.sum(time*np.abs(eod))/np.sum(np.abs(eod))
+    #var = np.sum((time - center)**2*np.abs(eod))/np.sum(np.abs(eod))
+    #stdev = np.sqrt(var)
+
+    # cumulative:
+    cumul = np.cumsum(np.abs(eod))/np.sum(np.abs(eod))
+    median = time[np.argmax(cumul > 0.5)]
+    quartile1 = time[np.argmax(cumul > 0.25)]
+    quartile3 = time[np.argmax(cumul > 0.75)]
     
     return pos_ampl, neg_ampl, dist, \
         pos_area, neg_area, polarity_balance, \
-        center, stdev
+        median, quartile1, quartile3
 
     
 def analyze_pulse_phases(threshold, eod, ratetime=None,
@@ -1675,15 +1687,21 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
           if provided.
         - EODf: the inverse of the median interval between `eod_times`,
           if provided.
-        - period: the median interval between `eod_times`, if provided.
-        - IPI-mean: the mean interval between `eod_times`, if provided.
-        - IPI-std: the standard deviation of the intervals between
+        - period: median interval between `eod_times`, if provided.
+        - IPI-mean: mean interval between `eod_times`, if provided.
+        - IPI-std: standard deviation of the intervals between
           `eod_times`, if provided.
-        - max-ampl: the amplitude of the largest positive peak (P1).
-        - min-ampl: the amplitude of the largest negative peak (P2).
+        - IPI-CV: coefficient of variation of the intervals between
+          `eod_times`, if provided.
+        - aoffs: Offset that was subtracted from the average EOD waveform.
+        - pos-ampl: amplitude of the largest positive peak.
+        - neg-ampl: amplitude of the largest negative trough.
+        - max-ampl: maximum of largest peak or trough amplitude in the units of the input data.
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
+        - p-p-dist: distance between minimum and maximum phase in seconds.
         - noise: average standard error mean of the averaged
           EOD waveform relative to the p-p amplitude.
+        - noise: average standard error of the averaged EOD waveform relative to the peak-to_peak amplitude in percent.
         - rmserror: root-mean-square error between fit with sum of Gaussians and
           EOD waveform relative to the p-p amplitude. Infinity if fit failed.
         - threshfac: Threshold for peak detection is at this factor times
@@ -1693,15 +1711,17 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
-        - peak-dist: distance between minimum and maximum phase in seconds.
-        - tau: time constant of exponential decay of pulse tail in seconds.
-        - firstphase: index of the first phase in the pulse (i.e. -1 for P-1)
-        - lastphase: index of the last phase in the pulse (i.e. 3 for P3)
         - totalarea: sum of areas under positive and negative peaks.
         - pos-area: area under positive phases relative to total area.
         - neg-area: area under negative phases relative to total area.
         - polaritybalance: contrast between areas under positive and
           negative phases.
+        - median: median of the distribution of the absolute EOD waveform.
+        - quartile1: first quartile of the distribution of the absolute EOD waveform.
+        - quartile3: third quartile of the distribution of the absolute EOD waveform.
+        - tau: time constant of exponential decay of pulse tail in seconds.
+        - firstphase: index of the first phase in the pulse (i.e. -1 for P-1)
+        - lastphase: index of the last phase in the pulse (i.e. 3 for P3)
         - peakfreq: frequency at peak energy of the single pulse spectrum
           in Hertz.
         - peakenergy: peak energy of the single pulse spectrum.
@@ -1770,7 +1790,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
 
     # analysis of pulse waveform:
     pos_ampl, neg_ampl, dist, pos_area, neg_area, \
-        polarity_balance, center, stdev = \
+        polarity_balance, median, quartile1, quartile3 = \
         analyze_pulse_properties(noise_thresh, meod)
     pp_ampl = pos_ampl + neg_ampl
     max_ampl = max(pos_ampl, neg_ampl)
@@ -1851,8 +1871,9 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['pos-area'] = pos_area/total_area
     props['neg-area'] = neg_area/total_area
     props['polaritybalance'] = polarity_balance
-    props['center'] = center
-    props['stdev'] = stdev
+    props['median'] = median
+    props['quartile1'] = quartile1
+    props['quartile3'] = quartile3
     if tau:
         props['tau'] = tau
     props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
@@ -2572,7 +2593,6 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         
 def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                       unit=None, wave_periods=2,
-                      pulse_trange=(0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1),
                       magnification_factor=20,
                       wave_style=dict(lw=1.5, color='tab:red'),
                       magnified_style=dict(lw=0.8, color='tab:red'),
@@ -2612,9 +2632,6 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Optional unit of the data used for y-label.
     wave_periods: float
         How many periods of a wave EOD are shown.
-    pulse_trange: list of float
-        Possible full ranges of the time axis for pulse EODs in seconds.
-        If empty or zero, adapt range to waveform.
     magnification_factor: float
         If larger than one, plot a magnified version of the EOD
         waveform magnified by this factor.
@@ -2652,18 +2669,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         xlim = 0.5*wave_periods*period
         xlim_l = -xlim
         xlim_r = +xlim
-        #elif pulse_trange:
-        """
-        if props is not None and 'tstart' in  props and 'tend' in props:
-            tlim = max(abs(props['tstart']), abs(props['tend']))
-        else:
-            tlim = 0.001*max(abs(time[0]), abs(time[-1]))
-        for tr in pulse_trange:
-            if tr/2 >= tlim:
-                break
-        xlim = 1000*tr/2
-        """
-    else:
+    elif props is not None and props['type'] == 'pulse':
         # width of maximum peak:
         meod = np.abs(eod)
         ip = np.argmax(meod)
@@ -2679,17 +2685,24 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             if 'tend' in props and 1000*props['tend'] > 2*w:
                 w = np.ceil(0.5*abs(1000*props['tend'])/0.5)*0.5
         # make sure center of mass is included:
-        center = np.sum(time*meod)/np.sum(meod)
-        var = np.sum((time - center)**2*meod)/np.sum(meod)
-        stdev = np.sqrt(var)
-        if center - 2*stdev < -w:
-            w = np.ceil(abs(center - 2*stdev)/0.5)*0.5
-        if center + 2*stdev > 2*w:
-            w = np.ceil(0.5*abs(center + 2*stdev)/0.5)*0.5
+        cumul = np.cumsum(meod)/np.sum(meod)
+        m = time[np.argmax(cumul > 0.5)]
+        q1 = time[np.argmax(cumul > 0.25)]
+        q3 = time[np.argmax(cumul > 0.75)]
+        if m - 2*(m - q1) < -w:
+            w = np.ceil(abs(m - 2*(m - q1))/0.5)*0.5
+        if m + 2*(q3 - m) > 2*w:
+            w = np.ceil(0.5*abs(m + 2*(q3 - m))/0.5)*0.5
         # set xaxis limits:
         xlim_l = -w
         xlim_r = 2*w
         xlim = (xlim_r - xlim_l)/2
+    else:
+        w = (time[-1] - time[0])/2
+        w = np.floor(w/0.5)*0.5
+        xlim_l = -w
+        xlim_r = +w
+        xlim = w
     ax.set_xlim(xlim_l, xlim_r)
     if xlim < 2:
         ax.xaxis.set_major_locator(plt.MultipleLocator(0.5))
@@ -2799,16 +2812,17 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ax.axvline(1000*props['tend'], 0.45, 0.55,
                        color='k', lw=0.5, zorder=80)
         # mark center and stdev:
-        if 'center' in props:
-            c = 1000*props['center']
+        if 'median' in props:
             y = -1.07*ylim
-            if 'stdev' in props:
-                s = 1000*props['stdev']
-                ax.plot([c - s, c + s], [y, y], 'gray', lw=4, zorder=80)
-                ax.plot(c, y, 'o', color='white', ms=3, zorder=81)
-                label = f'{s:.2f}ms' if s >= 1 else f'{1000*s:.0f}\u00b5s'
-                ax.text(c + s + 0.5*xfs, y, label,
-                        va='center', zorder=100)
+            m = 1000*props['median']
+            q1 = 1000*props['quartile1']
+            q3 = 1000*props['quartile3']
+            w = q3 - q1
+            ax.plot([q1, q3], [y, y], 'gray', lw=4, zorder=80)
+            ax.plot(m, y, 'o', color='white', ms=3, zorder=81)
+            label = f'{w:.2f}ms' if w >= 1 else f'{1000*w:.0f}\u00b5s'
+            ax.text(q3 + 0.5*xfs, y, label,
+                    va='center', zorder=100, fontsize=fontsize)
     # plot and annotate phases:
     if phases is not None and len(phases) > 0:
         upper_area_text = False
@@ -3521,8 +3535,9 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('pos-area', '%', '%.2f', value=pulse_props, fac=100)
     td.append('neg-area', '%', '%.2f', value=pulse_props, fac=100)
     td.append('polaritybalance', '%', '%.2f', value=pulse_props, fac=100)
-    td.append('center', 'ms', '%.3f', value=pulse_props, fac=1000)
-    td.append('stdev', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('median', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('quartile1', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('quartile3', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('firstphase', '', '%d', value=pulse_props)
     td.append('lastphase', '', '%d', value=pulse_props)
@@ -3582,8 +3597,9 @@ def load_pulse_fish(file_path):
         props['pos-area'] /= 100
         props['neg-area'] /= 100
         props['polaritybalance'] /= 100
-        props['center'] /= 1000
-        props['stdev'] /= 1000
+        props['median'] /= 1000
+        props['quartile1'] /= 1000
+        props['quartile3'] /= 1000
         props['firstphase'] = int(props['firstphase'])
         props['lastphase'] = int(props['lastphase'])
         if 'clipped' in props:

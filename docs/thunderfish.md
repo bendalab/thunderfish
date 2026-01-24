@@ -999,19 +999,20 @@ The columns contain:
 26. `pos-area` Area under positive phases relative to total area.
 27. `neg-area` Area under negative phases relative to total area.
 28. `polaritybalance` Contrast between areas under positive and negative phases.
-29. `center` Center of mass (first moment when treating the absolute value of the waveform as a distribution).
-30. `stdev` Standard deviation of mass (square root of second central moment when treating the absolute value of the waveform as a distribution).
-31. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-32. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
-33. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
-34. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
-35. `peakenergy` Peak energy of the single pulse spectrum.
-36. `troughfreq` Frequency at trough before peak in Hertz.
-37. `troughenergy` Energy of trough before peak in x^2 s/Hz.
-38. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
-39. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
-40. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
-41. `high_cutoff`: 3dB roll-off frequency in Hertz.
+29. `median` Median of the distribution of the absolute EOD waveform.
+30. `quartile1` First quartile of the distribution of the absolute EOD waveform.
+31. `quartile3` Third quartile of the distribution of the absolute EOD waveform.
+32. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
+33. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
+34. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
+35. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
+36. `peakenergy` Peak energy of the single pulse spectrum.
+37. `troughfreq` Frequency at trough before peak in Hertz.
+38. `troughenergy` Energy of trough before peak in x^2 s/Hz.
+39. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
+40. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
+41. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
+42. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
 
 ### RECORDING-CHANNEL-TIME-pulsephases-N.EXT
