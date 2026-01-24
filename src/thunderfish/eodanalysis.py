@@ -1719,6 +1719,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         - median: median of the distribution of the absolute EOD waveform.
         - quartile1: first quartile of the distribution of the absolute EOD waveform.
         - quartile3: third quartile of the distribution of the absolute EOD waveform.
+        - iq-range: inter-quartile range of the distribution of the absolute EOD waveform.
         - tau: time constant of exponential decay of pulse tail in seconds.
         - firstphase: index of the first phase in the pulse (i.e. -1 for P-1)
         - lastphase: index of the last phase in the pulse (i.e. 3 for P3)
@@ -1874,6 +1875,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['median'] = median
     props['quartile1'] = quartile1
     props['quartile3'] = quartile3
+    props['iq-range'] = quartile3 - quartile1
     if tau:
         props['tau'] = tau
     props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
@@ -2811,7 +2813,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         if 'tend' in props:
             ax.axvline(1000*props['tend'], 0.45, 0.55,
                        color='k', lw=0.5, zorder=80)
-        # mark center and stdev:
+        # mark cumulative:
         if 'median' in props:
             y = -1.07*ylim
             m = 1000*props['median']
@@ -2821,7 +2823,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ax.plot([q1, q3], [y, y], 'gray', lw=4, zorder=80)
             ax.plot(m, y, 'o', color='white', ms=3, zorder=81)
             label = f'{w:.2f}ms' if w >= 1 else f'{1000*w:.0f}\u00b5s'
-            ax.text(q3 + 0.5*xfs, y, label,
+            ax.text(q3 + xfs, y, label,
                     va='center', zorder=100, fontsize=fontsize)
     # plot and annotate phases:
     if phases is not None and len(phases) > 0:
@@ -2883,6 +2885,9 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 halign = 'left' if right_phase else 'right'
                 dx = xfs if right_phase else -xfs
                 dy = 0
+                if abs(relampl) > 0.85:
+                    dx *= 2
+                    dy = -1.5*yfs
             else:
                 dx = 0
                 dy = 0.8*yfs
@@ -3538,6 +3543,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('median', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('quartile1', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('quartile3', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('iq-range', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('firstphase', '', '%d', value=pulse_props)
     td.append('lastphase', '', '%d', value=pulse_props)
@@ -3600,6 +3606,7 @@ def load_pulse_fish(file_path):
         props['median'] /= 1000
         props['quartile1'] /= 1000
         props['quartile3'] /= 1000
+        props['iq-range'] /= 1000
         props['firstphase'] = int(props['firstphase'])
         props['lastphase'] = int(props['lastphase'])
         if 'clipped' in props:
