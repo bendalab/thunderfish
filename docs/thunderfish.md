@@ -977,38 +977,41 @@ The columns contain:
 5. `nfft`: Number of samples used for FFT to compute power spectrum.
 6. `dfreq`: Frequency resolution of power spectrum.
 7. `index` Index of the fish (the number that is also used to number the files).
-8. `EODf` EOD frequency in Hertz.
-9. `period` Period between two pulses (1/EODf) in milliseconds.
-10. `pos-ampl` Amplitude of the largest phase (P1 phase) in the units of the input data.
-11. `neg-ampl` Amplitude of the largest trough in the units of the input data.
-12. `max-ampl` Maximum of largest peak or trough amplitude in the units of the input data.
-13. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
-14. `p-p-dist`: Distance between minimum and maximum phase in milliseconds.
-15. `noise` Average standard error of the averaged EOD waveform relative to the
+8. `n` Number of EODs used for computing the averaged EOD waveform.
+9. `EODf` EOD frequency in Hertz.
+10. `period` Period between two pulses (1/EODf) in milliseconds.
+11. `aoffs` Offset that was subtracted from the average EOD waveform.
+12. `pos-ampl` Amplitude of the largest phase (P1 phase) in the units of the input data.
+13. `neg-ampl` Amplitude of the largest trough in the units of the input data.
+14. `max-ampl` Maximum of largest peak or trough amplitude in the units of the input data.
+15. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
+16. `p-p-dist`: Distance between minimum and maximum phase in milliseconds.
+17. `noise` Average standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-16. `rmserror`: root-mean-square error between fit with sum of Gaussians and EOD waveform relative to the p-p amplitude. Infinity if fit failed.
-17. `clipped` Percentage of recording that is clipped.
-18. `flipped` Whether the waveform was flipped.
-19. `threshfac` The actually used threshold for peak detection as a fraction of the p-p amplitude in percent.
-20. `tstart` Time where the pulse starts relative to P1 in milliseconds.
-21. `tend` Time where the pulse ends relative to P1 in milliseconds.
-22. `width` Total width of the pulse in milliseconds.
-23. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-24. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
-25. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
-26. `totalarea` Sum of areas under positive and negative phases.
-27. `pos-area` Area under positive phases relative to total area.
-28. `neg-area` Area under negative phases relative to total area.
-29. `polaritybalance` Contrast between areas under positive and negative phases.
-30. `n` Number of EODs used for computing the averaged EOD waveform.
-31. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
-32. `peakenergy` Peak energy of the single pulse spectrum.
-33. `troughfreq` Frequency at trough before peak in Hertz.
-34. `troughenergy` Energy of trough before peak in x^2 s/Hz.
-35. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
-36. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
-37. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
-38. `high_cutoff`: 3dB roll-off frequency in Hertz.
+18. `rmserror`: Root-mean-square error between fit with sum of Gaussians and EOD waveform relative to the p-p amplitude. Infinity if fit failed.
+19. `clipped` Percentage of recording that is clipped.
+20. `flipped` Whether the waveform was flipped.
+21. `threshfac` The actually used threshold for peak detection as a fraction of the p-p amplitude in percent.
+22. `tstart` Time where the pulse starts relative to P1 in milliseconds.
+23. `tend` Time where the pulse ends relative to P1 in milliseconds.
+24. `width` Total width of the pulse in milliseconds.
+25. `totalarea` Sum of areas under positive and negative phases.
+26. `pos-area` Area under positive phases relative to total area.
+27. `neg-area` Area under negative phases relative to total area.
+28. `polaritybalance` Contrast between areas under positive and negative phases.
+29. `center` Center of mass (first moment when treating the absolute value of the waveform as a distribution).
+30. `stdev` Standard deviation of mass (square root of second central moment when treating the absolute value of the waveform as a distribution).
+31. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
+32. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
+33. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
+34. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
+35. `peakenergy` Peak energy of the single pulse spectrum.
+36. `troughfreq` Frequency at trough before peak in Hertz.
+37. `troughenergy` Energy of trough before peak in x^2 s/Hz.
+38. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
+39. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
+40. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
+41. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
 
 ### RECORDING-CHANNEL-TIME-pulsephases-N.EXT

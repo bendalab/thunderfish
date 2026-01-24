@@ -955,6 +955,12 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     polarity_balance: float
         Contrast between positive and negative areas of EOD waveform, i.e.
         (pos_area - neg_area)/(pos_area + neg_area).
+    center: float
+        Center of mass (first moment when treating the absolute value of
+        the waveform as a distribution).
+    stdev: float
+        Standard deviation of mass (square root of second central moment
+        when treating the absolute value of the waveform as a distribution).
     """
     if eod.ndim == 2:
         time = eod[:, 0]
@@ -985,7 +991,14 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     integral_area = np.sum(eod)*dt   # = pos_area - neg_area
     polarity_balance = integral_area/total_area
 
-    return pos_ampl, neg_ampl, dist, pos_area, neg_area, polarity_balance
+    # moments:
+    center = np.sum(time*np.abs(eod))/np.sum(np.abs(eod))
+    var = np.sum((time - center)**2*np.abs(eod))/np.sum(np.abs(eod))
+    stdev = np.sqrt(var)
+    
+    return pos_ampl, neg_ampl, dist, \
+        pos_area, neg_area, polarity_balance, \
+        center, stdev
 
     
 def analyze_pulse_phases(threshold, eod, ratetime=None,
@@ -1756,7 +1769,8 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
                         min_pulse_win=min_pulse_win)
 
     # analysis of pulse waveform:
-    pos_ampl, neg_ampl, dist, pos_area, neg_area, polarity_balance = \
+    pos_ampl, neg_ampl, dist, pos_area, neg_area, \
+        polarity_balance, center, stdev = \
         analyze_pulse_properties(noise_thresh, meod)
     pp_ampl = pos_ampl + neg_ampl
     max_ampl = max(pos_ampl, neg_ampl)
@@ -1833,14 +1847,16 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['tstart'] = tstart
     props['tend'] = tend
     props['width'] = tstart - tend
-    if tau:
-        props['tau'] = tau
-    props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
-    props['lastphase'] = phases['indices'][-1] if len(phases) > 0 else 1
     props['totalarea'] = total_area
     props['pos-area'] = pos_area/total_area
     props['neg-area'] = neg_area/total_area
     props['polaritybalance'] = polarity_balance
+    props['center'] = center
+    props['stdev'] = stdev
+    if tau:
+        props['tau'] = tau
+    props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
+    props['lastphase'] = phases['indices'][-1] if len(phases) > 0 else 1
     props['peakfreq'] = peakfreq
     props['peakenergy'] = peakenergy
     props['troughfreq'] = troughfreq
@@ -2630,10 +2646,16 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     ax.autoscale(True)
     time = 1000*eod_waveform[:, 0]
     eod = eod_waveform[:, 1]
-    # axis:                
+    center = None
+    stdev = None
+    # time axis:                
     if props is not None and props['type'] == 'wave':
-        xlim = 0.5*wave_periods*1000.0/props['EODf']
-    elif pulse_trange:
+        period = 1000.0/props['EODf']
+        xlim = 0.5*wave_periods*periods
+        xlim_l = -xlim
+        xlim_r = +xlim
+        #elif pulse_trange:
+        """
         if props is not None and 'tstart' in  props and 'tend' in props:
             tlim = max(abs(props['tstart']), abs(props['tend']))
         else:
@@ -2642,14 +2664,22 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             if tr/2 >= tlim:
                 break
         xlim = 1000*tr/2
+        """
     else:
-        xlim = max(time[0], time[-1])
-    xlim_l = -2*xlim/3
-    xlim_r = 4*xlim/3
+        # moments:
+        center = np.sum(time*np.abs(eod))/np.sum(np.abs(eod))
+        var = np.sum((time - center)**2*np.abs(eod))/np.sum(np.abs(eod))
+        stdev = np.sqrt(var)
+        w = 3*stdev
+        w = np.ceil((w)/0.5)*0.5
+        xlim_l = -w
+        xlim_r = 2*w
+        xlim = (xlim_r - xlim_l)/2
     ax.set_xlim(xlim_l, xlim_r)
     ax.set_xlabel('Time [msec]')
-    ylim = 1.1*np.max(np.abs(eod[(time >= xlim_l) & (time <= xlim_r)])) 
-    ax.set_ylim(-ylim, +ylim)
+    # amplitude axis:                
+    ylim = np.max(np.abs(eod[(time >= xlim_l) & (time <= xlim_r)])) 
+    ax.set_ylim(-1.15*ylim, +1.15*ylim)
     if unit:
         ax.set_ylabel(f'Amplitude [{unit}]')
     else:
@@ -2698,7 +2728,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     if magnification_factor > 1 and phases is not None and len(phases) > 0:
         ax.autoscale_view(False)
         ax.autoscale(False)
-        mag_thresh = np.max(np.abs(eod))/magnification_factor
+        mag_thresh = 0.95*np.max(np.abs(eod))/magnification_factor
         i0 = np.argmax(np.abs(eod) > mag_thresh)
         if i0 > 0:
             left_eod = magnification_factor*eod[:i0]
@@ -2719,7 +2749,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 ta = ax.text(time[it], ty, f'x{magnification_factor:.0f} ',
                              ha='right', va='bottom', fontsize=fontsize)
             texts.append(ta)
-        i1 = len(eod) - 1 - np.argmax(np.abs(eod[::-1]) > mag_thresh)
+        i1 = len(eod) - np.argmax(np.abs(eod[::-1]) > mag_thresh)
         right_eod = magnification_factor*eod[i1:]
         magnification_mask[i1:] = True
         ax.plot(time[i1:], right_eod, zorder=9, **magnified_style)
@@ -2739,6 +2769,25 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         va = 'bottom' if ty > 0.0 else 'top'
         ta = ax.text(1000*x, ty, label, ha='left', va=va, zorder=20, fontsize=fontsize)
         texts.append(ta)
+    if props is not None:
+        # mark start and end:
+        if 'tstart' in props:
+            ax.axvline(1000*props['tstart'], 0.45, 0.55,
+                       color='k', lw=0.5, zorder=80)
+        if 'tend' in props:
+            ax.axvline(1000*props['tend'], 0.45, 0.55,
+                       color='k', lw=0.5, zorder=80)
+        # mark center and stdev:
+        if 'center' in props:
+            c = 1000*props['center']
+            y = -1.07*ylim
+            if 'stdev' in props:
+                s = 1000*props['stdev']
+                ax.plot([c - s, c + s], [y, y], 'gray', lw=4, zorder=80)
+                ax.plot(c, y, 'o', color='white', ms=3, zorder=81)
+                label = f'{s:.2f}ms' if s >= 1 else f'{1000*s:.0f}\u00b5s'
+                ax.text(c + s + 0.5*xfs, y, label,
+                        va='center', zorder=100)
     # plot and annotate phases:
     if phases is not None and len(phases) > 0:
         upper_area_text = False
@@ -3447,13 +3496,15 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000)
-    td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
-    td.append('firstphase', '', '%d', value=pulse_props)
-    td.append('lastphase', '', '%d', value=pulse_props)
     td.append('totalarea', f'{unit}*ms', '%.4f', value=pulse_props, fac=1000)
     td.append('pos-area', '%', '%.2f', value=pulse_props, fac=100)
     td.append('neg-area', '%', '%.2f', value=pulse_props, fac=100)
     td.append('polaritybalance', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('center', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('stdev', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('firstphase', '', '%d', value=pulse_props)
+    td.append('lastphase', '', '%d', value=pulse_props)
     td.append_section('spectrum')
     td.append('peakfreq', 'Hz', '%.2f', value=pulse_props)
     td.append('peakenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
@@ -3503,15 +3554,17 @@ def load_pulse_fish(file_path):
             props['samplerate'] *= 1000
         if 'nfft' in props:
             props['nfft'] = int(props['nfft'])
+        props['type'] = 'pulse'
         props['index'] = int(props['index'])
         props['n'] = int(props['n'])
-        props['firstphase'] = int(props['firstphase'])
-        props['lastphase'] = int(props['lastphase'])
         props['totalarea'] /= 1000
         props['pos-area'] /= 100
         props['neg-area'] /= 100
         props['polaritybalance'] /= 100
-        props['type'] = 'pulse'
+        props['center'] /= 1000
+        props['stdev'] /= 1000
+        props['firstphase'] = int(props['firstphase'])
+        props['lastphase'] = int(props['lastphase'])
         if 'clipped' in props:
             props['clipped'] /= 100
         props['period'] /= 1000
