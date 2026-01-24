@@ -2646,12 +2646,10 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     ax.autoscale(True)
     time = 1000*eod_waveform[:, 0]
     eod = eod_waveform[:, 1]
-    center = None
-    stdev = None
     # time axis:                
     if props is not None and props['type'] == 'wave':
         period = 1000.0/props['EODf']
-        xlim = 0.5*wave_periods*periods
+        xlim = 0.5*wave_periods*period
         xlim_l = -xlim
         xlim_r = +xlim
         #elif pulse_trange:
@@ -2666,16 +2664,39 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         xlim = 1000*tr/2
         """
     else:
-        # moments:
-        center = np.sum(time*np.abs(eod))/np.sum(np.abs(eod))
-        var = np.sum((time - center)**2*np.abs(eod))/np.sum(np.abs(eod))
+        # width of maximum peak:
+        meod = np.abs(eod)
+        ip = np.argmax(meod)
+        thresh = 0.5*meod[ip]
+        i0 = ip - np.argmax(meod[ip::-1] < thresh)
+        i1 = ip + np.argmax(meod[ip:] < thresh)
+        w = 4*(time[i1] - time[i0])
+        w = np.ceil(w/0.5)*0.5
+        # make sure tstart and tend are included:
+        if props is not None:
+            if 'tstart' in props and 1000*props['tstart'] < -w:
+                w = np.ceil(abs(1000*props['tstart'])/0.5)*0.5
+            if 'tend' in props and 1000*props['tend'] > 2*w:
+                w = np.ceil(0.5*abs(1000*props['tend'])/0.5)*0.5
+        # make sure center of mass is included:
+        center = np.sum(time*meod)/np.sum(meod)
+        var = np.sum((time - center)**2*meod)/np.sum(meod)
         stdev = np.sqrt(var)
-        w = 3*stdev
-        w = np.ceil((w)/0.5)*0.5
+        if center - 2*stdev < -w:
+            w = np.ceil(abs(center - 2*stdev)/0.5)*0.5
+        if center + 2*stdev > 2*w:
+            w = np.ceil(0.5*abs(center + 2*stdev)/0.5)*0.5
+        # set xaxis limits:
         xlim_l = -w
         xlim_r = 2*w
         xlim = (xlim_r - xlim_l)/2
     ax.set_xlim(xlim_l, xlim_r)
+    if xlim < 2:
+        ax.xaxis.set_major_locator(plt.MultipleLocator(0.5))
+    elif xlim < 4:
+        ax.xaxis.set_major_locator(plt.MultipleLocator(1))
+    elif xlim < 8:
+        ax.xaxis.set_major_locator(plt.MultipleLocator(2))
     ax.set_xlabel('Time [msec]')
     # amplitude axis:                
     ylim = np.max(np.abs(eod[(time >= xlim_l) & (time <= xlim_r)])) 
