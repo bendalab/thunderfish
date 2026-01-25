@@ -2768,43 +2768,44 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     dyu = 2*ylim/pixely
     yfs = fs*dyu
     texts = []
+    quadrants = np.zeros((2, 2), dtype=int)
     # magnification threshold:
     if magnification_factor > 1:
         mag_thresh = 0.95*np.max(np.abs(eod))/magnification_factor
     else:
         mag_thresh = 0
     # plot zero line:
-    ax.axhline(0.0, zorder=-5, **zero_style)
+    ax.axhline(0.0, zorder=10, **zero_style)
     # plot areas:
     if phases is not None and len(phases) > 0:
         if positive_style is not None and len(positive_style) > 0:
-            ax.fill_between(time, eod, 0, eod >= 0, zorder=4,
+            ax.fill_between(time, eod, 0, eod >= 0, zorder=0,
                             **positive_style)
         if negative_style is not None and len(negative_style) > 0:
-                ax.fill_between(time, eod, 0, eod <= 0, zorder=4,
+                ax.fill_between(time, eod, 0, eod <= 0, zorder=0,
                                 **negative_style)
     # plot Fourier/Gaussian fit:
     if eod_waveform.shape[1] > 3 and np.all(np.isfinite(eod_waveform[:, 3])):
-        ax.plot(time, eod_waveform[:, 3], zorder=4, **fit_style)
+        ax.plot(time, eod_waveform[:, 3], zorder=30, **fit_style)
     # plot time constant fit:
     tau_magnified = False
     if eod_waveform.shape[1] > 4:
         if np.nanmax(np.abs(eod_waveform[:, 4])) < mag_thresh:
             tau_magnified = True
             ax.plot(time, magnification_factor*eod_waveform[:, 4],
-                    zorder=5, **fit_style)
+                    zorder=35, **fit_style)
         else:
             fs = dict(**fit_style)
             if 'lw' in fs:
                 fs['lw'] *= 2
-            ax.plot(time, eod_waveform[:, 4], zorder=5, **fs)
+            ax.plot(time, eod_waveform[:, 4], zorder=35, **fs)
     # plot waveform:
-    ax.plot(time, eod, zorder=10, **wave_style)
+    ax.plot(time, eod, zorder=45, **wave_style)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:, 2]
         ax.fill_between(time, eod + std_eod, eod - std_eod,
-                        zorder=-10, **sem_style)
+                        zorder=20, **sem_style)
     # plot magnified pulse waveform:
     magnification_mask = np.zeros(len(time), dtype=bool)
     if magnification_factor > 1 and phases is not None and len(phases) > 0:
@@ -2812,26 +2813,38 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         if i0 > 0:
             left_eod = magnification_factor*eod[:i0]
             magnification_mask[:i0] = True
-            ax.plot(time[:i0], left_eod, zorder=9, **magnified_style)
+            ax.plot(time[:i0], left_eod, zorder=40, **magnified_style)
             if left_eod[-1] > 0:
                 it = np.argmax(left_eod > 0.95*np.max(eod))
                 if it < len(left_eod)//2:
                     it = len(left_eod) - 1
                 ty = left_eod[it] if left_eod[it] < np.max(eod) else np.max(eod)
                 ta = ax.text(time[it], ty, f'x{magnification_factor:.0f} ',
-                             ha='right', va='top', fontsize=fontsize)
+                             ha='right', va='top', zorder=100,
+                             fontsize=fontsize)
+                if ty > 0.5*ylim:
+                    quadrants[0, 0] += 1
             else:
                 it = np.argmax(left_eod < 0.95*np.min(eod))
                 if it < len(left_eod)//2:
                     it = len(left_eod) - 1
                 ty = left_eod[it] if left_eod[it] > np.min(eod) else np.min(eod)
                 ta = ax.text(time[it], ty, f'x{magnification_factor:.0f} ',
-                             ha='right', va='bottom', fontsize=fontsize)
+                             ha='right', va='bottom', zorder=100,
+                             fontsize=fontsize)
+                if ty < -0.5*ylim:
+                    quadrants[1, 0] += 1
             texts.append(ta)
+            if quadrants[0, 0] == 0:
+                quadrants[0, 0] += np.max(left_eod[time[:i0] < 0.1*xlim_l]) > 0.5*ylim
+            if quadrants[1, 0] == 0:
+                quadrants[1, 0] += np.min(left_eod[time[:i0] < 0.1*xlim_l]) < -0.5*ylim
         i1 = len(eod) - np.argmax(np.abs(eod[::-1]) > mag_thresh)
         right_eod = magnification_factor*eod[i1:]
         magnification_mask[i1:] = True
-        ax.plot(time[i1:], right_eod, zorder=9, **magnified_style)
+        ax.plot(time[i1:], right_eod, zorder=40, **magnified_style)
+        quadrants[0, 1] += np.max(right_eod[time[i1:] > 0.4*xlim_r]) > 0.5*ylim
+        quadrants[1, 1] += np.min(right_eod[time[i1:] > 0.4*xlim_r]) < -0.5*ylim
     # annotate time constant fit:
     tau = None if props is None else props.get('tau', None)
     if tau is not None and eod_waveform.shape[1] > 4:
@@ -2858,16 +2871,21 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         if eod[inx] < 0:
             y -= 0.5*yfs
         ta = ax.text(x + xfs, y, label, ha='left', va=va,
-                     zorder=20, fontsize=fontsize)
+                     zorder=100, fontsize=fontsize)
         texts.append(ta)
+        if x + xfs > 0.4*xlim_r:
+            if y > 0.5*ylim:
+                quadrants[0, 1] += 1
+            elif y < -0.5*ylim:
+                quadrants[1, 1] += 1
     if props is not None:
         # mark start and end:
         if 'tstart' in props:
             ax.axvline(1000*props['tstart'], 0.45, 0.55,
-                       color='k', lw=0.5, zorder=80)
+                       color='k', lw=0.5, zorder=25)
         if 'tend' in props:
             ax.axvline(1000*props['tend'], 0.45, 0.55,
-                       color='k', lw=0.5, zorder=80)
+                       color='k', lw=0.5, zorder=25)
         # mark cumulative:
         if 'median' in props:
             y = -1.07*ylim
@@ -2875,8 +2893,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             q1 = 1000*props['quartile1']
             q3 = 1000*props['quartile3']
             w = q3 - q1
-            ax.plot([q1, q3], [y, y], 'gray', lw=4, zorder=80)
-            ax.plot(m, y, 'o', color='white', ms=3, zorder=81)
+            ax.plot([q1, q3], [y, y], 'gray', lw=4, zorder=25)
+            ax.plot(m, y, 'o', color='white', ms=3, zorder=26)
             label = f'{w:.2f}ms' if w >= 1 else f'{1000*w:.0f}\u00b5s'
             ax.text(q3 + xfs, y, label,
                     va='center', zorder=100, fontsize=fontsize)
@@ -2990,11 +3008,11 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 ax.text(x, sign*0.6*yfs, label,
                         rotation='vertical',
                         va='top' if sign < 0 else 'bottom',
-                        ha='center', zorder=20, fontsize=fontsize)
+                        ha='center', zorder=35, fontsize=fontsize)
             elif abs(relampl) > 0.25 and abs(relarea) > 0.19:
                 ax.text(x, sign*0.6*yfs, label,
                         va='top' if sign < 0 else 'baseline',
-                        ha='center', zorder=20, fontsize=fontsize)
+                        ha='center', zorder=35, fontsize=fontsize)
             else:
                 dx = 0.5*xfs if right_phase else -0.5*xfs
                 ta = ax.text(ltime + dx, -sign*0.4*yfs, label,
@@ -3023,7 +3041,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                     lr_texts.append(t)
                 else:
                     ll_texts.append(t)
-        for ts in [ul_texts, ur_texts, ll_texts, lr_texts]:
+        for ts, (j, k) in zip([ul_texts, ur_texts, ll_texts, lr_texts],
+                              [(0, 0), (0, 1), (1, 0), (1, 1)]):
             if len(ts) > 1:
                 ys = []
                 for t in ts:
@@ -3043,7 +3062,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                        len(s) > 4 and s[:2] != '\u03c4=':
                         y = np.sign(y)*(abs(yp) + 2*yfs)
                         t.set_y(y)
-                        #print('moved', t.get_text())
+                    if len(s) >= 4 and abs(y) > 0.5*ylim:
+                        quadrants[j, k] += 1
                     yp = y
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
@@ -3057,12 +3077,18 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             label += 'flipped\n'
         if 'polaritybalance' in props:
             label += f'PB={100*props["polaritybalance"]:.0f} %\n'
-        if -eod_waveform[0, 0] < 0.6*eod_waveform[-1, 0]:
-            ax.text(0.97, 1, label, transform=ax.transAxes,
-                    va='top', ha='right', zorder=20)
-        else:
-            ax.text(0.03, 1, label, transform=ax.transAxes,
-                    va='top', zorder=20, fontsize=fontsize)
+        # weigh left quadrants less:
+        quadrants *= 2
+        quadrants[quadrants[:, 1] > 0, 1] -= 1 
+        # find free quadrant:
+        q_row, q_col = np.unravel_index(np.argmin(quadrants), quadrants.shape)
+        # place text in quadrant:
+        y = 1 if q_row == 0 else 0
+        va = 'top' if q_row == 0 else 'bottom'
+        x = 0.03 if q_col == 0 else 0.97
+        ha = 'left' if q_col == 0 else 'right'
+        ax.text(x, y, label, transform=ax.transAxes,
+                va=va, ha=ha, zorder=100)
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
