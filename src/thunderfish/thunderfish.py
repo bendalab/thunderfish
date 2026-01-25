@@ -313,7 +313,8 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 analyze_pulse(mean_eod, None, eod_times0, verbose=verbose-1,
                               **analyze_pulse_args(cfg))
             if len(phases) == 0:
-                print('error: no phases in pulse EOD detected')
+                if verbose > 0:
+                    print('no phases in pulse EOD detected')
                 continue
             clipped_frac = clipped_fraction(data, rate, eod_times0,
                                             mean_eod, min_clip, max_clip)

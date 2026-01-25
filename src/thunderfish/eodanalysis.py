@@ -1836,13 +1836,13 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     start_end_thresh = pp_ampl*start_end_thresh_fac
     if start_end_thresh < 2*noise_thresh:
         start_end_thresh = 2*noise_thresh
-        start_end_thresh_fac = start_end_thresh/pp_ampl
+        start_end_thresh_fac = start_end_thresh/pp_ampl if pp_ampl > 0 else 1
 
     # threshold for peak detection:
     peak_thresh = pp_ampl*peak_thresh_fac
     if peak_thresh < noise_thresh:
         peak_thresh = noise_thresh
-        peak_thresh_fac = peak_thresh/pp_ampl
+        peak_thresh_fac = peak_thresh/pp_ampl if pp_ampl > 0 else 1
             
     # characterize EOD phases:
     tstart, tend, phases = analyze_pulse_phases(peak_thresh,
@@ -1852,13 +1852,13 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         
     # fit exponential to last phase:
     tau = None
+    taustart = None
     if len(phases) > 0 and len(phases['times']) > 1:
-        if noise_thresh > fit_frac*max_ampl:
-            fit_frac = None
         pi = np.argmin(np.abs(meod[:, 0] - phases['times'][-1]))
         tau, taustart, fit = analyze_pulse_tail(pi, meod, None,
-                                                noise_thresh, fit_frac,
-                                                verbose)
+                                                threshold=noise_thresh,
+                                                fit_frac=fit_frac,
+                                                verbose=verbose)
         if fit is not None:
             meod[:, -1] = fit
 
@@ -1905,7 +1905,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['p-p-amplitude'] = pp_ampl
     props['p-p-dist'] = dist
     if eod.shape[1] > 2:
-        props['noise'] = np.mean(meod[:, 2])/pp_ampl
+        props['noise'] = np.mean(meod[:, 2])/pp_ampl if pp_ampl > 0 else 1
     props['rmserror'] = rmserror
     props['peakthresh'] = peak_thresh_fac
     props['startendthresh'] = start_end_thresh_fac
@@ -2729,7 +2729,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 w = np.ceil(abs(1000*props['tstart'])/0.5)*0.5
             if 'tend' in props and 1000*props['tend'] > 2*w:
                 w = np.ceil(0.5*abs(1000*props['tend'])/0.5)*0.5
-            if 'taustart' in props and np.isfinite(props['taustart']) and \
+            if 'taustart' in props and props['taustart'] is not None and \
                1100*props['taustart'] > 2*w:
                 w = np.ceil(0.5*abs(1100*props['taustart'])/0.5)*0.5
         # set xaxis limits:
@@ -2854,8 +2854,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         y = eod_waveform[np.argmin(np.abs(time - x)), 4]
         if tau_magnified:
             y *= magnification_factor
-        va = 'bottom' if y > 0 else 'top'
-        if y < 0:
+        va = 'bottom' if eod[inx] > 0 else 'top'
+        if eod[inx] < 0:
             y -= 0.5*yfs
         ta = ax.text(x + xfs, y, label, ha='left', va=va,
                      zorder=20, fontsize=fontsize)
@@ -3038,7 +3038,9 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 for i in idx[1:]:
                     t = ts[i]
                     x, y = t.get_position()
-                    if abs(y) < abs(yp) + 2*yfs:
+                    s = t.get_text()
+                    if abs(y) < abs(yp) + 2*yfs and \
+                       len(s) > 4 and s[:2] != '\u03c4=':
                         y = np.sign(y)*(abs(yp) + 2*yfs)
                         t.set_y(y)
                         #print('moved', t.get_text())

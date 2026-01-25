@@ -559,7 +559,7 @@ def detect_pulses(data, rate, thresh, min_rel_slope_diff=0.25,
 
     if verbose > 0:
         print('Remaining peaks after EOD extraction:                %5d'
-              % (p.sum(keep)))
+              % (np.sum(keep)))
         print('')
 
     if return_data:
@@ -883,7 +883,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             else:
                 unique_clusters = np.unique(wp_clusters[wp_clusters!=-1])
                 if len(unique_clusters) > 1:
-                    print('{len(unique_clusters)} different EOD peaks in width cluster {width_label}')
+                    print(f'{len(unique_clusters)} different EOD peaks in width cluster {width_label}')
         
         if plot_level > 0 or 'all_cluster_steps' in return_data:
             all_shapelabels.append(shape_labels)
@@ -989,7 +989,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
     if verbose > 0:
         print('Clusters generated based on height, width and shape: ')
         for l in np.unique(all_clusters[all_clusters != -1]):
-            print('N_{int(l)} = {len(all_clusters[all_clusters == l]):4d}')
+            print(f'N_{int(l)} = {len(all_clusters[all_clusters == l]):4d}')
              
     return all_clusters, x_merge, saved_data
 
