@@ -1359,7 +1359,7 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5, verbose=0):
 
             
 def analyze_pulse_tail(peak_index, eod, ratetime=None,
-                       threshold=0.0, fit_frac=0.5):
+                       threshold=0.0, fit_frac=0.5, verbose=0):
     """ Fit exponential to last peak/trough of pulse EOD.
     
     Parameters
@@ -1376,22 +1376,26 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
         If a 1-D array is passed on to `eod` then either the sampling
         rate in Hertz or the time array corresponding to `eod`.
     threshold: float
-        Minimum size of peaks of the pulse waveform.
+        Maximum noise level of the pulse waveform.
     fit_frac: float or None
         An exponential is fitted to the tail of the last peak/trough
         starting where the waveform falls below this fraction of the
         peak's height (0-1).
         If None, do not attempt to fit.
+    verbose: int
+        Verbosity level passed for error and info messages.
     
     Returns
     -------
     tau: float
         Time constant of pulse tail in seconds.
+    tstart: float
+        Time where fit started in seconds.
     fit: 1-D array of float
         Time trace of the fit corresponding to `eod`.
     """
     if fit_frac is None:
-        return None, None
+        return None, None, None
     if eod.ndim == 2:
         time = eod[:, 0]
         eod = eod[:, 1]
@@ -1410,56 +1414,67 @@ def analyze_pulse_tail(peak_index, eod, ratetime=None,
     if sign*eod[pi] < 0:
         pi += np.argmax(sign*eod[pi:])
     pi_ampl = np.abs(eod[pi])
-    n = len(eod[pi:])
     # no sufficiently large initial value:
-    if pi_ampl*fit_frac <= 0.5*threshold:
-        fit_frac = False
+    sampl = sign*eod[pi]*fit_frac
+    if sampl <= threshold:
+        if verbose > 0:
+            print(f'exponential fit to tail of pulse failed: initial amplitude {sampl:.5f} smaller than threshold {threshold:.5f}')
+        return None, None, None
     # no sufficiently long decay:
+    sinx = pi + np.argmax(sign*eod[pi:] < sampl)
+    n = 2*len(eod[sinx:])//3
     if n < 10:
-        fit_frac = False
+        if verbose > 0:
+            print(f'exponential fit to tail of pulse failed: less than 10 samples {n}')
+        return None, None, None
     # not decaying towards zero:
-    max_line = pi_ampl - (pi_ampl - threshold)*np.arange(n)/n + 1e-8
-    if np.sum(np.abs(eod[pi + 2:]) > max_line[2:])/n > 0.05:
-        fit_frac = False
-    if not fit_frac:
-        return None, None
-    thresh = eod[pi]*fit_frac
-    inx = pi + np.argmax(sign*eod[pi:] < sign*thresh)
-    thresh = eod[inx]*np.exp(-1.0)
-    tau_inx = np.argmax(sign*eod[inx:] < sign*thresh)
+    max_line = sampl - (sampl - threshold)*np.arange(n)/n + 1e-8
+    above_frac = np.sum(sign*eod[sinx:sinx + n] > max_line)/n
+    if above_frac > 0.05:
+        if verbose > 0:
+            print(f'exponential fit to tail of pulse failed: not decaying towards zero {100*above_frac:.1f}% > 5%')
+        return None, None, None
+    # estimate tau:
+    thresh = eod[sinx]*np.exp(-1.0)
+    tau_inx = np.argmax(sign*eod[sinx:] < sign*thresh)
     if tau_inx < 2:
         tau_inx = 2
-    rridx = inx + 6*tau_inx
-    if rridx > len(eod) - 1:
-        rridx = len(eod) - 1
-        if rridx - inx < 3*tau_inx:
-            return None, None
-    tau = time[inx + tau_inx] - time[inx]
-    params = [tau, eod[inx] - eod[rridx], eod[rridx]]
+    rinx = sinx + 6*tau_inx
+    if rinx > len(eod) - 1:
+        rinx = len(eod) - 1
+        if rinx - sinx < 2*tau_inx:
+            if verbose > 0:
+                print(f'exponential fit to tail of pulse failed: less samples {rinx - sinx} than two time constants 3*{tau_inx}')
+            return None, None, None
+    tau = time[sinx + tau_inx] - time[sinx]
+    params = [tau, eod[sinx] - eod[rinx], eod[rinx]]
     try:
-        popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                               eod[inx:rridx], params,
+        popt, pcov = curve_fit(exp_decay, time[sinx:rinx] - time[sinx],
+                               eod[sinx:rinx], params,
                                bounds=([0.0, -np.inf, -np.inf], np.inf))
     except TypeError:
-        popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                               eod[inx:rridx], params)
+        popt, pcov = curve_fit(exp_decay, time[sinx:rinx] - time[sinx],
+                               eod[sinx:rinx], params)
     if popt[0] > 1.2*tau:
         tau_inx = int(np.round(popt[0]/dt))
-        rridx = inx + 6*tau_inx
-        if rridx > len(eod) - 1:
-            rridx = len(eod) - 1
+        rinx = sinx + 6*tau_inx
+        if rinx > len(eod) - 1:
+            rinx = len(eod) - 1
         try:
-            popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                                   eod[inx:rridx], popt,
+            popt, pcov = curve_fit(exp_decay, time[sinx:rinx] - time[sinx],
+                                   eod[sinx:rinx], popt,
                                    bounds=([0.0, -np.inf, -np.inf], np.inf))
         except TypeError:
-            popt, pcov = curve_fit(exp_decay, time[inx:rridx] - time[inx],
-                                   eod[inx:rridx], popt)
+            popt, pcov = curve_fit(exp_decay, time[sinx:rinx] - time[sinx],
+                                   eod[sinx:rinx], popt)
     tau = popt[0]
+    tstart = time[sinx]
     fit = np.zeros(len(eod))
     fit[:] = np.nan
-    fit[inx:rridx] = exp_decay(time[inx:rridx] - time[inx], *popt)
-    return tau, fit
+    fit[sinx:rinx] = exp_decay(time[sinx:rinx] - time[sinx], *popt)
+    if verbose > 0:
+        print(f'exponential fit to tail of pulse: got time constant {1000*tau:.3f}ms')
+    return tau, tstart, fit
 
     
 def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
@@ -1628,7 +1643,7 @@ def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
             
 def analyze_pulse(eod, ratetime=None, eod_times=None,
                   min_pulse_win=0.001,
-                  start_end_thresh_fac=0.01, peak_thresh_fac=0.0025,
+                  start_end_thresh_fac=0.01, peak_thresh_fac=0.002,
                   min_dist=50.0e-6, width_frac=0.5, fit_frac=0.5,
                   freq_resolution=1.0, fade_frac=0.0,
                   flip_pulse='none', ipi_cv_thresh=0.5,
@@ -1841,8 +1856,9 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         if noise_thresh > fit_frac*max_ampl:
             fit_frac = None
         pi = np.argmin(np.abs(meod[:, 0] - phases['times'][-1]))
-        tau, fit = analyze_pulse_tail(pi, meod, None,
-                                      noise_thresh, fit_frac)
+        tau, taustart, fit = analyze_pulse_tail(pi, meod, None,
+                                                noise_thresh, fit_frac,
+                                                verbose)
         if fit is not None:
             meod[:, -1] = fit
 
@@ -1904,8 +1920,8 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['quartile1'] = quartile1
     props['quartile3'] = quartile3
     props['iq-range'] = quartile3 - quartile1
-    if tau:
-        props['tau'] = tau
+    props['tau'] = tau
+    props['taustart'] = taustart
     props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
     props['lastphase'] = phases['indices'][-1] if len(phases) > 0 else 1
     props['peakfreq'] = peakfreq
@@ -2690,7 +2706,6 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         Fontsize for annotation text.
 
     """
-    ax.autoscale(True)
     time = 1000*eod_waveform[:, 0]
     eod = eod_waveform[:, 1]
     # time axis:                
@@ -2708,21 +2723,15 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         i1 = ip + np.argmax(meod[ip:] < thresh)
         w = 4*(time[i1] - time[i0])
         w = np.ceil(w/0.5)*0.5
-        # make sure tstart and tend are included:
+        # make sure tstart, tend, and time constant are included:
         if props is not None:
             if 'tstart' in props and 1000*props['tstart'] < -w:
                 w = np.ceil(abs(1000*props['tstart'])/0.5)*0.5
             if 'tend' in props and 1000*props['tend'] > 2*w:
                 w = np.ceil(0.5*abs(1000*props['tend'])/0.5)*0.5
-        # make sure center of mass is included:
-        cumul = np.cumsum(meod)/np.sum(meod)
-        m = time[np.argmax(cumul > 0.5)]
-        q1 = time[np.argmax(cumul > 0.25)]
-        q3 = time[np.argmax(cumul > 0.75)]
-        if m - 2*(m - q1) < -w:
-            w = np.ceil(abs(m - 2*(m - q1))/0.5)*0.5
-        if m + 2*(q3 - m) > 2*w:
-            w = np.ceil(0.5*abs(m + 2*(q3 - m))/0.5)*0.5
+            if 'taustart' in props and np.isfinite(props['taustart']) and \
+               1100*props['taustart'] > 2*w:
+                w = np.ceil(0.5*abs(1100*props['taustart'])/0.5)*0.5
         # set xaxis limits:
         xlim_l = -w
         xlim_r = 2*w
@@ -2759,6 +2768,11 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
     dyu = 2*ylim/pixely
     yfs = fs*dyu
     texts = []
+    # magnification threshold:
+    if magnification_factor > 1:
+        mag_thresh = 0.95*np.max(np.abs(eod))/magnification_factor
+    else:
+        mag_thresh = 0
     # plot zero line:
     ax.axhline(0.0, zorder=-5, **zero_style)
     # plot areas:
@@ -2769,30 +2783,31 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         if negative_style is not None and len(negative_style) > 0:
                 ax.fill_between(time, eod, 0, eod <= 0, zorder=4,
                                 **negative_style)
-    # plot fits:
+    # plot Fourier/Gaussian fit:
     if eod_waveform.shape[1] > 3 and np.all(np.isfinite(eod_waveform[:, 3])):
         ax.plot(time, eod_waveform[:, 3], zorder=4, **fit_style)
+    # plot time constant fit:
+    tau_magnified = False
     if eod_waveform.shape[1] > 4:
-        fs = dict(**fit_style)
-        if 'lw' in fs:
-            fs['lw'] *= 2
-        ax.plot(time, eod_waveform[:, 4], zorder=5, **fs)
+        if np.nanmax(np.abs(eod_waveform[:, 4])) < mag_thresh:
+            tau_magnified = True
+            ax.plot(time, magnification_factor*eod_waveform[:, 4],
+                    zorder=5, **fit_style)
+        else:
+            fs = dict(**fit_style)
+            if 'lw' in fs:
+                fs['lw'] *= 2
+            ax.plot(time, eod_waveform[:, 4], zorder=5, **fs)
     # plot waveform:
     ax.plot(time, eod, zorder=10, **wave_style)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:, 2]
-        if np.mean(std_eod)/(np.max(eod) - np.min(eod)) > 0.1:
-            ax.autoscale_view(False)
-            ax.autoscale(False)
         ax.fill_between(time, eod + std_eod, eod - std_eod,
                         zorder=-10, **sem_style)
     # plot magnified pulse waveform:
     magnification_mask = np.zeros(len(time), dtype=bool)
     if magnification_factor > 1 and phases is not None and len(phases) > 0:
-        ax.autoscale_view(False)
-        ax.autoscale(False)
-        mag_thresh = 0.95*np.max(np.abs(eod))/magnification_factor
         i0 = np.argmax(np.abs(eod) > mag_thresh)
         if i0 > 0:
             left_eod = magnification_factor*eod[:i0]
@@ -2817,21 +2832,33 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         right_eod = magnification_factor*eod[i1:]
         magnification_mask[i1:] = True
         ax.plot(time[i1:], right_eod, zorder=9, **magnified_style)
-    # annotate fit:
+    # annotate time constant fit:
     tau = None if props is None else props.get('tau', None)
-    ty = 0.0
     if tau is not None and eod_waveform.shape[1] > 4:
         if tau < 0.001:
             label = f'\u03c4={1.e6*tau:.0f}\u00b5s'
         else:
             label = f'\u03c4={1.e3*tau:.2f}ms'
         inx = np.argmin(np.isnan(eod_waveform[:, 4]))
-        x = eod_waveform[inx, 0] + 1.5*tau
-        ty = 0.7*eod_waveform[inx, 4]
-        if np.abs(ty) < 0.5*yfs:
-            ty = 0.5*yfs*np.sign(ty)
-        va = 'bottom' if ty > 0.0 else 'top'
-        ta = ax.text(1000*x, ty, label, ha='left', va=va, zorder=20, fontsize=fontsize)
+        x0 = time[inx]
+        x = x0 + 1000*np.log(2)*tau
+        if x + 4*xfs >= xlim_r:
+            if xlim_r - x0 >= 4*xfs:
+                x = xlim_r - 8*xfs
+            else:
+                x = x0
+        elif x + 8*xfs > xlim_r:
+            x = xlim_r - 8*xfs
+        if x < x0:
+            x = x0
+        y = eod_waveform[np.argmin(np.abs(time - x)), 4]
+        if tau_magnified:
+            y *= magnification_factor
+        va = 'bottom' if y > 0 else 'top'
+        if y < 0:
+            y -= 0.5*yfs
+        ta = ax.text(x + xfs, y, label, ha='left', va=va,
+                     zorder=20, fontsize=fontsize)
         texts.append(ta)
     if props is not None:
         # mark start and end:
@@ -2907,10 +2934,13 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
             ltime = ptime
             lampl = pampl
             valign = 'top' if sign < 0 else 'baseline'
+            add = True
             if local_phase or (min_max_phase and abs(pampl)/ylim < 0.8):
                 halign = 'center'
                 dx = 0
                 dy = 0.6*yfs
+                if local_phase:
+                    add = False
             elif min_max_phase:
                 halign = 'left' if right_phase else 'right'
                 dx = xfs if right_phase else -xfs
@@ -2938,7 +2968,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 dy = -dy
             ta = ax.text(ltime + dx, lampl + dy, label,
                          ha=halign, va=valign, zorder=100, fontsize=fontsize)
-            texts.append(ta)
+            if add:
+                texts.append(ta)
             # area:
             if np.abs(relarea) < 0.01:
                 continue
@@ -3029,7 +3060,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                     va='top', ha='right', zorder=20)
         else:
             ax.text(0.03, 1, label, transform=ax.transAxes,
-                    va='top', zorder=20)
+                    va='top', zorder=20, fontsize=fontsize)
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
@@ -3099,6 +3130,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
 
 
 def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
+                        min_db = -60,
                         spec_style=dict(lw=3, color='tab:blue'),
                         analytic_style=dict(lw=4, color='tab:cyan'),
                         peak_style=dict(ls='', marker='o', markersize=6,
@@ -3124,6 +3156,8 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
         Minimun frequency of the spectrum to be plotted (logscale!).
     max_freq: float
         Maximun frequency of the spectrum to be plotted (logscale!).
+    min_db: float
+        Minimum decibel level shown.
     spec_style: dict
         Arguments passed on to the plot command for the energy spectrum
         computed from the data.
@@ -3147,7 +3181,10 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     ax.axvspan(1, 50, color=att50_color, zorder=-20)
     att = props['energyatt50']
     if att < -10:
-        ax.text(10, att + 1, f'{att:.0f}dB',
+        y = att + 1
+        if y < min_db:
+            y = min_db + 2
+        ax.text(10, y, f'{att:.0f}dB',
                 ha='left', va='bottom', zorder=100, fontsize=fontsize)
     else:
         ax.text(10, att - 1, f'{att:.0f}dB',
@@ -3155,19 +3192,22 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     ax.axvspan(1, 5, color=att5_color, zorder=-10)
     att = props['energyatt5']
     if att < -10:
-        ax.text(4, att + 1, f'{att:.0f}dB',
+        y = att + 1
+        if y < min_db:
+            y = min_db + 2
+        ax.text(4, y, f'{att:.0f}dB',
                 ha='right', va='bottom', zorder=100, fontsize=fontsize)
     else:
         ax.text(4, att - 1, f'{att:.0f}dB',
                 ha='right', va='top', zorder=100, fontsize=fontsize)
     lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
-        ax.plot([lowcutoff, lowcutoff, 1], [-60, 0.5*att, 0.5*att],
+        ax.plot([lowcutoff, lowcutoff, 1], [min_db, 0.5*att, 0.5*att],
                 zorder=30, **cutoff_style)
         ax.text(1.2*lowcutoff, 0.5*att - 1, f'{lowcutoff:.0f}Hz',
                 ha='left', va='top', zorder=100, fontsize=fontsize)
     highcutoff = props['highcutoff']
-    ax.plot([highcutoff, highcutoff], [-60, -3], zorder=30, **cutoff_style)
+    ax.plot([highcutoff, highcutoff], [min_db, -3], zorder=30, **cutoff_style)
     ax.text(1.2*highcutoff, -3, f'{highcutoff:.0f}Hz',
             ha='left', va='center', zorder=100, fontsize=fontsize)
     ref_energy = np.max(energy[:, 1])
@@ -3190,7 +3230,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
                 ha='center', va='top', zorder=100, fontsize=fontsize)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
-    ax.set_ylim(-60, 2)
+    ax.set_ylim(min_db, 2)
     ax.set_xlabel('Frequency [Hz]')
     ax.set_ylabel('Energy [dB]')
 
@@ -3576,6 +3616,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('quartile3', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('iq-range', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('taustart', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('firstphase', '', '%d', value=pulse_props)
     td.append('lastphase', '', '%d', value=pulse_props)
     td.append_section('spectrum')
@@ -3651,6 +3692,7 @@ def load_pulse_fish(file_path):
         props['p-p-dist'] /= 1000
         props['width'] /= 1000
         props['tau'] /= 1000
+        props['taustart'] /= 1000
         props['rmserror'] /= 100
     return eod_props
 
@@ -4489,7 +4531,7 @@ def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
                             min_sem=False, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
                             n_harm=10, min_pulse_win=0.001,
-                            start_end_thresh_fac=0.01, peak_thresh_fac=0.0025,
+                            start_end_thresh_fac=0.01, peak_thresh_fac=0.002,
                             min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
                             freq_resolution=1.0, fade_frac=0.0,
                             ipi_cv_thresh=0.5, ipi_percentile=30.0):
