@@ -991,29 +991,30 @@ The columns contain:
 18. `rmserror`: Root-mean-square error between fit with sum of Gaussians and EOD waveform relative to the p-p amplitude. Infinity if fit failed.
 19. `clipped` Percentage of recording that is clipped.
 20. `flipped` Whether the waveform was flipped.
-21. `threshfac` The actually used threshold for peak detection as a fraction of the p-p amplitude in percent.
-22. `tstart` Time where the pulse starts relative to P1 in milliseconds.
-23. `tend` Time where the pulse ends relative to P1 in milliseconds.
-24. `width` Total width of the pulse in milliseconds.
-25. `totalarea` Sum of areas under positive and negative phases.
-26. `pos-area` Area under positive phases relative to total area.
-27. `neg-area` Area under negative phases relative to total area.
-28. `polaritybalance` Contrast between areas under positive and negative phases.
-29. `median` Median of the distribution of the absolute EOD waveform.
-30. `quartile1` First quartile of the distribution of the absolute EOD waveform.
-31. `quartile3` Third quartile of the distribution of the absolute EOD waveform.
-32. `iq-range` Inter-quartile range of the distribution of the absolute EOD waveform.
-33. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-34. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
-35. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
-36. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
-37. `peakenergy` Peak energy of the single pulse spectrum.
-38. `troughfreq` Frequency at trough before peak in Hertz.
-39. `troughenergy` Energy of trough before peak in x^2 s/Hz.
-40. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
-41. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
-42. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
-43. `high_cutoff`: 3dB roll-off frequency in Hertz.
+21. `startendthresh` The actually used threshold for start and end time as a fraction of the p-p amplitude in percent.
+22. `peakthresh` The actually used threshold for detecting peaks and troughs time as a fraction of the p-p amplitude in percent.
+23. `tstart` Time where the pulse starts relative to P1 in milliseconds.
+24. `tend` Time where the pulse ends relative to P1 in milliseconds.
+25. `width` Total width of the pulse in milliseconds.
+26. `totalarea` Sum of areas under positive and negative phases.
+27. `pos-area` Area under positive phases relative to total area.
+28. `neg-area` Area under negative phases relative to total area.
+29. `polaritybalance` Contrast between areas under positive and negative phases.
+30. `median` Median of the distribution of the absolute EOD waveform.
+31. `quartile1` First quartile of the distribution of the absolute EOD waveform.
+32. `quartile3` Third quartile of the distribution of the absolute EOD waveform.
+33. `iq-range` Inter-quartile range of the distribution of the absolute EOD waveform.
+34. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
+35. `firstphase` Index of the first phase in the pulse (i.e. -1 for P-1).
+36. `lastphase` Index of the last phase in the pulse (i.e. 3 for P3).
+37. `peakfreq` Frequency at the peak energy of the single pulse spectrum in Hertz.
+38. `peakenergy` Peak energy of the single pulse spectrum.
+39. `troughfreq` Frequency at trough before peak in Hertz.
+40. `troughenergy` Energy of trough before peak in x^2 s/Hz.
+41. `energyatt5` Attenuation of average energy below 5 Hz relative to peak energy in decibel. 
+42. `energyatt50` Attenuation of average energy below 50 Hz relative to peak energy in decibel.
+43. `lowcutoff` Frequency at which the energy reached half of the peak energy relative to the DC energy in Hertz.
+44. `high_cutoff`: 3dB roll-off frequency in Hertz.
 
 
 ### RECORDING-CHANNEL-TIME-pulsephases-N.EXT

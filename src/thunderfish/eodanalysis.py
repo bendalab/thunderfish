@@ -1013,14 +1013,18 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
         median, quartile1, quartile3
 
     
-def analyze_pulse_phases(threshold, eod, ratetime=None,
+def analyze_pulse_phases(peak_thresh, startend_thresh,
+                         eod, ratetime=None,
                          min_dist=50.0e-6, width_frac=0.5):
     """Characterize all phases of a pulse-type EOD.
     
     Parameters
     ----------
-    threshold: float
+    peak_thresh: float
         Threshold for detecting peaks and troughs.
+    startend_thresh: float or None
+        Threshold for detecting start and end time of EOD.
+        If None, use `peak_thresh`.
     eod: 1-D or 2-D array
         The eod waveform to be analyzed.
         If an 1-D array, then this is the waveform and you
@@ -1066,13 +1070,17 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     else:
         time = np.arange(len(eod))/rate
     dt = time[1] - time[0]
+    
     # start and end time:
-    l_idx = np.argmax(np.abs(eod) > threshold)
-    r_idx = len(eod) - 1 - np.argmax(np.abs(eod[::-1]) > threshold)
+    if startend_thresh is None:
+        startend_thresh = peak_thresh
+    l_idx = np.argmax(np.abs(eod) > startend_thresh)
+    r_idx = len(eod) - 1 - np.argmax(np.abs(eod[::-1]) > startend_thresh)
     tstart = time[l_idx]
     tend = time[r_idx]
+    
     # find peaks and troughs:
-    peak_idx, trough_idx = detect_peaks(eod, threshold)
+    peak_idx, trough_idx = detect_peaks(eod, peak_thresh)
     if len(peak_idx) == 0:
         return tstart, tend, {}
     # and their width:
@@ -1086,6 +1094,15 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
     pts_idx = np.argsort(pt_idx)
     phase_list = pt_idx[pts_idx]
     width_list = pt_widths[pts_idx]
+    # remove phases at the start and end of the signal:
+    n = len(eod)//20
+    if n < 5:
+        n = 5
+    mask = (phase_list > n) & (phase_list < len(eod) - 20)
+    phase_list = phase_list[mask]
+    width_list = width_list[mask]
+    if len(phase_list) == 0:
+        return tstart, tend, {}
     # remove multiple peaks that are too close:
     # TODO: XXX replace by Dexters function that keeps the maximum peak
     rmidx = [(k, k+1) for k in np.where(np.diff(time[phase_list]) < min_dist)[0]]
@@ -1128,12 +1145,12 @@ def analyze_pulse_phases(threshold, eod, ratetime=None,
                 zero_times[i] = np.nan
             else:
                 zidx = zidx[len(zidx)//2]  # reduce to single zero crossing
+                snippet = snippet[zidx:zidx + 2]
+                stimes = stimes[zidx:zidx + 2]
                 if sign_fac > 0:
-                    zero_times[i] = np.interp(0, snippet[zidx + 1:zidx - 1:-1],
-                                              stimes[zidx + 1:zidx - 1:-1])
+                    zero_times[i] = np.interp(0, snippet[::-1], stimes[::-1])
                 else:
-                    zero_times[i] = np.interp(0, snippet[zidx:zidx + 2],
-                                              stimes[zidx:zidx + 2])
+                    zero_times[i] = np.interp(0, snippet, stimes)
         else:
             zero_times[i] = np.nan
     total_area = np.sum(np.abs(phase_areas))
@@ -1611,8 +1628,8 @@ def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
             
 def analyze_pulse(eod, ratetime=None, eod_times=None,
                   min_pulse_win=0.001,
-                  thresh_fac=0.01, min_dist=50.0e-6,
-                  width_frac=0.5, fit_frac=0.5,
+                  start_end_thresh_fac=0.01, peak_thresh_fac=0.0025,
+                  min_dist=50.0e-6, width_frac=0.5, fit_frac=0.5,
                   freq_resolution=1.0, fade_frac=0.0,
                   flip_pulse='none', ipi_cv_thresh=0.5,
                   ipi_percentile=30.0, verbose=0):
@@ -1635,9 +1652,12 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         List of times of detected EOD peaks.
     min_pulse_win: float
         The minimum size of cut-out EOD waveform.
-    thresh_fac: float
-        Set the threshold for peak detection to the maximum pulse
-        amplitude times this factor.
+    start_end_thresh_fac: float
+        Set the threshold for the start and end time to the p-p amplitude
+        times this factor.
+    peak_thresh_fac: float
+        Set the threshold for peak and trough  detection to the p-p amplitude
+        times this factor.
     min_dist: float
         Minimum distance between peak and troughs of the pulse.
     width_frac: float
@@ -1704,8 +1724,8 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         - noise: average standard error of the averaged EOD waveform relative to the peak-to_peak amplitude in percent.
         - rmserror: root-mean-square error between fit with sum of Gaussians and
           EOD waveform relative to the p-p amplitude. Infinity if fit failed.
-        - threshfac: Threshold for peak detection is at this factor times
-          maximum EOD amplitude.
+        - peakthresh: Threshold for detecting peaks and troughs is at this factor times p-p-ampl.
+        - startendthresh: Threshold for start and end time is at this factor times p-p-ampl.
         - tstart: time in seconds where the pulse starts,
           i.e. crosses the threshold for the first time.
         - tend: time in seconds where the pulse ends,
@@ -1797,14 +1817,21 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     max_ampl = max(pos_ampl, neg_ampl)
     total_area = pos_area + neg_area
 
+    # threshold for start and end time:
+    start_end_thresh = pp_ampl*start_end_thresh_fac
+    if start_end_thresh < 2*noise_thresh:
+        start_end_thresh = 2*noise_thresh
+        start_end_thresh_fac = start_end_thresh/pp_ampl
+
     # threshold for peak detection:
-    threshold = pp_ampl*thresh_fac
-    if threshold < 2*noise_thresh:
-        threshold = 2*noise_thresh
-        thresh_fac = threshold/pp_ampl
+    peak_thresh = pp_ampl*peak_thresh_fac
+    if peak_thresh < noise_thresh:
+        peak_thresh = noise_thresh
+        peak_thresh_fac = peak_thresh/pp_ampl
             
     # characterize EOD phases:
-    tstart, tend, phases = analyze_pulse_phases(threshold, meod,
+    tstart, tend, phases = analyze_pulse_phases(peak_thresh,
+                                                start_end_thresh, meod,
                                                 min_dist=min_dist,
                                                 width_frac=width_frac)
         
@@ -1815,7 +1842,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
             fit_frac = None
         pi = np.argmin(np.abs(meod[:, 0] - phases['times'][-1]))
         tau, fit = analyze_pulse_tail(pi, meod, None,
-                                      threshold, fit_frac)
+                                      noise_thresh, fit_frac)
         if fit is not None:
             meod[:, -1] = fit
 
@@ -1864,7 +1891,8 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     if eod.shape[1] > 2:
         props['noise'] = np.mean(meod[:, 2])/pp_ampl
     props['rmserror'] = rmserror
-    props['threshfac'] = thresh_fac
+    props['peakthresh'] = peak_thresh_fac
+    props['startendthresh'] = start_end_thresh_fac
     props['tstart'] = tstart
     props['tend'] = tend
     props['width'] = tstart - tend
@@ -2838,6 +2866,8 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         for i in range(len(phases['times'])):
             index = phases['indices'][i]
             ptime = 1000*phases['times'][i]
+            if ptime < xlim_l or ptime > xlim_r:
+                continue
             pi = np.argmin(np.abs(time - ptime))
             mfac = magnification_factor if magnification_mask[pi] else 1
             pampl = mfac*phases['amplitudes'][i]
@@ -3114,7 +3144,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     fontsize: str or float or int
         Fontsize for annotation text.
     """
-    ax.axvspan(1, 50, color=att50_color, zorder=10)
+    ax.axvspan(1, 50, color=att50_color, zorder=-20)
     att = props['energyatt50']
     if att < -10:
         ax.text(10, att + 1, f'{att:.0f}dB',
@@ -3122,7 +3152,7 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
     else:
         ax.text(10, att - 1, f'{att:.0f}dB',
                 ha='left', va='top', zorder=100, fontsize=fontsize)
-    ax.axvspan(1, 5, color=att5_color, zorder=20)
+    ax.axvspan(1, 5, color=att5_color, zorder=-10)
     att = props['energyatt5']
     if att < -10:
         ax.text(4, att + 1, f'{att:.0f}dB',
@@ -3532,7 +3562,8 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     if 'clipped' in pulse_props[0]:
         td.append('clipped', '%', '%.2f', value=pulse_props, fac=100)
     td.append('flipped', '', '%d', value=pulse_props)
-    td.append('threshfac', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('startendthresh', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('peakthresh', '%', '%.2f', value=pulse_props, fac=100)
     td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000)
@@ -3596,6 +3627,8 @@ def load_pulse_fish(file_path):
             props['samplerate'] *= 1000
         if 'nfft' in props:
             props['nfft'] = int(props['nfft'])
+        if 'clipped' in props:
+            props['clipped'] /= 100
         props['type'] = 'pulse'
         props['index'] = int(props['index'])
         props['n'] = int(props['n'])
@@ -3609,11 +3642,10 @@ def load_pulse_fish(file_path):
         props['iq-range'] /= 1000
         props['firstphase'] = int(props['firstphase'])
         props['lastphase'] = int(props['lastphase'])
-        if 'clipped' in props:
-            props['clipped'] /= 100
         props['period'] /= 1000
         props['noise'] /= 100
-        props['threshfac'] /= 100
+        props['startendthresh'] /= 100
+        props['peakthresh'] /= 100
         props['tstart'] /= 1000
         props['tend'] /= 1000
         props['p-p-dist'] /= 1000
@@ -4457,8 +4489,8 @@ def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
                             min_sem=False, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
                             n_harm=10, min_pulse_win=0.001,
-                            thresh_fac=0.01, min_dist=50.0e-6,
-                            width_frac = 0.5, fit_frac = 0.5,
+                            start_end_thresh_fac=0.01, peak_thresh_fac=0.0025,
+                            min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
                             freq_resolution=1.0, fade_frac=0.0,
                             ipi_cv_thresh=0.5, ipi_percentile=30.0):
     """Add all parameters needed for the eod analysis functions as a new
@@ -4482,7 +4514,8 @@ def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
     cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse fish to make the first large peak positive (flip, none, or auto).')
     cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
     cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
-    cfg.add('eodPeakThresholdFactor', thresh_fac, '', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the pulse amplitude.')
+    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the p-p amplitude.')
+    cfg.add('eodStartEndThresholdFactor', start_end_thresh_fac, '', 'Threshold for for start and end time of pulse EODs as a fraction of the p-p amplitude.')
     cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
     cfg.add('eodPulseWidthFraction', 100*width_frac, '%', 'The width of a pulse is measured at this fraction of the pulse height.')
     cfg.add('eodExponentialFitFraction', 100*fit_frac, '%', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
@@ -4561,7 +4594,8 @@ def analyze_pulse_args(cfg):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
-                 'thresh_fac': 'eodPeakThresholdFactor',
+                 'start_end_thresh_fac': 'eodStartEndThresholdFactor',
+                 'peak_thresh_fac': 'eodPeakThresholdFactor',
                  'min_dist': 'eodMinimumDistance',
                  'width_frac': 'eodPulseWidthFraction',
                  'fit_frac': 'eodExponentialFitFraction',
