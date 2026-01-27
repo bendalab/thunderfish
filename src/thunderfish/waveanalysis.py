@@ -37,7 +37,7 @@ from thunderlab.tabledata import TableData
 from .harmonics import fundamental_freqs_and_power
 
 
-def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
+def waveeod_waveform(data, rate, freq, win_fac=2.0):
     """Retrieve average EOD waveform via Fourier transform.
 
     TODO: use power spectra to check minimum data segment needed and
@@ -58,9 +58,6 @@ def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
     win_fac: float
         The snippet size is the EOD period times `win_fac`. The EOD period
         is determined as the minimum interval between EOD times.
-    unfilter_cutoff: float
-        If not zero, the cutoff frequency for an inverse high-pass filter
-        applied to the mean EOD waveform.
     
     Returns
     -------
@@ -161,11 +158,6 @@ def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
     mean_eod[:, 1] = np.mean(waves, axis=0)
     mean_eod[:, 2] = np.std(waves, axis=0)
     eod_times = np.concatenate(times)
-
-    # apply inverse filter:
-    if unfilter_cutoff and unfilter_cutoff > 0.0:
-        unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
-    
     return mean_eod, eod_times
 
 

@@ -83,7 +83,7 @@ from .pulseanalysis import save_pulse_times, load_pulse_times
 
 
 def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
-                 min_sem=False, max_eods=None, unfilter_cutoff=0.0):
+                 min_sem=False, max_eods=None):
     """Extract data snippets around each EOD, and compute a mean waveform with standard error.
 
     Retrieving the EOD waveform of a wave fish works under the following
@@ -187,10 +187,6 @@ def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
     mean_eod[:, 1] = np.mean(eod_snippets, axis=0)
     if len(eod_snippets) > 1:
         mean_eod[:, 2] = np.std(eod_snippets, axis=0, ddof=1)/np.sqrt(len(eod_snippets))
-        
-    # apply inverse filter:
-    if unfilter_cutoff and unfilter_cutoff > 0.0:
-        unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
         
     # time axis:
     mean_eod[:, 0] = (np.arange(len(mean_eod)) - win_inx) / rate
@@ -2131,8 +2127,7 @@ def eod_waveform_args(cfg):
     a = cfg.map({'win_fac': 'eodSnippetFac',
                  'min_win': 'eodMinSnippet',
                  'max_eods': 'eodMaxEODs',
-                 'min_sem': 'eodMinSem', 
-                 'unfilter_cutoff': 'unfilterCutoff'})
+                 'min_sem': 'eodMinSem'})
     return a
 
 

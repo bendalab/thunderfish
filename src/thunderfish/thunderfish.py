@@ -54,7 +54,7 @@ from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .fakefish import pulsefish_spectrum
 from .eodanalysis import eod_waveform, waveeod_waveform, analyze_wave, analyze_pulse
-from .eodanalysis import clipped_fraction
+from .eodanalysis import unfilter, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_pulse_eods
 from .eodanalysis import plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import plot_pulse_spectrum, plot_wave_spectrum
@@ -309,6 +309,9 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 eod_waveform(data, rate, eod_ts, win_fac=0.8,
                              min_win=cfg.value('eodMinPulseSnippet'),
                              min_sem=False, **eod_waveform_args(cfg))
+            unfilter_cutoff = cfg.value('unfilterCutoff')
+            if unfilter_cutoff and unfilter_cutoff > 0:
+                unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
             mean_eod, props, phases, pulse, power = \
                 analyze_pulse(mean_eod, None, eod_times0, verbose=verbose-1,
                               **analyze_pulse_args(cfg))
@@ -393,10 +396,12 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
                              min_sem=(k==0), **eod_waveform_args(cfg))
             """
             mean_eod, eod_times = \
-                waveeod_waveform(data, rate, fish[0, 0], win_fac=3.0,
-                                 unfilter_cutoff=cfg.value('unfilterCutoff'))
+                waveeod_waveform(data, rate, fish[0, 0], win_fac=3.0)
             if len(mean_eod) == 0:
                 continue
+            unfilter_cutoff = cfg.value('unfilterCutoff')
+            if unfilter_cutoff and unfilter_cutoff > 0:
+                unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
             mean_eod, props, sdata, error_str = \
                 analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
             if error_str:
