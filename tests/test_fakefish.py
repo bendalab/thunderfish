@@ -59,9 +59,9 @@ def test_wavefish():
     for key in ff.wavefish_harmonics:
         ff.normalize_wavefish(key, 'peak')
         ff.normalize_wavefish(key, 'zero')
-        ff.export_wavefish(key, f'{key}_fish', sys.stdout)
+        ff.export_wavefish(key, f'{key}_fish', '', sys.stdout)
     ff.export_wavefish('Alepto', 'test_fish')
-    ff.export_wavefish('Alepto', 'test_fish', 'testfile.txt')
+    ff.export_wavefish('Alepto', '', 'test fish', 'testfile.txt')
     os.remove('testfile.txt')
 
     
@@ -107,8 +107,8 @@ def test_pulsefish():
                           80.0, rate, duration=duration)
 
     ff.export_pulsefish('Biphasic', 'test_fish')
-    ff.export_pulsefish('Triphasic', 'test_fish', 'testfile.txt')
-    ff.export_pulsefish('Monophasic', 'test_fish')
+    ff.export_pulsefish('Triphasic', 'test_fish', '', 'testfile.txt')
+    ff.export_pulsefish('Monophasic', '', 'test fish')
     time = np.random.rand(10)*2 - 0.5
     amps = np.random.rand(10)*2 - 0.5
     stdevs = np.random.rand(10)*2 - 0.5

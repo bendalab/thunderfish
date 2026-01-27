@@ -1531,15 +1531,20 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
         with open(output_basename + '.py', 'w') as f:
             name = Path(output_basename).stem
             for k in range(len((spec_data))):
+                species = eod_props[k].get('species', '')
                 if len(pulse_data[k]) > 0:
                     fish = normalize_pulsefish(pulse_data[k])
-                    export_pulsefish(fish, f'{name}-{k}_phases', f)
+                    export_pulsefish(fish, f'{name}-{k}_phases',
+                                     species, f)
+                    f.write('\n')
                 else:
                     sdata = spec_data[k]
                     if len(sdata) > 0 and sdata.shape[1] > 2:
                         fish = dict(amplitudes=sdata[:, 3], phases=sdata[:, 5])
                         fish = normalize_wavefish(fish)
-                        export_wavefish(fish, f'{name}-{k}_harmonics', f)
+                        export_wavefish(fish, f'{name}-{k}_harmonics',
+                                        species, f)
+                        f.write('\n')
     else:
         zf = None
         if zip_file:

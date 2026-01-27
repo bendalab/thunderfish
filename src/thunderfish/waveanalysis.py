@@ -867,7 +867,7 @@ def load_wave_spectrum(file_path):
 
 def main():
     from thunderlab.eventdetection import snippets
-    from .fakefish import wavefish_eods
+    from .fakefish import wavefish_eods, export_wavefish
     from .eodanalysis import plot_eod_waveform
 
     print('Analysis of wave-type EOD waveforms.')
@@ -888,6 +888,9 @@ def main():
     # analyse EOD:
     mean_eod, props, power, error_str = \
         analyze_wave(mean_eod, rate, eodf)
+
+    # write out as python code:
+    export_wavefish(power, '', 'Eigenmannia spec')
 
     # plot:
     fig, axs = plt.subplots(1, 3)

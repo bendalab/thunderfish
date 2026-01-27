@@ -88,35 +88,41 @@ musical_intervals = {
 """Name, frequency ratio, nominator, denominator, and index of musical intervals
 """
 
-# Amplitudes and phases of various wavefish species:
+# EODs of various wavefish species:
 
-Sine_harmonics = dict(amplitudes=(1.0,), phases=(0.5*np.pi,))
+Sine_harmonics = dict(amplitudes=(1.0,), phases=(0.5*np.pi,),
+                      species='Sinewave')
 
 Apteronotus_leptorhynchus_harmonics = \
     dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
-         phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885))
+         phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885),
+         species='Apteronotus leptorhynchus')
 
 Apteronotus_rostratus_harmonics = \
     dict(amplitudes=(0.64707, 0.43874, 0.063592, 0.07379, 0.040199, 0.023073,
                      0.0097678),
          phases=(2.2988, 0.78876, -1.316, 2.2416, 2.0413, 1.1022,
-                 -2.0513))
+                 -2.0513),
+         species='Apteronotus rostratus')
 
 Eigenmannia_harmonics = \
     dict(amplitudes=(1.0087, 0.23201, 0.060524, 0.020175, 0.010087, 0.0080699),
-         phases=(1.3414, 1.3228, 2.9242, 2.8157, 2.6871, -2.8415))
+         phases=(1.3414, 1.3228, 2.9242, 2.8157, 2.6871, -2.8415),
+         species='Eigenmannia')
 
 Sternarchella_terminalis_harmonics = \
     dict(amplitudes=(0.11457, 0.4401, 0.41055, 0.20132, 0.061364, 0.011389,
                      0.0057985),
          phases=(-2.7106, 2.4472, 1.6829, 0.79085, 0.119, -0.82355,
-                 -1.9956))
+                 -1.9956),
+         species='Sternarchella terminalis')
 
 Sternopygus_dariensis_harmonics = \
     dict(amplitudes=(0.98843, 0.41228, 0.047848, 0.11048, 0.022801, 0.030706,
                      0.019018),
          phases=(1.4153, 1.3141, 3.1062, -2.3961, -1.9524, 0.54321,
-                 1.6844))
+                 1.6844),
+         species='Sternopygus dariensis')
 
 wavefish_harmonics = dict(Sine=Sine_harmonics,
                           Alepto=Apteronotus_leptorhynchus_harmonics,
@@ -132,12 +138,15 @@ def wavefish_spectrum(fish):
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays
+    fish: string, dict or tuple of lists/arrays or 2-D array
         Specify relative amplitudes and phases of the fundamental and its harmonics.
         If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
         If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
         If tuple then the first element is the list of amplitudes and
         the second one the list of relative phases in radians.
+        If 2-D array, as returned from waveanalysis.analyse_wave(),
+        then take relative amplitudes from third column and phases
+        from fifth colum.
 
     Returns
     -------
@@ -153,7 +162,10 @@ def wavefish_spectrum(fish):
     IndexError:
         Amplitudes and phases differ in length.
     """
-    if isinstance(fish, (tuple, list)):
+    if isinstance(fish, np.ndarray) and fish.ndim == 2:
+        amplitudes = fish[:, 3]
+        phases = fish[:, 5]
+    elif isinstance(fish, (tuple, list)):
         amplitudes = fish[0]
         phases = fish[1]
     elif isinstance(fish, dict):
@@ -192,12 +204,15 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays
+    fish: string, dict or tuple of lists/arrays or 2-D array
         Specify relative amplitudes and phases of the fundamental and its harmonics.
         If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
         If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
         If tuple then the first element is the list of amplitudes and
         the second one the list of relative phases in radians.
+        If 2-D array, as returned from waveanalysis.analyse_wave(),
+        then take relative amplitudes from third column and phases
+        from fifth colum.
     frequency: float or array of floats
         EOD frequency of the fish in Hertz. Either fixed number or array for
         time-dependent frequencies.
@@ -251,12 +266,15 @@ def normalize_wavefish(fish, mode='peak'):
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays
+    fish: string, dict or tuple of lists/arrays or 2-D array
         Specify relative amplitudes and phases of the fundamental and its harmonics.
         If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
         If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
         If tuple then the first element is the list of amplitudes and
         the second one the list of relative phases in radians.
+        If 2-D array, as returned from waveanalysis.analyse_wave(),
+        then take relative amplitudes from third column and phases
+        from fifth colum.
     mode: 'peak' or 'zero'
         How to normalize amplitude and phases:
         - 'peak': normalize waveform to a peak-to-peak amplitude of two
@@ -297,31 +315,48 @@ def normalize_wavefish(fish, mode='peak'):
         return newamplitudes, newphases
 
 
-def export_wavefish(fish, name='Unknown_harmonics', file=None):
+def export_wavefish(fish, name='Unknown_harmonics', species='', file=None):
     """Serialize wavefish parameter to python code.
 
     Add output to the wavefish_harmonics dictionary!
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays
-        Specify relative amplitudes and phases of the fundamental and its harmonics.
-        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
-        If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+    fish: string, dict or tuple of lists/arrays or 2-D array
+        Specify relative amplitudes and phases of the fundamental and its harmonics and optional species name.
+        If string then take amplitudes, phases, and species from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes, phases, and species from the 'amlitudes', 'phases', and 'species' keys.
         If tuple then the first element is the list of amplitudes and
         the second one the list of relative phases in radians.
-    name: string
-        Name of the dictionary to be written.
-    file: string or file or None
-        File name or open file object where to write wavefish dictionary.
+        If 2-D array, as returned from waveanalysis.analyse_wave(),
+        then take relative amplitudes from third column and phases
+        from fifth colum.
+    name: str
+        Name of the dictionary to be written. If empty take species name.
+    species: str
+        Name of the fish species.
+    file: str or Path or file or None
+        File path or open file object where to write wavefish dictionary.
 
     Returns
     -------
     fish: dict
-        Dictionary with amplitudes and phases.
+        Dictionary with amplitudes, phases, and species.
     """
     # get relative amplitude and phases:
     amplitudes, phases = wavefish_spectrum(fish)
+    harmonics = dict(amplitudes=amplitudes,
+                     phases=phases)
+    # species:
+    if not species:
+        if isinstance(fish, dict):
+            species = fish.get('species', '')
+        elif isinstance(fish, str) and fish in wavefish_harmonics:
+            species = wavefish_harmonics[fish]['species']
+    # name:
+    if not name:
+        name = species
+    name = name.replace(' ', '_')
     # write out dictionary:
     if file is None:
         file = sys.stdout
@@ -337,21 +372,23 @@ def export_wavefish(fish, name='Unknown_harmonics', file=None):
     file.write(', '.join([f'{a:.5g}' for a in amplitudes[:n]]))
     for k in range(n, len(amplitudes), n):
         file.write(',\n')
-        file.write(' ' * (9+12))
-        file.write(', '.join([f'{a:.5g}' for a in amplitudes[k:k+n]]))
+        file.write(' ' * (9 + 12))
+        file.write(', '.join([f'{a:.5g}' for a in amplitudes[k:k + n]]))
     file.write('),\n')
     file.write(' ' * 9 + 'phases=(')
-    file.write(', '.join(['{p:.5g}' for p in phases[:n]]))
+    file.write(', '.join([f'{p:.5g}' for p in phases[:n]]))
     for k in range(n, len(phases), n):
         file.write(',\n')
-        file.write(' ' * (9+8))
-        file.write(', '.join([f'{p:.5g}' for p in phases[k:k+n]]))
-    file.write('))\n')
+        file.write(' ' * (9 + 8))
+        file.write(', '.join([f'{p:.5g}' for p in phases[k:k + n]]))
+    if species:
+        file.write('),\n')
+        file.write(' ' * 9 + f'species=\'{species}\')\n')
+        harmonics['species'] = species        
+    else:
+        file.write('))\n')
     if closeit:
         file.close()
-    # return dictionary:
-    harmonics = dict(amplitudes=amplitudes,
-                     phases=phases)
     return harmonics
 
 
@@ -467,22 +504,25 @@ def rises(eodf=100.0, rate=44100.0, duration=1.0, rise_freq=0.1,
     return frequency
 
 
-# Positions, amplitudes and standard deviations of EOD phases of various pulsefish species:
+# EODs of various pulsefish species:
 
 Monophasic_phases = \
     dict(times=(0,),
          amplitudes=(1,),
-         stdevs=(0.0003,))
+         stdevs=(0.0003,),
+         species='Biphasic')
 
 Biphasic_phases = \
     dict(times=(9e-05, 0.00049),
          amplitudes=(1.1922, -0.95374),
-         stdevs=(0.0003, 0.00025))
+         stdevs=(0.0003, 0.00025),
+         species='Biphasic')
 
 Triphasic_phases = \
     dict(times=(3e-05, 0.00018, 0.00043),
          amplitudes=(1.2382, -0.9906, 0.12382),
-         stdevs=(0.0001, 0.0001, 0.0002))
+         stdevs=(0.0001, 0.0001, 0.0002),
+         species='Triphasic')
 
 pulsefish_eodphases = dict(Monophasic=Monophasic_phases,
                           Biphasic=Biphasic_phases,
@@ -766,7 +806,7 @@ def normalize_pulsefish(fish):
     return phases
 
 
-def export_pulsefish(fish, name='Unknown_phases', file=None):
+def export_pulsefish(fish, name='Unknown_phases', species='', file=None):
     """Serialize pulsefish parameter to python code.
 
     Add output to the pulsefish_eodphases dictionary!
@@ -777,25 +817,41 @@ def export_pulsefish(fish, name='Unknown_phases', file=None):
         Specify positions, amplitudes, and standard deviations
         of Gaussians phases that are superimposed to simulate EOD waveforms
         of pulse-type electric fishes. 
-        If string then take positions, amplitudes and standard deviations 
-        from the `pulsefish_eodphases` dictionary.
-        If dictionary then take pulse properties from the 'times', 'amlitudes'
-        and 'stdevs' keys.
+        If string then take positions, amplitudes, standard deviations, and
+        species from the `pulsefish_eodphases` dictionary.
+        If dictionary then take pulse properties and species from the 'times',
+        'amlitudes', 'stdevs' and 'species' keys.
         If tuple then the first element is the list of phase positions,
         the second is the list of corresponding amplitudes, and
         the third one the list of corresponding standard deviations.
     name: string
-        Name of the dictionary to be written.
-    file: string or file or None
+        Name of the dictionary to be written. If empty take species name.
+    species: str
+        Name of the fish species.
+    file: str or Path or file or None
         File name or open file object where to write pulsefish dictionary.
 
     Returns
     -------
     fish: dict
-        Dictionary with phase times, amplitudes and standard deviations.
+        Dictionary with phase times, amplitudes, standard deviations and
+        species.
     """
     # get phase properties:
     phase_times, phase_amplitudes, phase_stdevs = pulsefish_phases(fish)
+    phases = dict(times=phase_times,
+                  amplitudes=phase_amplitudes,
+                  stdevs=phase_stdevs)
+    # species:
+    if not species:
+        if isinstance(fish, dict):
+            species = fish.get('species', '')
+        elif isinstance(fish, str) and fish in pulsefish_eodphases:
+            species = pulsefish_eodphases[fish]['species']
+    # name:
+    if not name:
+        name = species
+    name = name.replace(' ', '_')
     # write out dictionary:
     if file is None:
         file = sys.stdout
@@ -811,8 +867,8 @@ def export_pulsefish(fish, name='Unknown_phases', file=None):
     file.write(', '.join([f'{a:.5g}' for a in phase_times[:n]]))
     for k in range(n, len(phase_times), n):
         file.write(',\n')
-        file.write(' ' * (9+12))
-        file.write(', '.join([f'{a:.5g}' for a in phase_times[k:k+n]]))
+        file.write(' ' * (9 + 12))
+        file.write(', '.join([f'{a:.5g}' for a in phase_times[k:k + n]]))
     if len(phase_times) == 1:
         file.write(',')
     file.write('),\n')
@@ -820,26 +876,27 @@ def export_pulsefish(fish, name='Unknown_phases', file=None):
     file.write(', '.join([f'{p:.5g}' for p in phase_amplitudes[:n]]))
     for k in range(n, len(phase_amplitudes), n):
         file.write(',\n')
-        file.write(' ' * (9+8))
-        file.write(', '.join([f'{p:.5g}' for p in phase_amplitudes[k:k+n]]))
+        file.write(' ' * (9 + 8))
+        file.write(', '.join([f'{p:.5g}' for p in phase_amplitudes[k:k + n]]))
     if len(phase_amplitudes) == 1:
         file.write(',')
     file.write('),\n')
     file.write(' ' * 9 + 'stdevs=(')
-    file.write(', '.join([f'{p:.5g}' for p in phase_stdevs[:n]]))
+    file.write(', '.join([f'{s:.5g}' for s in phase_stdevs[:n]]))
     for k in range(n, len(phase_stdevs), n):
         file.write(',\n')
-        file.write(' ' * (9+8))
-        file.write(', '.join([f'{p:.5g}' for p in phase_stdevs[k:k+n]]))
+        file.write(' ' * (9 + 8))
+        file.write(', '.join([f'{s:.5g}' for s in phase_stdevs[k:k + n]]))
     if len(phase_stdevs) == 1:
         file.write(',')
-    file.write('))\n')
+    if species:
+        file.write('),\n')
+        file.write(' ' * 9 + f'species=\'{species}\')\n')
+        phases['species'] = species        
+    else:
+        file.write('))\n')
     if closeit:
         file.close()
-    # return dictionary:
-    phases = dict(times=phase_times,
-                  amplitudes=phase_amplitudes,
-                  stdevs=phase_stdevs)
     return phases
 
 

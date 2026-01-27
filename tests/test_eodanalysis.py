@@ -13,7 +13,7 @@ def test_pulsefish():
     pi, _ = detect_peaks(data, 1.0)
     mean_eod, eod_times = ea.eod_waveform(data, rate, pi/rate)
     mean_eod, props, peaks, pulses, power = \
-        ea.analyze_pulse(mean_eod, eod_times)
+        ea.analyze_pulse(mean_eod, None, eod_times)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ea.plot_pulse_spectrum(ax, power, props)
@@ -27,7 +27,7 @@ def test_wavefish():
     data = wavefish_eods('Alepto', EODf, rate, duration=10.0, noise_std=0.01)
     eod_times = np.arange(0.01, 9.95, 1.0/EODf)
     mean_eod, eod_times = ea.eod_waveform(data, rate, eod_times)
-    mean_eod, props, power, es = ea.analyze_wave(mean_eod, 800.0)
+    mean_eod, props, power, es = ea.analyze_wave(mean_eod, None, 800.0)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ea.plot_eod_waveform(ax, mean_eod, props)

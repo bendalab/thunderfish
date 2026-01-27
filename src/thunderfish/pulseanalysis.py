@@ -1971,7 +1971,7 @@ def load_pulse_times(file_path):
 
 def main():
     from thunderlab.eventdetection import snippets
-    from .fakefish import pulsefish_eods
+    from .fakefish import pulsefish_eods, export_pulsefish
     from .eodanalysis import plot_eod_waveform
 
     print('Analysis of pulse-type EOD waveforms.')
@@ -1990,6 +1990,9 @@ def main():
     # analyse EOD:
     mean_eod, props, peaks, pulses, energy = \
         analyze_pulse(mean_eod, rate, eod_times)
+
+    # write out as python code:
+    export_pulsefish(pulses, '', 'Triphasic spec')
 
     # plot:
     fig, axs = plt.subplots(1, 2)
