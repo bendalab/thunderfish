@@ -6,6 +6,10 @@ Analysis of wave-type EOD waveforms.
 - `waveeod_waveform()`: retrieve average EOD waveform via Fourier transform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 
+## Visualization
+
+- `plot_wave_spectrum()`: plot and annotate spectrum of wave EODs.
+
 ## Storage
 
 - `save_wave_eodfs()`: save frequencies of wave EODs to file.
@@ -187,17 +191,23 @@ def fourier_series(t, freq, *ap):
     return x
 
 
-def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
+def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
                  n_harmonics=3, flip_wave='none'):
     """Analyze the EOD waveform of a wave fish.
     
     Parameters
     ----------
-    eod: 2-D array
-        The eod waveform. First column is time in seconds, second
+    eod: 1-D or 2-D array
+        The eod waveform to be analyzed.
+        If an 1-D array, then this is the waveform and you
+        need to also pass a time array or sampling rate in `ratetime`.
+        If a 2-D array, then first column is time in seconds, second
         column the EOD waveform, third column, if present, is the
-        standard error of the EOD waveform, Further columns are
-        optional but not used.
+        standard error of the EOD waveform. Further columns are
+        optional and are not used.
+    ratetime: None or float or array of float
+        If a 1-D array is passed on to `eod` then either the sampling
+        rate in Hertz or the time array corresponding to `eod`.
     freq: float or 2-D array
         The frequency of the EOD or the list of harmonics (rows) with
         frequency and peak height (columns) as returned from
@@ -289,16 +299,30 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     IndexError:
         EOD data is less than one period long.
     """
-    error_str = ''
+    if eod.ndim == 2:
+        if eod.shape[1] > 2:
+            eeod = eod
+        else:
+            eeod = np.column_stack((eod, np.zeros(len(eod))))
+    else:
+        if isinstance(ratetime, (list, tuple, np.ndarray)):
+            time = ratetime
+        else:
+            time = np.arange(len(eod))/ratetime
+        eeod = np.zeros((len(eod), 3))
+        eeod[:, 0] = time
+        eeod[:, 1] = eod
+    # storage:
+    meod = np.zeros((eeod.shape[0], eeod.shape[1] + 1))
+    meod[:, :eeod.shape[1]] = eeod
+    meod[:, -1] = np.nan
     
     freq0 = freq
     if hasattr(freq, 'shape'):
         freq0 = freq[0][0]
-        
-    # storage:
-    meod = np.zeros((eod.shape[0], eod.shape[1]+1))
-    meod[:, :-1] = eod
 
+    error_str = ''
+        
     # subtract mean and flip:
     period = 1.0/freq0
     pinx = int(np.ceil(period/(meod[1,0]-meod[0,0])))
@@ -434,7 +458,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     relpeakampl = max(np.max(meod[i0:i1,1]), np.abs(np.min(meod[i0:i1,1])))/ppampl
     
     # variance and fit error:
-    rmssem = np.sqrt(np.mean(meod[i0:i1,2]**2.0))/ppampl if eod.shape[1] > 2 else None
+    rmssem = np.sqrt(np.mean(meod[i0:i1,2]**2.0))/ppampl if meod.shape[1] > 2 else None
     rmserror = np.sqrt(np.mean((meod[i0:i1,1] - meod[i0:i1,-1])**2.0))/ppampl
 
     # store results:
@@ -468,6 +492,72 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     props['maxdb'] = max_harmonics_power
     
     return meod, props, spec_data, error_str
+
+
+def plot_wave_spectrum(axa, axp, spec, props, unit=None,
+                       ampl_style=dict(ls='', marker='o', color='tab:blue', markersize=6),
+                       ampl_stem_style=dict(color='tab:blue', alpha=0.5, lw=2),
+                       phase_style=dict(ls='', marker='p', color='tab:blue', markersize=6),
+                       phase_stem_style=dict(color='tab:blue', alpha=0.5, lw=2)):
+    """Plot and annotate spectrum of wave EOD.
+
+    Parameters
+    ----------
+    axa: matplotlib axes
+        Axes for amplitude plot.
+    axp: matplotlib axes
+        Axes for phase plot.
+    spec: 2-D array
+        The amplitude spectrum of a single pulse as returned by
+        `analyze_wave()`.  First column is the index of the harmonics,
+        second column its frequency, third column its amplitude,
+        fourth column its amplitude relative to the fundamental, fifth
+        column is power of harmonics relative to fundamental in
+        decibel, and sixth column the phase shift relative to the
+        fundamental.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform as
+        returned by `analyze_wave()`.
+    unit: string
+        Optional unit of the data used for y-label.
+    ampl_style: dict
+        Properties of the markers of the amplitude plot.
+    ampl_stem_style: dict
+        Properties of the stems of the amplitude plot.
+    phase_style: dict
+        Properties of the markers of the phase plot.
+    phase_stem_style: dict
+        Properties of the stems of the phase plot.
+    """
+    n = min(9, np.sum(np.isfinite(spec[:, 2])))
+    # amplitudes:
+    markers, stemlines, _ = axa.stem(spec[:n, 0] + 1, spec[:n, 2],
+                                     basefmt='none')
+    plt.setp(markers, clip_on=False, **ampl_style)
+    plt.setp(stemlines, **ampl_stem_style)
+    axa.set_xlim(0.5, n + 0.5)
+    axa.set_ylim(bottom=0)
+    axa.xaxis.set_major_locator(plt.MultipleLocator(1))
+    axa.tick_params('x', direction='out')
+    if unit:
+        axa.set_ylabel(f'Amplitude [{unit}]')
+    else:
+        axa.set_ylabel('Amplitude')
+    # phases:
+    phases = spec[:n, 5]
+    phases[phases<0.0] = phases[phases<0.0] + 2*np.pi
+    markers, stemlines, _ = axp.stem(spec[:n, 0] + 1, phases[:n],
+                                     basefmt='none')
+    plt.setp(markers, clip_on=False, **phase_style)
+    plt.setp(stemlines, **phase_stem_style)
+    axp.set_xlim(0.5, n + 0.5)
+    axp.xaxis.set_major_locator(plt.MultipleLocator(1))
+    axp.tick_params('x', direction='out')
+    axp.set_ylim(0, 2*np.pi)
+    axp.set_yticks([0, np.pi, 2*np.pi])
+    axp.set_yticklabels(['0', '\u03c0', '2\u03c0'])
+    axp.set_xlabel('Harmonics')
+    axp.set_ylabel('Phase')
 
 
 def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
@@ -726,7 +816,8 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
 
     """
     td = TableData(spec_data[:, :6]*[1.0, 1.0, 1.0, 100.0, 1.0, 1.0],
-                   ['harmonics', 'frequency', 'amplitude', 'relampl', 'relpower', 'phase'],
+                   ['harmonics', 'frequency', 'amplitude',
+                    'relampl', 'relpower', 'phase'],
                    ['', 'Hz', unit, '%', 'dB', 'rad'],
                    ['%.0f', '%.2f', '%.6f', '%10.2f', '%6.2f', '%8.4f'])
     if spec_data.shape[1] > 6:
@@ -773,3 +864,38 @@ def load_wave_spectrum(file_path):
     spec[:, 3] *= 0.01
     return spec, data.unit('amplitude')
 
+
+def main():
+    from thunderlab.eventdetection import snippets
+    from .fakefish import wavefish_eods
+    from .eodanalysis import plot_eod_waveform
+
+    print('Analysis of wave-type EOD waveforms.')
+
+    # data:
+    eodf = 456 # Hz
+    rate = 96_000
+    tmax = 5 # s
+    data = wavefish_eods('Eigenmannia', eodf, rate, tmax, noise_std=0.02)
+    unit = 'mV'
+    eod_times = np.arange(0.5/eodf, tmax - 1/eodf, 1/eodf)
+    eod_idx = (eod_times*rate).astype(int)
+
+    # mean EOD:
+    snips = snippets(data, eod_idx, start=-300, stop=300)
+    mean_eod = np.mean(snips, 0)
+
+    # analyse EOD:
+    mean_eod, props, power, error_str = \
+        analyze_wave(mean_eod, rate, eodf)
+
+    # plot:
+    fig, axs = plt.subplots(1, 3)
+    plot_eod_waveform(axs[0], mean_eod, props, unit=unit)
+    axs[0].set_title(f'wave fish: EODf = {props["EODf"]:.1f} Hz')
+    plot_wave_spectrum(axs[1], axs[2], power, props)
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()

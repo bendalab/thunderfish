@@ -403,7 +403,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
             if unfilter_cutoff and unfilter_cutoff > 0:
                 unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
             mean_eod, props, sdata, error_str = \
-                analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
+                analyze_wave(mean_eod, None, fish, **analyze_wave_args(cfg))
             if error_str:
                 print(name + ': ' + error_str)
             clipped_frac = clipped_fraction(data, rate, eod_times,

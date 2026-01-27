@@ -3,6 +3,8 @@ Analysis of pulse-type EOD waveforms.
 
 ## Analysis of pulse-type EODs
 
+### Analysis of various pulse EOD aspects
+
 - `condition_pulse()`: subtract offset, flip, shift, and cut out pulse EOD waveform.
 - `analyze_pulse_properties()`: characterize basic properties of a pulse-type EOD.
 - `analyze_pulse_phases()`: characterize all phases of a pulse-type EOD.
@@ -11,7 +13,17 @@ Analysis of pulse-type EOD waveforms.
 - `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
 - `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
 - `analyze_pulse_intervals()`: basic statistics of interpulse intervals.
+
+### Complete analysis
+
+Calls all the functions listed above:
+
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
+
+## Visualization
+
+- `plot_pulse_eods()`: mark pulse EODs in a plot of an EOD recording.
+- `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
 
 ## Storage
 
@@ -968,7 +980,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         If a 2-D array, then first column is time in seconds, second
         column the EOD waveform, third column, if present, is the
         standard error of the EOD waveform. Further columns are
-        optional but not used.
+        optional and are not used.
     ratetime: None or float or array of float
         If a 1-D array is passed on to `eod` then either the sampling
         rate in Hertz or the time array corresponding to `eod`.
@@ -1112,13 +1124,16 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
 
     """
     if eod.ndim == 2:
-        eeod = eod
+        if eod.shape[1] > 2:
+            eeod = eod
+        else:
+            eeod = np.column_stack((eod, np.zeros(len(eod))))
     else:
         if isinstance(ratetime, (list, tuple, np.ndarray)):
             time = ratetime
         else:
-            time = np.arange(len(eod))/rate
-        eeod = np.zeros((len(eod), 2))
+            time = np.arange(len(eod))/ratetime
+        eeod = np.zeros((len(eod), 3))
         eeod[:, 0] = time
         eeod[:, 1] = eod
     # storage:
@@ -1213,7 +1228,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['max-ampl'] = max_ampl
     props['p-p-amplitude'] = pp_ampl
     props['p-p-dist'] = dist
-    if eod.shape[1] > 2:
+    if meod.shape[1] > 2:
         props['noise'] = np.mean(meod[:, 2])/pp_ampl if pp_ampl > 0 else 1
     props['rmserror'] = rmserror
     props['peakthresh'] = peak_thresh_fac
@@ -1243,6 +1258,207 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['highcutoff'] = highcutoff
     
     return meod, props, phases, pulse, eenergy
+
+
+def plot_pulse_eods(ax, data, rate, zoom_window, width, eod_props,
+                    toffs=0.0, colors=None, markers=None, marker_size=10,
+                    legend_rows=8, **kwargs):
+    """Mark pulse EODs in a plot of an EOD recording.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes used for plotting.
+    data: 1D ndarray
+        Recorded data (these are not plotted!).
+    rate: float
+        Sampling rate of the data in Hertz.
+    zoom_window: tuple of floats
+       Start and end time of the data to be plotted in seconds.
+    width: float
+       Minimum width of the data to be plotted in seconds.
+    eod_props: list of dictionaries
+            Lists of EOD properties as returned by `analyze_pulse()`
+            and `analyze_wave()`.  From the entries with 'type' ==
+            'pulse' the properties 'EODf' and 'times' are used. 'EODf'
+            is the averaged EOD frequency, and 'times' is a list of
+            detected EOD pulse times.
+    toffs: float
+        Time of first data value in seconds that will be added
+        to the pulse times in `eod_props`.
+    colors: list of colors or None
+            If not None list of colors for plotting each cluster
+    markers: list of markers or None
+            If not None list of markers for plotting each cluster
+    marker_size: float
+            Size of markers used to mark the pulses.
+    legend_rows: int
+            Maximum number of rows to be used for the legend.
+    kwargs: 
+            Key word arguments for the legend of the plot.
+    """
+    k = 0
+    for eod in eod_props:
+        if eod['type'] != 'pulse':
+            continue
+        if 'times' not in eod:
+            continue
+
+        width = np.min([width, np.diff(zoom_window)[0]])
+        while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
+            width *= 2
+            if zoom_window[1] - width < 0:
+                width = width/2
+                break  
+
+        x = eod['peaktimes'] + toffs
+        pidx = np.round(eod['peaktimes']*rate).astype(int)
+        y = data[pidx[(pidx>0)&(pidx<len(data))]]
+        x = x[(pidx>0)&(pidx<len(data))]
+        color_kwargs = {}
+        #if colors is not None:
+        #    color_kwargs['color'] = colors[k%len(colors)]
+        if marker_size is not None:
+            color_kwargs['ms'] = marker_size
+        label = '%6.1f Hz' % eod['EODf']
+        if legend_rows > 5 and k >= legend_rows:
+            label = None
+        if markers is None:
+            ax.plot(x, y, 'o', label=label, zorder=-1, **color_kwargs)
+        else:
+            ax.plot(x, y, linestyle='none', label=label,
+                    marker=markers[k%len(markers)], mec=None, mew=0.0,
+                    zorder=-1, **color_kwargs)
+        k += 1
+
+    # legend:
+    if k > 1:
+        if legend_rows > 0:
+            if legend_rows > 5:
+                ncol = 1
+            else:
+                ncol = (len(idx)-1) // legend_rows + 1
+            ax.legend(numpoints=1, ncol=ncol, **kwargs)
+        else:
+            ax.legend(numpoints=1, **kwargs)
+
+    # reset window so at least one EOD of each cluster is visible    
+    if len(zoom_window)>0:
+        ax.set_xlim(max(toffs,toffs+zoom_window[1]-width), toffs+zoom_window[1])
+
+        i0 = max(0,int((zoom_window[1]-width)*rate))
+        i1 = int(zoom_window[1]*rate)
+
+        ymin = np.min(data[i0:i1])
+        ymax = np.max(data[i0:i1])
+        dy = ymax - ymin
+        ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
+
+
+def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
+                        min_db = -60,
+                        spec_style=dict(lw=3, color='tab:blue'),
+                        analytic_style=dict(lw=4, color='tab:cyan'),
+                        peak_style=dict(ls='', marker='o', markersize=6,
+                                        color='tab:blue', mec='none', mew=0,
+                                        alpha=0.4),
+                        cutoff_style=dict(lw=1, ls='-', color='0.5'),
+                        att5_color='0.8', att50_color='0.9',
+                        fontsize='medium'):
+    """Plot and annotate spectrum of single pulse EOD.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes used for plotting.
+    energy: 2-D array
+        The energy spectrum of a single pulse as returned by `analyze_pulse()`.
+        First column are the frequencies, second column the energy.
+        An optional third column is an analytically computed spectrum.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform as
+        returned by `analyze_pulse()`.
+    min_freq: float
+        Minimun frequency of the spectrum to be plotted (logscale!).
+    max_freq: float
+        Maximun frequency of the spectrum to be plotted (logscale!).
+    min_db: float
+        Minimum decibel level shown.
+    spec_style: dict
+        Arguments passed on to the plot command for the energy spectrum
+        computed from the data.
+    analytic_style: dict
+        Arguments passed on to the plot command for the energy spectrum
+        that was analytically computed from the Gaussian fits
+        (optional third column in `energy`).
+    peak_style: dict
+        Arguments passed on to the plot commands for marking the peak
+        and trough frequency.
+    cutoff_style: dict
+        Arguments passed on to the plot command for the lines marking
+        cutoff frequencies.
+    att5_color: matplotlib color specification
+        Color for the rectangular patch marking the first 5 Hz.
+    att50_color: matplotlib color specification
+        Color for the rectangular patch marking the first 50 Hz.
+    fontsize: str or float or int
+        Fontsize for annotation text.
+    """
+    ax.axvspan(1, 50, color=att50_color, zorder=-20)
+    att = props['energyatt50']
+    if att < -10:
+        y = att + 1
+        if y < min_db:
+            y = min_db + 2
+        ax.text(10, y, f'{att:.0f}dB',
+                ha='left', va='bottom', zorder=100, fontsize=fontsize)
+    else:
+        ax.text(10, att - 1, f'{att:.0f}dB',
+                ha='left', va='top', zorder=100, fontsize=fontsize)
+    ax.axvspan(1, 5, color=att5_color, zorder=-10)
+    att = props['energyatt5']
+    if att < -10:
+        y = att + 1
+        if y < min_db:
+            y = min_db + 2
+        ax.text(4, y, f'{att:.0f}dB',
+                ha='right', va='bottom', zorder=100, fontsize=fontsize)
+    else:
+        ax.text(4, att - 1, f'{att:.0f}dB',
+                ha='right', va='top', zorder=100, fontsize=fontsize)
+    lowcutoff = props['lowcutoff']
+    if lowcutoff >= min_freq:
+        ax.plot([lowcutoff, lowcutoff, 1], [min_db, 0.5*att, 0.5*att],
+                zorder=30, **cutoff_style)
+        ax.text(1.2*lowcutoff, 0.5*att - 1, f'{lowcutoff:.0f}Hz',
+                ha='left', va='top', zorder=100, fontsize=fontsize)
+    highcutoff = props['highcutoff']
+    ax.plot([highcutoff, highcutoff], [min_db, -3], zorder=30, **cutoff_style)
+    ax.text(1.2*highcutoff, -3, f'{highcutoff:.0f}Hz',
+            ha='left', va='center', zorder=100, fontsize=fontsize)
+    ref_energy = np.max(energy[:, 1])
+    if energy.shape[1] > 2 and np.all(np.isfinite(energy[:, 2])) and len(analytic_style) > 0:
+        db = decibel(energy[:, 2], ref_energy)
+        ax.plot(energy[:, 0], db, zorder=45, **analytic_style)
+    db = decibel(energy[:, 1], ref_energy)
+    ax.plot(energy[:, 0], db, zorder=50, **spec_style)
+    peakfreq = props['peakfreq']
+    if peakfreq >= min_freq:
+        ax.plot(peakfreq, 0, zorder=60, clip_on=False, **peak_style)
+        ax.text(peakfreq*1.2, 1, f'{peakfreq:.0f}Hz',
+                va='bottom', zorder=100, fontsize=fontsize)
+    troughfreq = props['troughfreq']
+    if troughfreq >= min_freq:
+        troughenergy = decibel(props['troughenergy'], ref_energy)
+        ax.plot(troughfreq, troughenergy, zorder=60, **peak_style)
+        ax.text(troughfreq, troughenergy - 3,
+                f'{troughenergy:.0f}dB @ {troughfreq:.0f}Hz',
+                ha='center', va='top', zorder=100, fontsize=fontsize)
+    ax.set_xlim(min_freq, max_freq)
+    ax.set_xscale('log')
+    ax.set_ylim(min_db, 2)
+    ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('Energy [dB]')
 
 
 def save_pulse_fish(eod_props, unit, basename, **kwargs):
@@ -1752,3 +1968,36 @@ def load_pulse_times(file_path):
     pulse_times = data.array()[:, 0]
     return pulse_times
 
+
+def main():
+    from thunderlab.eventdetection import snippets
+    from .fakefish import pulsefish_eods
+    from .eodanalysis import plot_eod_waveform
+
+    print('Analysis of pulse-type EOD waveforms.')
+
+    # data:
+    rate = 96_000
+    data = pulsefish_eods('Triphasic', 83.0, rate, 5.0, noise_std=0.02)
+    unit = 'mV'
+    eod_idx, _ = detect_peaks(data, 1.0)
+    eod_times = eod_idx/rate
+
+    # mean EOD:
+    snips = snippets(data, eod_idx, start=-300, stop=300)
+    mean_eod = np.mean(snips, 0)
+
+    # analyse EOD:
+    mean_eod, props, peaks, pulses, energy = \
+        analyze_pulse(mean_eod, rate, eod_times)
+
+    # plot:
+    fig, axs = plt.subplots(1, 2)
+    plot_eod_waveform(axs[0], mean_eod, props, peaks, unit=unit)
+    axs[0].set_title(f'pulse fish: EODf = {props["EODf"]:.1f} Hz')
+    plot_pulse_spectrum(axs[1], energy, props)
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
