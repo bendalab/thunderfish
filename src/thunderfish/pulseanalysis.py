@@ -31,6 +31,8 @@ Analysis of pulse-type EOD waveforms.
 - `gaussian_sum()`: sum of Gaussians.
 - `gaussian_sum_spectrum()`: energy spectrum of sum of Gaussians.
 - `gaussian_sum_costs()`: cost function for fitting sum of Gaussians.
+- `exp_decay()`: exponential decay.
+
 """
 
 import numpy as np
@@ -637,6 +639,32 @@ def decompose_pulse(eod, freqs, energy, phases, width_frac=0.5, verbose=0):
     stdevs = np.asarray(tas[2::3])
     pulse = dict(times=times, amplitudes=ampls, stdevs=stdevs)
     return pulse
+
+
+def exp_decay(t, tau, ampl, offs):
+    """Exponential decay function.
+
+    x(t) = ampl*exp(-t/tau) + offs
+
+    Parameters
+    ----------
+    t: float or array
+        Time.
+    tau: float
+        Time constant of exponential decay.
+    ampl: float
+        Amplitude of exponential decay, i.e. initial value minus
+        steady-state value.
+    offs: float
+        Steady-state value.
+    
+    Returns
+    -------
+    x: float or array
+        The exponential decay evaluated at times `t`.
+
+    """
+    return offs + ampl*np.exp(-t/tau)
 
             
 def analyze_pulse_tail(peak_index, eod, ratetime=None,
