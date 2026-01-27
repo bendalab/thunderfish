@@ -11,18 +11,6 @@ Analysis of EOD waveforms.
 - `waveeod_waveform()`: retrieve average EOD waveform via Fourier transform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 
-## Analysis of pulse-type EODs
-
-- `condition_pulse()`: subtract offset, flip, shift, and cut out pulse EOD waveform.
-- `analyze_pulse_properties()`: characterize basic properties of a pulse-type EOD.
-- `analyze_pulse_phases()`: characterize all phases of a pulse-type EOD.
-- `decompose_pulse()`: decompose single pulse waveform into sum of Gaussians.
-- `analyze_pulse_tail()`: fit exponential to last peak/trough of pulse EOD.
-- `pulse_spectrum()`: compute the spectrum of a single pulse-type EOD.
-- `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
-- `analyze_pulse_intervals()`: basic statistics of interpulse intervals.
-- `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
-
 ## Similarity of EOD waveforms
 
 - `wave_similarity()`: root-mean squared difference between two wave fish EODs.
@@ -52,18 +40,8 @@ Analysis of EOD waveforms.
 - `load_wave_eodfs()`: load frequencies of wave EODs from file.
 - `save_wave_fish()`: save properties of wave EODs to file.
 - `load_wave_fish()`: load properties of wave EODs from file.
-- `save_pulse_fish()`: save properties of pulse EODs to file.
-- `load_pulse_fish()`: load properties of pulse EODs from file.
 - `save_wave_spectrum()`: save amplitude and phase spectrum of wave EOD to file.
 - `load_wave_spectrum()`: load amplitude and phase spectrum of wave EOD from file.
-- `save_pulse_spectrum()`: save spectrum of pulse EOD to file.
-- `load_pulse_spectrum()`: load spectrum of pulse EOD from file.
-- `save_pulse_phases()`: save phase properties of pulse EOD to file.
-- `load_pulse_phases()`: load phase properties of pulse EOD from file.
-- `save_pulse_gaussians()`: save Gaussian phase properties of pulse EOD to file.
-- `load_pulse_gaussians()`: load Gaussian phase properties of pulse EOD from file.
-- `save_pulse_times()`: save times of pulse EOD to file.
-- `load_pulse_times()`: load times of pulse EOD from file.
 - `parse_filename()`: parse components of an EOD analysis file name.
 - `save_analysis(): save EOD analysis results to files.
 - `load_analysis()`: load EOD analysis files.
@@ -73,9 +51,6 @@ Analysis of EOD waveforms.
 
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
 - `exp_decay()`: exponential decay.
-- `gaussian_sum()`: sum of Gaussians.
-- `gaussian_sum_spectrum()`: energy spectrum of sum of Gaussians.
-- `gaussian_sum_costs()`: cost function for fitting sum of Gaussians.
 
 ## Filter functions
 
