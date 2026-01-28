@@ -1062,16 +1062,20 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                 if ty < -0.5*ylim:
                     quadrants[1, 0] += 1
             texts.append(ta)
-            if quadrants[0, 0] == 0:
-                quadrants[0, 0] += np.max(left_eod[time[:i0] < 0.1*xlim_l]) > 0.5*ylim
-            if quadrants[1, 0] == 0:
-                quadrants[1, 0] += np.min(left_eod[time[:i0] < 0.1*xlim_l]) < -0.5*ylim
+            left_snip = left_eod[time[:i0] < 0.1*xlim_l]
+            if len(left_snip) > 0:
+                if quadrants[0, 0] == 0:
+                    quadrants[0, 0] += np.max(left_snip) > 0.5*ylim
+                if quadrants[1, 0] == 0:
+                    quadrants[1, 0] += np.min(left_snip) < -0.5*ylim
         i1 = len(eod) - np.argmax(np.abs(eod[::-1]) > mag_thresh)
         right_eod = magnification_factor*eod[i1:]
         magnification_mask[i1:] = True
         ax.plot(time[i1:], right_eod, zorder=40, **magnified_style)
-        quadrants[0, 1] += np.max(right_eod[time[i1:] > 0.4*xlim_r]) > 0.5*ylim
-        quadrants[1, 1] += np.min(right_eod[time[i1:] > 0.4*xlim_r]) < -0.5*ylim
+        right_snip = right_eod[time[i1:] > 0.4*xlim_r]
+        if len(right_snip) > 0:
+            quadrants[0, 1] += np.max(right_snip) > 0.5*ylim
+            quadrants[1, 1] += np.min(right_snip) < -0.5*ylim
     # annotate time constant fit:
     tau = None if props is None else props.get('tau', None)
     if tau is not None and eod_waveform.shape[1] > 4:
