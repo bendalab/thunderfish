@@ -50,6 +50,7 @@ Documentation = "https://bendalab.github.io/thunderfish"
 
 [project.scripts]
 thunderfish   = "thunderfish.thunderfish:main"
+audianthunder   = "thunderfish.audianthunder:main"
 thunderlogger = "thunderfish.thunderlogger:main"
 fishfinder    = "thunderfish.fishfinder:main"
 collectfish   = "thunderfish.collectfish:main"
