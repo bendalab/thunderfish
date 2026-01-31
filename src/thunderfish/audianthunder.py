@@ -19,7 +19,8 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout, QWidget, QTabWidget
+from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QTabWidget, QToolBar, QAction, QStyle
 
 from .thunderfish import configuration, detect_eods
 from .eodanalysis import plot_eod_waveform
@@ -31,7 +32,73 @@ class ThunderfishAnalyzer(Analyzer):
     def __init__(self, browser, source_name):
         super().__init__(browser, 'thunderfish', source_name)
         self.dialog = None
+        self.navis = []
 
+
+    def home(self):
+        for n in self.navis:
+            n.home()
+            
+
+    def back(self):
+        for n in self.navis:
+            n.back()
+            
+
+    def forward(self):
+        for n in self.navis:
+            n.forward()
+            
+
+    def zoom(self):
+        for n in self.navis:
+            n.zoom()
+            
+
+    def pan(self):
+        for n in self.navis:
+            n.pan()
+
+
+    def setup_toolbar(self):
+        tools = QToolBar(self.dialog)
+        act = QAction('&Home', self.dialog)
+        act.setIcon(self.dialog.style().standardIcon(QStyle.SP_DirHomeIcon))
+        act.setToolTip('Reset zoom (h, Home)')
+        act.setShortcuts(['h', 'r', Qt.Key_Home])
+        act.triggered.connect(self.home)
+        tools.addAction(act)
+        
+        act = QAction('&Back', self.dialog)
+        act.setIcon(self.dialog.style().standardIcon(QStyle.SP_ArrowBack))
+        act.setToolTip('Zoom backward (c)')
+        act.setShortcuts(['c', Qt.Key_Backspace])
+        act.triggered.connect(self.back)
+        tools.addAction(act)
+
+        act = QAction('&Forward', self.dialog)
+        act.setIcon(self.dialog.style().standardIcon(QStyle.SP_ArrowForward))
+        act.setToolTip('Zoom forward (v)')
+        act.setShortcuts(['v'])
+        act.triggered.connect(self.forward)
+        tools.addAction(act)
+
+        act = QAction('&Zoom', self.dialog)
+        #act.setIcon(self.dialog.style().standardIcon(QStyle.SP_TitleBarMaxButton))
+        act.setToolTip('Rectangular zoom (o)')
+        act.setShortcuts(['o'])
+        act.triggered.connect(self.zoom)
+        tools.addAction(act)
+        
+        act = QAction('&Pan', self.dialog)
+        #act.setIcon(self.dialog.style().standardIcon(QStyle.SP_DirHomeIcon))
+        act.setToolTip('Pan and zoom (p)')
+        act.setShortcuts(['p'])
+        act.triggered.connect(self.pan)
+        tools.addAction(act)
+
+        return tools
+            
         
     def analyze(self, t0, t1, channel, traces):
         time, data = traces[self.source_name]
@@ -48,28 +115,23 @@ class ThunderfishAnalyzer(Analyzer):
         QShortcut('q', self.dialog).activated.connect(self.dialog.accept)
         QShortcut('Ctrl+Q', self.dialog).activated.connect(self.dialog.accept)
 
-        vbox = QVBoxLayout(self.dialog)
         tabs = QTabWidget(self.dialog)
         tabs.setDocumentMode(True)
         tabs.setMovable(True)
         tabs.setTabBarAutoHide(False)
         tabs.setTabsClosable(False)
+        tools = self.setup_toolbar()
+        vbox = QVBoxLayout(self.dialog)
         vbox.addWidget(tabs)
+        vbox.addWidget(tools)
+        
         # plot:
         for k in range(len(eod_props)):
             w = QWidget(self.dialog)
             canvas = FigureCanvas(Figure(figsize=(10, 5), layout='constrained'))
             navi = NavigationToolbar(canvas, w)
-            QShortcut('h', w).activated.connect(navi.home)
-            QShortcut('r', w).activated.connect(navi.home)
-            QShortcut(Qt.Key_Home, w).activated.connect(navi.home)
-            QShortcut('c', w).activated.connect(navi.back)
-            QShortcut(Qt.Key_Backspace, w).activated.connect(navi.back)
-            QShortcut('v', w).activated.connect(navi.forward)
-            QShortcut('o', w).activated.connect(navi.zoom)
-            QShortcut('p', w).activated.connect(navi.pan)
-            QShortcut('s', w).activated.connect(navi.save_figure)
-            QShortcut('Ctrl+S', w).activated.connect(navi.save_figure)
+            navi.hide()
+            self.navis.append(navi)
             vbox = QVBoxLayout(w)
             vbox.addWidget(canvas)
             vbox.addWidget(navi)
