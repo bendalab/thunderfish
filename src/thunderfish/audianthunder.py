@@ -2,16 +2,24 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
+try:
+    from audian.audian import audian_cli
+    from audian.plugins import Plugins
+    from audian.analyzer import Analyzer
+except ImportError:
+    print()
+    print('ERROR: You need to install audian (https://github.com/bendalab/audian):')
+    print()
+    print('pip install audian')
+    print()
+    sys.exit(1)
+
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout, QWidget, QTabWidget
-
-from audian.audian import audian_cli
-from audian.plugins import Plugins
-from audian.analyzer import Analyzer
 
 from .thunderfish import configuration, detect_eods
 from .eodanalysis import plot_eod_waveform
@@ -35,7 +43,7 @@ class ThunderfishAnalyzer(Analyzer):
           detect_eods(data, rate, min_clip=-1, max_clip=1, name='test', mode='wp',
                       verbose=1, plot_level=0, cfg=cfg)
         # dialog:
-        self.dialog = QDialog()
+        self.dialog = QDialog(self.browser)
         self.dialog.finished.connect(lambda x: [None for self.dialog in [None]])
         QShortcut('q', self.dialog).activated.connect(self.dialog.accept)
         QShortcut('Ctrl+Q', self.dialog).activated.connect(self.dialog.accept)
@@ -72,7 +80,7 @@ class ThunderfishAnalyzer(Analyzer):
                               unit='')
             if eod_props[k]['type'] == 'wave':
                 axa = canvas.figure.add_subplot(gs[0, 1])
-                axp = canvas.figure.add_subplot(gs[1, 1])
+                axp = canvas.figure.add_subplot(gs[1, 1], sharex=axa)
                 plot_wave_spectrum(axa, axp, spec_data[k], eod_props[k])
             else:
                 axs = canvas.figure.add_subplot(gs[:, 1])
