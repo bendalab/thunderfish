@@ -20,13 +20,16 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout
+from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout, QSizePolicy
 from PyQt5.QtWidgets import QWidget, QTabWidget, QToolBar, QAction, QStyle
 
+from thunderlab.powerspectrum import plot_decibel_psd, multi_psd
 from .thunderfish import configuration, detect_eods
-from .thunderfish import eod_styles, snippet_style
+from .thunderfish import rec_style, spectrum_style, eod_styles, snippet_style
 from .thunderfish import wave_spec_styles, pulse_spec_styles
 from .bestwindow import clip_args, clip_amplitudes
+from .harmonics import colors_markers, plot_harmonic_groups
+from .eodanalysis import plot_eod_recording, plot_pulse_eods
 from .eodanalysis import plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import plot_wave_spectrum, plot_pulse_spectrum
 
@@ -42,6 +45,10 @@ class ThunderfishAnalyzer(Analyzer):
         self.cfg = configuration()
         self.cfg.load_files(cfgfile, browser.data.file_path, 4)
         self.cfg.set('unwrapData', browser.data.data.unwrap)
+        self.pulse_colors, self.pulse_markers = colors_markers()
+        self.pulse_colors = self.pulse_colors[3:]
+        self.pulse_markers = self.pulse_markers[3:]
+        self.wave_colors, self.wave_markers = colors_markers()
 
 
     def home(self):
@@ -129,28 +136,82 @@ class ThunderfishAnalyzer(Analyzer):
         QShortcut('Ctrl+Q', self.dialog).activated.connect(self.dialog.accept)
 
         tabs = QTabWidget(self.dialog)
-        tabs.setDocumentMode(True)
-        tabs.setMovable(True)
-        tabs.setTabBarAutoHide(False)
-        tabs.setTabsClosable(False)
+        canvas = FigureCanvas(Figure(figsize=(10, 5), layout='constrained'))
+        canvas.setMinimumHeight(canvas.sizeHint().height()//2)
+        canvas.setSizePolicy(QSizePolicy(QSizePolicy.Preferred,
+                                         QSizePolicy.Preferred))
+        navi = NavigationToolbar(canvas, self.dialog)
+        navi.hide()
+        self.navis.append(navi)
+        tabs.addTab(canvas, 'trace')
+        ax = canvas.figure.subplots()
+        twidth = 0.1
+        if len(eod_props) > 0:
+            if eod_props[0]['type'] == 'wave':
+                twidth = 5.0/eod_props[0]['EODf']
+            else:
+                if len(wave_eodfs) > 0:
+                    twidth = 3.0/eod_props[0]['EODf']
+                else:
+                    twidth = 10.0/eod_props[0]['EODf']
+        twidth = (1+twidth//0.005)*0.005
+        plot_eod_recording(ax, data, rate, self.source.unit,
+                           twidth, time[0], rec_style)
+        zoom_window = [1.2, 1.3]
+        plot_pulse_eods(ax, data, rate, zoom_window,
+                        twidth, eod_props, time[0],
+                        colors=self.pulse_colors,
+                        markers=self.pulse_markers,
+                        frameon=True, loc='upper right')
+        if ax.get_legend() is not None:
+            ax.get_legend().get_frame().set_color('white')
+
+        canvas = FigureCanvas(Figure(figsize=(10, 5), layout='constrained'))
+        canvas.setMinimumHeight(canvas.sizeHint().height()//2)
+        canvas.setSizePolicy(QSizePolicy(QSizePolicy.Preferred,
+                                         QSizePolicy.Preferred))
+        navi = NavigationToolbar(canvas, self.dialog)
+        navi.hide()
+        self.navis.append(navi)
+        tabs.addTab(canvas, 'spectrum')
+        ax = canvas.figure.subplots()
+        if len(wave_eodfs) > 0:
+            plot_harmonic_groups(ax, wave_eodfs, wave_indices, max_groups=0,
+                                 skip_bad=True,
+                                 sort_by_freq=True, label_power=True,
+                                 colors=self.wave_colors,
+                                 markers=self.wave_markers,
+                                 frameon=False, loc='upper right')
+        psd_data = multi_psd(data, rate,
+                             1.1*eod_props[0]['dfreq'])[0]
+        plot_decibel_psd(ax, psd_data[:, 0], psd_data[:, 1],
+                         log_freq=False, min_freq=0, max_freq=3000,
+                         ymarg=5.0, sstyle=spectrum_style)
+        ax.yaxis.set_major_locator(plt.MaxNLocator(6))
+            
+        eod_tabs = QTabWidget(self.dialog)
+        eod_tabs.setDocumentMode(True)
+        eod_tabs.setMovable(True)
+        eod_tabs.setTabBarAutoHide(False)
+        eod_tabs.setTabsClosable(False)
         tools = self.setup_toolbar()
         vbox = QVBoxLayout(self.dialog)
         vbox.addWidget(tabs)
+        vbox.addWidget(eod_tabs)
         vbox.addWidget(tools)
         
         # plot:
         for k in range(len(eod_props)):
             props = eod_props[k]
             n_snippets = 10
-            w = QWidget(self.dialog)
             canvas = FigureCanvas(Figure(figsize=(10, 5), layout='constrained'))
-            navi = NavigationToolbar(canvas, w)
+            canvas.setMinimumHeight(canvas.sizeHint().height()//2)
+            canvas.setSizePolicy(QSizePolicy(QSizePolicy.Preferred,
+                                             QSizePolicy.Preferred))
+            navi = NavigationToolbar(canvas, self.dialog)
             navi.hide()
             self.navis.append(navi)
-            vbox = QVBoxLayout(w)
-            vbox.addWidget(canvas)
-            vbox.addWidget(navi)
-            tabs.addTab(w, f'EODf={eod_props[k]['EODf']:.0f}Hz')
+            eod_tabs.addTab(canvas, f'EODf={eod_props[k]['EODf']:.0f}Hz')
             gs = canvas.figure.add_gridspec(2, 2)
             axe = canvas.figure.add_subplot(gs[:, 0])
             plot_eod_waveform(axe, mean_eods[k], eod_props[k], phase_data[k],
