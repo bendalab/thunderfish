@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" /><meta name="author" content="Benda-Lab" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>thunderfish</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Home";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> thunderfish
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#software">Software</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#various-viewers">Various viewers</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#data">Data</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#algorithms">Algorithms</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#inputoutput">Input/output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#eod-analysis">EOD analysis</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#eod-simulations">EOD simulations</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="thunderfish/">thunderfish</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="collectfish/">collectfish</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="eodexplorer/">eodexplorer</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Algorithms</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="pulses/">Pulse-fish EODs</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Code</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="" href="api/index.html">API reference</a>
+                  </li>
+                  <li class="toctree-l1"><a class="" href="cover/index.html">Coverage</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">thunderfish</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Home</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <p><a href="https://github.com/bendalab/thunderfish/blob/master/LICENSE"><img alt="license" src="https://img.shields.io/pypi/l/thunderfish.svg" /></a>
+<a href="https://github.com/bendalab/thunderfish/actions"><img alt="tests" src="https://github.com/bendalab/thunderfish/workflows/tests/badge.svg?dummy=42" /></a>
+<a href="https://bendalab.github.io/thunderfish/cover"><img alt="codecov" src="https://bendalab.github.io/thunderfish/coverage.svg?dummy=42" /></a>
+<a href="https://pypi.python.org/pypi/thunderfish/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/thunderfish.svg" /></a>
+<img alt="downloads" src="https://img.shields.io/pypi/dm/thunderfish.svg" />
+<a href="https://github.com/bendalab/thunderfish/graphs/contributors"><img alt="contributors" src="https://img.shields.io/github/contributors/bendalab/thunderfish" /></a>
+<a href="https://github.com/bendalab/thunderfish/pulse"><img alt="commits" src="https://img.shields.io/github/commit-activity/m/bendalab/thunderfish" /></a></p>
+<!--
+![python](https://img.shields.io/pypi/pyversions/thunderfish.svg)
+![issues open](https://img.shields.io/github/issues/bendalab/thunderfish.svg)
+![issues closed](https://img.shields.io/github/issues-closed/bendalab/thunderfish.svg)
+![pullrequests open](https://img.shields.io/github/issues-pr/bendalab/thunderfish.svg)
+![pullrequests closed](https://img.shields.io/github/issues-pr-closed/bendalab/thunderfish.svg)
+-->
+
+<h1 id="thunderfish">ThunderFish</h1>
+<p>Algorithms and programs for analysing electric field recordings of
+weakly electric fish.</p>
+<p>Weakly electric fish generate an electric organ discharge (EOD).  In
+wave-type fish the EOD resembles a sinewave of a specific frequency
+and with higher harmonics. In pulse-type fish EODs have a distinct
+waveform and are separated in time. The thunderfish package provides
+algorithms and tools for analysing both wavefish and pulsefish EODs.</p>
+<p><img alt="thunderfish" src="img/Apteronotus-Fishfinder-Panama-RioCanita-2014-05-17-L13-c0.png" /></p>
+<h2 id="installation">Installation</h2>
+<p>ThunderFish is available from
+<a href="https://pypi.org/project/thunderfish/">PyPi</a>. Simply run:</p>
+<pre><code>pip install thunderfish
+</code></pre>
+<p>This should also install:
+- <a href="https://github.com/bendalab/thunderlab">ThunderLab</a>
+- <a href="https://github.com/bendalab/audioio">AudioIO</a></p>
+<h2 id="software">Software</h2>
+<p>The thunderfish package provides the following software:</p>
+<ul>
+<li><a href="https://bendalab.github.io/thunderfish/thunderfish/"><code>thunderfish</code></a>: Detect, analyze, and plot all EOD waveforms in short recordings. Simply run
+  ```sh<blockquote>
+<p>thunderfish data/Apteronotus-Fishfinder-Panama-RioCanita-2014-05-17-L13.wav
+  ```
+  To produce the image shown above. <a href="https://bendalab.github.io/thunderfish/thunderfish/">Read more</a></p>
+</blockquote>
+</li>
+<li><a href="https://bendalab.github.io/thunderfish/collectfish/"><code>collectfish</code></a>: Collect data generated by <a href="https://bendalab.github.io/thunderfish/thunderfish/"><code>thunderfish</code></a>.</li>
+<li><a href="https://bendalab.github.io/thunderfish/eodexplorer/"><code>eodexplorer</code></a>: View and explore properties of EOD waveforms.</li>
+<li><code>audianthunder</code>: <a href="https://bendalab.github.io/audian">audian</a> with thunderfish integrated as analysis tool.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/thunderlogger/"><code>thunderlogger</code></a>: Extract EOD waveforms from logger recordings.</li>
+</ul>
+<h3 id="various-viewers">Various viewers</h3>
+<p>They will eventually be replaced by some plugins for
+<a href="https://github.com/bendalab/audian">audian</a>.</p>
+<ul>
+<li><a href="https://bendalab.github.io/thunderfish/fishfinder/"><code>fishfinder</code></a>: Browse EOD recordings and detect EOD frequencyies on the fly.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/thunderbrowse/"><code>thunderbrowse</code></a>: Browse multi-channel EOD recordings.</li>
+</ul>
+<h2 id="data">Data</h2>
+<p>In <code>data/</code>you find a view recordings on which you can run thunderfish
+software.</p>
+<p>You find more fishfinder recordings for rigorous testing in the
+<a href="https://github.com/bendalab/pulseeods">pulseeods</a> repository that has
+been assembled by Liz Weerdmeester.</p>
+<h2 id="algorithms">Algorithms</h2>
+<p>The following modules provide the algorithms for analyzing EOD recordings.
+Look into the modules for more information.</p>
+<h3 id="inputoutput">Input/output</h3>
+<ul>
+<li><a href="https://bendalab.github.io/thunderfish/api/hopkinsloader.html"><code>hopkinsloader</code></a>: Load EODs from Hopkins files.</li>
+</ul>
+<h3 id="eod-analysis">EOD analysis</h3>
+<ul>
+<li><a href="https://bendalab.github.io/thunderfish/api/bestwindow.html"><code>bestwindow</code></a>: Select the region within a recording with the most stable signal of largest amplitude that is not clipped.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/checkpulse.html"><code>checkpulse</code></a>: Check whether a pulse-type or a wave-type weakly electric fish is present in a recording.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/consistentfishes.html"><code>consistentfishes</code></a>: Create a list of EOD frequencies with fishes present in all provided fish lists.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/eodanalysis.html"><code>eodanalysis</code></a>: Analyse EOD waveforms.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/harmonics.html"><code>harmonics</code></a>: Extract and analyze harmonic frequencies from power spectra.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/pulses.html"><code>pulses</code></a>: Extract and cluster EOD waverforms of pulse-type electric fish.</li>
+</ul>
+<h3 id="eod-simulations">EOD simulations</h3>
+<ul>
+<li><a href="https://bendalab.github.io/thunderfish/api/fakefish.html"><code>fakefish</code></a>: Simulate EOD waveforms.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/efield.html"><code>efield</code></a>: Simulations of spatial electric fields.</li>
+<li><a href="https://bendalab.github.io/thunderfish/api/fishshapes.html"><code>fishshapes</code></a>: Manipulate and plot fish outlines.</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="thunderfish/" class="btn btn-neutral float-right" title="thunderfish">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/bendalab/thunderfish/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+      <span><a href="thunderfish/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+      <script src="search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.6.1
+Build Date UTC : 2026-02-01 22:30:38.117242+00:00
+-->
