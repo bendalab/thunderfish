@@ -150,11 +150,12 @@ class ThunderfishAnalyzer(Analyzer):
             gs = canvas.figure.add_gridspec(2, 2)
             axe = canvas.figure.add_subplot(gs[:, 0])
             plot_eod_waveform(axe, mean_eods[k], eod_props[k], phase_data[k],
-                              unit='')
+                              unit=self.source.unit)
             if eod_props[k]['type'] == 'wave':
                 axa = canvas.figure.add_subplot(gs[0, 1])
                 axp = canvas.figure.add_subplot(gs[1, 1], sharex=axa)
-                plot_wave_spectrum(axa, axp, spec_data[k], eod_props[k])
+                plot_wave_spectrum(axa, axp, spec_data[k], eod_props[k],
+                                   unit=self.source.unit)
             else:
                 axs = canvas.figure.add_subplot(gs[:, 1])
                 plot_pulse_spectrum(axs, spec_data[k], eod_props[k])
