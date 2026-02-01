@@ -14,6 +14,7 @@ except ImportError:
     print()
     sys.exit(1)
 
+from pathlib import Path
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
@@ -23,6 +24,7 @@ from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout
 from PyQt5.QtWidgets import QWidget, QTabWidget, QToolBar, QAction, QStyle
 
 from .thunderfish import configuration, detect_eods
+from .bestwindow import clip_args, clip_amplitudes
 from .eodanalysis import plot_eod_waveform
 from .eodanalysis import plot_wave_spectrum, plot_pulse_spectrum
 
@@ -33,6 +35,11 @@ class ThunderfishAnalyzer(Analyzer):
         super().__init__(browser, 'thunderfish', source_name)
         self.dialog = None
         self.navis = []
+        # configure:
+        cfgfile = Path(__package__ + '.cfg')
+        self.cfg = configuration()
+        self.cfg.load_files(cfgfile, browser.data.file_path, 4)
+        self.cfg.set('unwrapData', browser.data.data.unwrap)
 
 
     def home(self):
@@ -102,13 +109,17 @@ class ThunderfishAnalyzer(Analyzer):
         
     def analyze(self, t0, t1, channel, traces):
         time, data = traces[self.source_name]
+        # clipping amplitudes:
+        min_clip, max_clip = \
+            clip_amplitudes(data, max_ampl=self.source.ampl_max,
+                            **clip_args(self.cfg, self.source.rate))
         # detect EODs in the data:
         rate = 1/np.mean(np.diff(time))
-        cfg = configuration()
         psd_data, wave_eodfs, wave_indices, eod_props, \
         mean_eods, spec_data, phase_data, pulse_data, power_thresh, skip_reason, zoom_window = \
-          detect_eods(data, rate, min_clip=-1, max_clip=1, name='test', mode='wp',
-                      verbose=1, plot_level=0, cfg=cfg)
+          detect_eods(data, rate, min_clip=min_clip, max_clip=max_clip,
+                      name=self.browser.data.file_path, mode='wp',
+                      verbose=1, plot_level=0, cfg=self.cfg)
         # dialog:
         self.dialog = QDialog(self.browser)
         self.dialog.finished.connect(lambda x: [None for self.dialog in [None]])
