@@ -59,7 +59,7 @@ from thunderlab.eventdetection import detect_peaks, peak_width
 from thunderlab.powerspectrum import next_power_of_two, nfft, decibel
 from thunderlab.tabledata import TableData
 
-from .fakefish import pulsefish_waveform
+from .fakefish import pulsefish_waveform, pulsefish_spectrum
 
 
 def condition_pulse(eod, ratetime=None, sem=None, flip='none',
@@ -1205,6 +1205,9 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         eod_fit = pulsefish_waveform(pulse, meod[:, 0])
         meod[:, -2] = eod_fit
         rmserror = np.sqrt(np.mean((meod[:, 1] - meod[:, -2])**2))/pp_ampl
+        spec = pulsefish_spectrum(pulse, freqs)
+        spec = np.abs(spec)**2
+        eenergy = np.hstack((eenergy, spec.reshape((-1, 1))))
 
     # analyze pulse intervals:
     ipi_median, ipi_mean, ipi_std = \
@@ -1653,7 +1656,9 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     load_pulse_spectrum()
     """
     td = TableData(spec_data[:, :2], ['frequency', 'energy'],
-                   ['Hz', '%s^2s/Hz' % unit], ['%.2f', '%.4e'])
+                   ['Hz', f'{unit}^2s/Hz'], ['%.2f', '%.4e'])
+    if spec_data.shape[1] > 2:
+        td.append('gaussian', f'{unit}^2s/Hz', '%.4e', value=spec_data[:, 2])
     fp = ''
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     if not ext:

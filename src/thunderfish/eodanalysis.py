@@ -1564,7 +1564,7 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
                            mean_eod, unit, i, **kwargs)
             # spectrum:
             if len(sdata)>0:
-                if sdata.shape[1] == 2:
+                if sdata.shape[1] <= 3:
                     write_file_zip(zf, save_pulse_spectrum, output_basename,
                                    sdata, unit, i, **kwargs)
                 else:

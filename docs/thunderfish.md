@@ -849,7 +849,7 @@ Properties of each pulse-type fish detected in the recording.
 <thead>
   <tr>
     <th align="left" colspan="6">recording</th>
-    <th align="left" colspan="21">waveform</th>
+    <th align="left" colspan="31">waveform</th>
     <th align="left" colspan="8">spectrum</th>
   </tr>
   <tr>
@@ -860,26 +860,36 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">nfft</th>
     <th align="left">dfreq</th>
     <th align="left">index</th>
+    <th align="left">n</th>
     <th align="left">EODf</th>
     <th align="left">period</th>
+    <th align="left">aoffs</th>
     <th align="left">pos-ampl</th>
     <th align="left">neg-ampl</th>
+    <th align="left">max-ampl</th>
     <th align="left">p-p-amplitude</th>
+    <th align="left">p-p-dist</th>
     <th align="left">noise</th>
+    <th align="left">rmserror</th>
     <th align="left">clipped</th>
     <th align="left">flipped</th>
+    <th align="left">startendthresh</th>
+    <th align="left">peakthresh</th>
     <th align="left">tstart</th>
     <th align="left">tend</th>
     <th align="left">width</th>
-    <th align="left">peak-dist</th>
-    <th align="left">tau</th>
-    <th align="left">firstphase</th>
-    <th align="left">lastphase</th>
     <th align="left">totalarea</th>
     <th align="left">pos-area</th>
     <th align="left">neg-area</th>
     <th align="left">polaritybalance</th>
-    <th align="left">n</th>
+    <th align="left">median</th>
+    <th align="left">quartile1</th>
+    <th align="left">quartile3</th>
+    <th align="left">iq-range</th>
+    <th align="left">tau</th>
+    <th align="left">taustart</th>
+    <th align="left">firstphase</th>
+    <th align="left">lastphase</th>
     <th align="left">peakfreq</th>
     <th align="left">peakenergy</th>
     <th align="left">troughfreq</th>
@@ -897,25 +907,35 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">-</th>
+    <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">ms</th>
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
+    <th align="left">a.u.</th>
+    <th align="left">a.u.</th>
+    <th align="left">ms</th>
     <th align="left">%</th>
     <th align="left">%</th>
+    <th align="left">%</th>
     <th align="left">-</th>
+    <th align="left">%</th>
+    <th align="left">%</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
-    <th align="left">ms</th>
-    <th align="left">ms</th>
-    <th align="left">-</th>
-    <th align="left">-</th>
     <th align="left">a.u.*ms</th>
     <th align="left">%</th>
     <th align="left">%</th>
     <th align="left">%</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">-</th>
     <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">a.u.^2s/Hz</th>
@@ -933,37 +953,47 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
+    <td align="right">131072</td>
+    <td align="right">0.24</td>
     <td align="right">0</td>
-    <td align="right">-</td>
-    <td align="right">0</td>
+    <td align="right">237</td>
     <td align="right">32.23</td>
     <td align="right">31.03</td>
-    <td align="right">0.26548</td>
-    <td align="right">0.21925</td>
+    <td align="right">-0.00369</td>
+    <td align="right">0.26582</td>
+    <td align="right">0.21891</td>
+    <td align="right">0.26582</td>
     <td align="right">0.48473</td>
-    <td align="right">0.10</td>
+    <td align="right">0.250</td>
+    <td align="right">0.09</td>
+    <td align="right">0.82</td>
     <td align="right">0.00</td>
     <td align="right">0</td>
-    <td align="right">-0.344</td>
-    <td align="right">1.438</td>
-    <td align="right">1.781</td>
-    <td align="right">0.250</td>
+    <td align="right">1.20</td>
+    <td align="right">0.60</td>
+    <td align="right">-0.312</td>
+    <td align="right">0.938</td>
+    <td align="right">-1.250</td>
+    <td align="right">0.1194</td>
+    <td align="right">51.90</td>
+    <td align="right">48.10</td>
+    <td align="right">3.80</td>
+    <td align="right">0.094</td>
+    <td align="right">-0.031</td>
+    <td align="right">0.312</td>
+    <td align="right">0.344</td>
     <td align="right">0.087</td>
+    <td align="right">0.406</td>
     <td align="right">1</td>
     <td align="right">2</td>
-    <td align="right">0.1218</td>
-    <td align="right">50.61</td>
-    <td align="right">-49.39</td>
-    <td align="right">1.21</td>
-    <td align="right">237</td>
-    <td align="right">1125.98</td>
+    <td align="right">1123.05</td>
     <td align="right">1.4e-08</td>
     <td align="right">0.00</td>
-    <td align="right">8.45e-11</td>
-    <td align="right">-22.17</td>
-    <td align="right">-19.99</td>
-    <td align="right">135.74</td>
-    <td align="right">1858.40</td>
+    <td align="right">1e-10</td>
+    <td align="right">-21.44</td>
+    <td align="right">-19.89</td>
+    <td align="right">152.34</td>
+    <td align="right">1857.42</td>
   </tr>
 </tbody>
 </table>
@@ -1169,36 +1199,44 @@ The energy spectrum of a single EOD pulse of a pulse-type fish:
   <tr>
     <th align="left">frequency</th>
     <th align="left">energy</th>
+    <th align="left">gaussian</th>
   </tr>
   <tr>
     <th align="left">Hz</th>
+    <th align="left">a.u.^2s/Hz</th>
     <th align="left">a.u.^2s/Hz</th>
   </tr>
 </thead>
 <tbody>
   <tr>
     <td align="right">0.00</td>
-    <td align="right">8.4498e-11</td>
+    <td align="right">9.9955e-11</td>
+    <td align="right">1.0662e-10</td>
   </tr>
   <tr>
     <td align="right">0.98</td>
-    <td align="right">8.4563e-11</td>
+    <td align="right">1.0000e-10</td>
+    <td align="right">1.0664e-10</td>
   </tr>
   <tr>
     <td align="right">1.95</td>
-    <td align="right">8.4758e-11</td>
+    <td align="right">1.0016e-10</td>
+    <td align="right">1.0673e-10</td>
   </tr>
   <tr>
     <td align="right">2.93</td>
-    <td align="right">8.5083e-11</td>
+    <td align="right">1.0041e-10</td>
+    <td align="right">1.0687e-10</td>
   </tr>
   <tr>
     <td align="right">3.91</td>
-    <td align="right">8.5539e-11</td>
+    <td align="right">1.0076e-10</td>
+    <td align="right">1.0707e-10</td>
   </tr>
   <tr>
     <td align="right">4.88</td>
-    <td align="right">8.6124e-11</td>
+    <td align="right">1.0121e-10</td>
+    <td align="right">1.0733e-10</td>
   </tr>
 </tbody>
 </table>
@@ -1207,4 +1245,5 @@ The columns contain:
 
 1. `frequency` Frequency in Hertz.
 2. `energy` Energy spectral density in x^2 s/Hz.
+3. `gaussian` Energy spectral density of the fitted sum of Gaussians in x^2 s/Hz.
 
