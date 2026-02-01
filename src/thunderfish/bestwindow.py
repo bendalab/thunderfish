@@ -33,6 +33,7 @@ from audioio import unwrap
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
                     min_ampl=None, max_ampl=1.0,
+                    min_clip=None, max_clip=0,
                     plot_hist_func=None, **kwargs):
     """Find the amplitudes where the signal clips.
 
@@ -57,6 +58,13 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
         If set to None, set it to the negative of max_ampl.
     max_ampl: float
         Maximum to be expected amplitude of the data
+    min_clip: float or None
+        Minimum amplitude that is not clipped. If zero, estimate from data.
+        If positive, set to this factor of the minimum amplitude of the data.
+        If set to None, set it to the negative of max_clip.
+    max_clip: float
+        Maximum amplitude that is not clipped. If zero, estimate from data.
+        If negativ, set to this factor of the maximum amplitude of the data.
     plot_hist_func: function
         Function for visualizing the histograms, is called for every window.
         `plot_clipping()` is a simple function that can be passed as `plot_hist_func`
@@ -92,27 +100,35 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
     """
     if min_ampl is None:
         min_ampl = -max_ampl
-    min_clipa = min_ampl
-    max_clipa = max_ampl
+    if min_clip is None:
+        min_clip = -max_clip
+    if min_clip > 0:
+        min_clip = min_clip*min_ampl
+    if max_clip < 0:
+        max_clip = abs(max_clip)*max_ampl
+    if min_clip > 0 and max_clip > 0:
+        return min_clip, max_clip
+    min_clip = min_ampl
+    max_clip = max_ampl
     bins = np.linspace(min_ampl, max_ampl, nbins, endpoint=True)
     win_tinxs = np.arange(0, len(data) - win_indices, win_indices)
     for wtinx in win_tinxs:
         h, b = np.histogram(data[wtinx:wtinx + win_indices], bins)
         if h[0] > min_fac * h[2] and b[0] < 0.4*min_ampl:
-            if h[1] > min_fac * h[2] and b[2] > min_clipa:
-                min_clipa = b[2]
-            elif b[1] > min_clipa:
-                min_clipa = b[1]
+            if h[1] > min_fac * h[2] and b[2] > min_clip:
+                min_clip = b[2]
+            elif b[1] > min_clip:
+                min_clip = b[1]
         if h[-1] > min_fac * h[-3] and b[-1] > 0.4*max_ampl:
-            if h[-2] > min_fac * h[-3] and b[-3] < max_clipa:
-                max_clipa = b[-3]
-            elif b[-2] < max_clipa:
-                max_clipa = b[-2]
+            if h[-2] > min_fac * h[-3] and b[-3] < max_clip:
+                max_clip = b[-3]
+            elif b[-2] < max_clip:
+                max_clip = b[-2]
         if plot_hist_func:
             plot_hist_func(data, wtinx, wtinx + win_indices,
-                           b, h, min_clipa, max_clipa,
+                           b, h, min_clip, max_clip,
                            min_ampl, max_ampl, **kwargs)
-    return min_clipa, max_clipa
+    return min_clip, max_clip
 
 
 def plot_clipping(data, winx0, winx1, bins,
@@ -150,8 +166,8 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
     See `clip_amplitudes()` for details on the remaining arguments.
     """
     cfg.add_section('Clipping amplitudes:')
-    cfg.add('minClipAmplitude', min_clip, '', 'Minimum amplitude that is not clipped. If zero estimate from data.')
-    cfg.add('maxClipAmplitude', max_clip, '', 'Maximum amplitude that is not clipped. If zero estimate from data.')
+    cfg.add('minClipAmplitude', min_clip, '', 'Minimum amplitude that is not clipped. If zero estimate from data. If positive, set to this factor of the minimum amplitude of the data.')
+    cfg.add('maxClipAmplitude', max_clip, '', 'Maximum amplitude that is not clipped. If zero estimate from data. If negativ, set to this factor of the maximum amplitude of the data.')
     cfg.add('clipWindow', window, 's', 'Window size for estimating clip amplitudes.')
     cfg.add('clipBins', nbins, '', 'Number of bins used for constructing histograms of signal amplitudes.')
     cfg.add('minClipFactor', min_fac, '',
@@ -178,7 +194,9 @@ def clip_args(cfg, rate):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'min_fac': 'minClipFactor',
-                 'nbins': 'clipBins'})
+                 'nbins': 'clipBins',
+                 'min_clip': 'minClipAmplitude',
+                 'max_clip': 'maxClipAmplitude'})
     a['win_indices'] = int(cfg.value('clipWindow')*rate)
     return a
 
@@ -679,12 +697,9 @@ def analysis_window(data, rate, ampl_max, win_pos,
         Maximum amplitude that is not clipped.
     """
     found_bestwindow = True
-    min_clip = cfg.value('minClipAmplitude')
-    max_clip = cfg.value('maxClipAmplitude')
     clipped = 0
-    if min_clip == 0.0 or max_clip == 0.0:
-        min_clip, max_clip = clip_amplitudes(data, max_ampl=ampl_max,
-                                             **clip_args(cfg, rate))
+    min_clip, max_clip = clip_amplitudes(data, max_ampl=ampl_max,
+                                         **clip_args(cfg, rate))
     if cfg.value('unwrapData'):
         unwrap(data, 1.5, ampl_max)
         min_clip *= 2
@@ -700,12 +715,12 @@ def analysis_window(data, rate, ampl_max, win_pos,
     if win_pos == 'best' and show_bestwindow:
         fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
         try:
-            idx0, idx1, clipped = best_window_indices(data, rate,
-                                                      min_clip=min_clip,
-                                                      max_clip=max_clip,
-                                                      win_size=window_size,
-                                                      plot_data_func=plot_best_window,
-                                                      ax=ax, **bwa)
+            idx0, idx1, clipped = \
+                best_window_indices(data, rate,
+                                    min_clip=min_clip, max_clip=max_clip,
+                                    win_size=window_size,
+                                    plot_data_func=plot_best_window,
+                                    ax=ax, **bwa)
             plt.show()
         except UserWarning as e:
             found_bestwindow = False
