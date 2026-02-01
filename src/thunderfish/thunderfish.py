@@ -405,7 +405,7 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
             mean_eod, props, sdata, error_str = \
                 analyze_wave(mean_eod, None, fish, **analyze_wave_args(cfg))
             if error_str:
-                print(name + ': ' + error_str)
+                print(f'{name}: {error_str}')
             clipped_frac = clipped_fraction(data, rate, eod_times,
                                             mean_eod, min_clip, max_clip)
             props['n'] = len(eod_times)
