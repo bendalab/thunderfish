@@ -24,8 +24,10 @@ from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout
 from PyQt5.QtWidgets import QWidget, QTabWidget, QToolBar, QAction, QStyle
 
 from .thunderfish import configuration, detect_eods
+from .thunderfish import eod_styles, snippet_style
+from .thunderfish import wave_spec_styles, pulse_spec_styles
 from .bestwindow import clip_args, clip_amplitudes
-from .eodanalysis import plot_eod_waveform
+from .eodanalysis import plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import plot_wave_spectrum, plot_pulse_spectrum
 
 
@@ -138,6 +140,8 @@ class ThunderfishAnalyzer(Analyzer):
         
         # plot:
         for k in range(len(eod_props)):
+            props = eod_props[k]
+            n_snippets = 10
             w = QWidget(self.dialog)
             canvas = FigureCanvas(Figure(figsize=(10, 5), layout='constrained'))
             navi = NavigationToolbar(canvas, w)
@@ -150,15 +154,21 @@ class ThunderfishAnalyzer(Analyzer):
             gs = canvas.figure.add_gridspec(2, 2)
             axe = canvas.figure.add_subplot(gs[:, 0])
             plot_eod_waveform(axe, mean_eods[k], eod_props[k], phase_data[k],
-                              unit=self.source.unit)
-            if eod_props[k]['type'] == 'wave':
+                              unit=self.source.unit, **eod_styles)
+            if props['type'] == 'pulse' and 'times' in props:
+                plot_eod_snippets(axe, data, rate,
+                                  mean_eods[k][0, 0], mean_eods[k][-1, 0],
+                                  props['times'], n_snippets, props['flipped'],
+                                  props['aoffs'], snippet_style)
+            if props['type'] == 'wave':
                 axa = canvas.figure.add_subplot(gs[0, 1])
                 axp = canvas.figure.add_subplot(gs[1, 1], sharex=axa)
-                plot_wave_spectrum(axa, axp, spec_data[k], eod_props[k],
-                                   unit=self.source.unit)
+                plot_wave_spectrum(axa, axp, spec_data[k], props,
+                                   unit=self.source.unit, **wave_spec_styles)
             else:
                 axs = canvas.figure.add_subplot(gs[:, 1])
-                plot_pulse_spectrum(axs, spec_data[k], eod_props[k])
+                plot_pulse_spectrum(axs, spec_data[k], props,
+                                    **pulse_spec_styles)
         self.dialog.show()
 
 
