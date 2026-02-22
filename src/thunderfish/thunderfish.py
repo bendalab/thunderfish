@@ -54,7 +54,7 @@ from .harmonics import harmonic_groups, closest, consistent
 from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_groups
 from .fakefish import pulsefish_spectrum
 from .pulseanalysis import analyze_pulse, plot_pulse_eods, plot_pulse_spectrum
-from .waveanalysis import waveeod_waveform, analyze_wave, plot_wave_spectrum
+from .waveanalysis import extract_wave, analyze_wave, plot_wave_spectrum
 from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_eod_waveform, plot_eod_snippets
@@ -431,8 +431,8 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             i0 = int(power_times[window[0]]*rate) - iw
             i1 = int(power_times[window[1]]*rate) + iw
             mean_eod, eod_freq, times, skips = \
-                waveeod_waveform(data[i0:i1], rate, fish[0, 0], power_freqs[1],
-                                 verbose=verbose - 1, plot_level=plot_level)
+                extract_wave(data[i0:i1], rate, fish[0, 0], power_freqs[1],
+                             verbose=verbose - 1, plot_level=plot_level)
             if len(mean_eod) == 0:
                 if verbose > 0:
                     print(f'skip    {fish[0, 0]:7.2f}Hz wave  fish:', skips)

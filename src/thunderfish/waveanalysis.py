@@ -3,7 +3,7 @@ Analysis of wave-type EOD waveforms.
 
 ## Analysis of wave-type EODs
 
-- `waveeod_waveform()`: retrieve average EOD waveform via Fourier transform.
+- `extract_wave()`: retrieve average EOD waveform via Fourier transform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 
 ## Visualization
@@ -44,10 +44,10 @@ from thunderlab.tabledata import TableData
 from .harmonics import fundamental_freqs_and_power
 
 
-def waveeod_waveform(data, rate, freq, freq_resolution, periods=5,
-                     frate=1e6, max_harmonics=21,
-                     min_corr=0.99, min_ampl_frac=0.5,
-                     verbose=0, plot_level=0):
+def extract_wave(data, rate, freq, freq_resolution, periods=5,
+                 frate=1e6, max_harmonics=21,
+                 min_corr=0.99, min_ampl_frac=0.5,
+                 verbose=0, plot_level=0):
     """Retrieve average EOD waveform via Fourier transform.
 
     Fourier series are extracted for frequencies from `freq` \\(\\pm\\)
@@ -115,7 +115,7 @@ def waveeod_waveform(data, rate, freq, freq_resolution, periods=5,
         return wave
 
     #@jit(nopython=True)   with jit it takes longer???
-    def fourier_range(data, rate, frange, nh, n):
+    def fourier_freq_range(data, rate, frange, nh, n):
         wave = np.zeros(1)
         freq = 0.0
         for f in frange:
@@ -142,7 +142,7 @@ def waveeod_waveform(data, rate, freq, freq_resolution, periods=5,
     indices = np.arange(0, max(1, len(data) - step + 1), step//8)
     frange = np.linspace(freq - freq_resolution, freq + freq_resolution, nfreqs)
     for i in indices:
-        w, f = fourier_range(data[i:i + step], rate, frange, 6, n)
+        w, f = fourier_freq_range(data[i:i + step], rate, frange, 6, n)
         freqs.append(f)
     freqs = np.array(freqs)
     mean_eod = np.zeros((0, 3))
@@ -173,7 +173,7 @@ def waveeod_waveform(data, rate, freq, freq_resolution, periods=5,
         if len(corr_vals) == 0:
             if plot_level > 0:
                 plt.show()
-            return mean_eod, freq, indices/rate, f'waveforms not stable (max_corr={np.max(corr):.5f} SMALLER than {min_corr:.5f})'
+            return mean_eod, freq, indices/rate, f'waveforms not stable (max_corr={np.max(corr):.4f} SMALLER than {min_corr:.4f})'
         # higher correlation threshold:
         min_c = corr_vals[len(corr_vals)//2]
         # number of high correlations for each segment:
@@ -183,25 +183,37 @@ def waveeod_waveform(data, rate, freq, freq_resolution, periods=5,
         # collect pairs with high correlations,
         # to stay within a single cluster in the correlation matrix.
         mask = []
+        sub_corr = np.array(corr)
         # pair with maximum correlation:
-        i_max_corr = np.argmax(corr)
-        if num_c[i_max_corr//len(corr)] > num_cthresh:
-            mask.append(i_max_corr//len(corr))
-        if num_c[i_max_corr%len(corr)] > num_cthresh:
-            mask.append(i_max_corr%len(corr))
-        for k in range(len(corr)):
-            if k >= len(mask):
+        while not np.all(np.isnan(sub_corr)):
+            i_max_corr = np.nanargmax(sub_corr)
+            max_corr_a = i_max_corr//len(corr)
+            max_corr_b = i_max_corr%len(corr)
+            if corr[max_corr_a, max_corr_b] < max(min_c, 1- 0.25*(1 - min_corr)):
                 break
-            corr_col = corr[:, mask[k]]
-            idx = np.argsort(corr_col)[::-1]
-            for i in idx:
-                if corr_col[i] > min_c and num_c[i] > num_cthresh and \
-                   i not in mask:
-                    mask.append(i)
+            sub_corr[:, max_corr_a] = np.nan
+            sub_corr[max_corr_a, :] = np.nan
+            sub_corr[:, max_corr_b] = np.nan
+            sub_corr[max_corr_b, :] = np.nan
+            if num_c[max_corr_a] > num_cthresh:
+                mask.append(max_corr_a)
+            if num_c[max_corr_b] > num_cthresh:
+                mask.append(max_corr_b)
+            for k in range(len(corr)):
+                if k >= len(mask):
                     break
-        # if only one was selected, add pair:
-        if len(mask) == 1:
-            mask.append(np.argmax(corr[:, mask[0]]))
+                corr_col = corr[:, mask[k]]
+                idx = np.argsort(corr_col)[::-1]
+                for i in idx:
+                    if corr_col[i] > min_c and num_c[i] > num_cthresh and \
+                       i not in mask:
+                        mask.append(i)
+                        break
+            # if only one was selected, add pair:
+            if len(mask) == 1:
+                mask.append(np.argmax(corr[:, mask[0]]))
+            if len(mask) > 0:
+                break
         
         waves = waves[mask]
         freqs = freqs[mask]
@@ -236,11 +248,11 @@ def waveeod_waveform(data, rate, freq, freq_resolution, periods=5,
         if verbose > 0:
             np.set_printoptions(formatter={'float': lambda x: f'{x:.2f}'})
             eodf = np.mean(freqs) if len(freqs) > 0 else np.nan
-            print(f'extract {freq:7.2f}Hz wave  fish: min_corr={min_c:.5f}, max_corr={corr_vals[-1]:.5f}, num_cmax={num_cmax}, segments={len(corr)}, num_selected={np.sum(mask)}, selected={np.nonzero(mask)[0]}, EODfs={freqs}, EODf={eodf:.2f}Hz')
+            print(f'extract {freq:7.2f}Hz wave  fish: min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax}, segments={len(corr)}, num_selected={np.sum(mask)}, selected={np.nonzero(mask)[0]}, EODfs={freqs}, EODf={eodf:.2f}Hz')
         if len(waves) == 0:
             if plot_level > 0:
                 plt.show()
-            return mean_eod, freq, indices/rate, f'waveforms not stable (min_corr={min_c:.5f}, max_corr={corr_vals[-1]:.5f}, num_cmax={num_cmax})'
+            return mean_eod, freq, indices/rate, f'waveforms not stable (min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax})'
     # only the largest snippets:
     ampls = np.std(waves, axis=1)
     mask = ampls >= min_ampl_frac*np.max(ampls)
