@@ -430,7 +430,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             iw = int(rate/power_freqs[1])//2
             i0 = int(power_times[window[0]]*rate) - iw
             i1 = int(power_times[window[1]]*rate) + iw
-            mean_eod, eod_freq, times, skips = \
+            coeffs, mean_eod, eod_freq, times, n_eods, skips = \
                 extract_wave(data[i0:i1], rate, fish[0, 0], power_freqs[1],
                              verbose=verbose - 1, plot_level=plot_level)
             if len(mean_eod) == 0 or len(skips) > 0:
@@ -442,8 +442,8 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             for h in range(len(fish)):
                 fish[h, 0] = (h + 1)*eod_freq
             unfilter_cutoff = cfg.value('unfilterCutoff')
-            if unfilter_cutoff and unfilter_cutoff > 0:
-                unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
+            if unfilter_cutoff:
+                unfilter(mean_eod[:, 1], 1/mean_eod[1, 0], unfilter_cutoff)
             mean_eod, props, sdata, error_str = \
                 analyze_wave(mean_eod, None, fish, **analyze_wave_args(cfg))
             if error_str:
@@ -451,7 +451,8 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             eod_times = np.arange(i0/rate, i1/rate, 1/fish[0, 0])
             clipped_frac = clipped_fraction(data[i0:i1], rate, eod_times,
                                             mean_eod, min_clip, max_clip)
-            props['n'] = len(times)
+            props['n'] = n_eods
+            props['n_segments'] = len(times)
             props['index'] = len(eod_props)
             props['clipped'] = clipped_frac
             props['samplerate'] = rate

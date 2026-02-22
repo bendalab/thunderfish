@@ -19,6 +19,11 @@ Analysis of wave-type EOD waveforms.
 - `save_wave_spectrum()`: save amplitude and phase spectrum of wave EOD to file.
 - `load_wave_spectrum()`: load amplitude and phase spectrum of wave EOD from file.
 
+## Fourier series
+
+- `fourier_coeffs()`: extract Fourier coefficients from data.
+- `fourier_synthesis()`: compute waveform from Fourier coefficients.
+
 ## Fit functions
 
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
@@ -42,6 +47,69 @@ from thunderlab.powerspectrum import decibel
 from thunderlab.tabledata import TableData
 
 from .harmonics import fundamental_freqs_and_power
+
+
+def fourier_coeffs(data, rate, freq, n_harmonics):
+    """ Extract Fourier coefficients from data.
+
+    Parameters
+    ----------
+    data: 1D array of float
+        Time series of data.
+    rate: float
+        Sampling rate of data.
+    freq: float
+        Fundamental frequency of Fourier series.
+    n_harmonics: int
+        Number of harmonics.
+
+    Returns
+    -------
+    coeffs: 1D array of complex
+        For each harmonics the complex valued Fourier coefficient.
+        The first one is the offset. The second one is the coefficient
+        of the fundamental and its ohase is normalized to zero.
+    """
+    t = np.arange(len(data))/rate
+    coeffs = np.zeros(n_harmonics, dtype=complex)
+    for k in range(n_harmonics):
+        coeffs[k] = np.trapz(data*np.exp(-1j*2*np.pi*k*freq*t), t)*2/t[-1]
+    # set phase of first harmonics to zero:
+    phi0 = np.angle(coeffs[1])
+    for k in range(1, n_harmonics):
+        coeffs[k] *= np.exp(-1j*k*phi0)
+    return coeffs
+
+
+def fourier_synthesis(freq, coeffs, rate, n):
+    """ Compute waveform from Fourier coefficients.
+
+    Parameters
+    ----------
+    freq: float
+        Fundamental frequency.
+    coeffs: 1D array of complex
+        For each harmonics the complex valued Fourier coefficient
+        as, for example, returned by `fourier_coeffs()`.
+        The first one is the offset.
+    rate: float
+        Sampling rate of the waveform.
+    n: int
+        Number of samples.
+
+    Returns
+    -------
+    wave: 1D array of float
+        Waveform computed from Fourier series with fundamental frequency
+        `freq` and Fourier coefficients `coeffs`.
+        The waveform is computed for a sampling rate `rate` and contains
+        `n` samples.
+    """
+    time = np.arange(n)/rate
+    wave = np.zeros(len(time))
+    for k in range(len(coeffs)):
+        wave += np.real(coeffs[k]*np.exp(1j*2*np.pi*k*freq*time))
+    return wave
 
 
 def extract_wave(data, rate, freq, freq_resolution, periods=5,
@@ -82,40 +150,29 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     
     Returns
     -------
-    mean_eod: 2-D array
+    mean_coeffs: 1-D array of complex
+        The averaged Fourier coefficients of the extracted EOD waveform.
+        They correspond to the returnd `mean_eod`.
+    mean_eod: 2-D array of float
         Average of the EOD snippets. First column is time in seconds,
         second column the mean eod, third column the standard error.
     eod_freq: float
         Refined EOD frequency.
     times: 1-D array
-        Start times of windows in which Fourier series have been extracted.
+        Start times of data segments in which Fourier coefficients
+        have been extracted.
+    n_eods: int
+        Number of EODs that went into the estimate of the mean waveform.
     skip_reason: str
         An empty string if the waveform is good, otherwise a string
         indicating the failure.
 
     """
 
-    #@jit(nopython=True)
-    def fourier_wave(data, rate, freq, nh, frate, n):
-        """
-        Extract wave via fourier coefficients
-        """
-        t = np.arange(len(data))/rate
-        coeffs = np.zeros(nh, dtype=complex)
-        for k in range(nh):
-            coeffs[k] = np.trapz(data*np.exp(-1j*2*np.pi*k*freq*t), t)*2/t[-1]
-        # set phase of first harmonics to zero:
-        phi0 = np.angle(coeffs[1])
-        for k in range(1, nh):
-            coeffs[k] *= np.exp(-1j*k*phi0)
-        twave = np.arange(n)/frate
-        wave = np.zeros(len(twave))
-        for k in range(nh):
-            wave += np.real(coeffs[k]*np.exp(1j*2*np.pi*k*freq*twave))
-        return wave
-
-    #@jit(nopython=True)   with jit it takes longer???
     def fourier_freq_range(data, rate, frange, nh, n):
+        """ Extract Fourier coefficients for some frequencies and
+        return waveform with largest p-p amplitude.
+        """
         wave = np.zeros(1)
         freq = 0.0
         for f in frange:
@@ -133,31 +190,38 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     # reduce frequency resolution and time window for high frequency fish:
     ffac = max(1, int(np.round(freq/400)))
     freq_resolution *= ffac
-    tsnippet = 2/freq_resolution   # twice as long window is essential!
-    nfreqs = 1 + 2*2*ffac          # twice the frequency resolution is necessary and sufficient!
-    step = int(tsnippet*rate)
+    t_segment = 2/freq_resolution # twice as long window is essential!
+    nfreqs = 1 + 2*2*ffac         # twice the frequency resolution is necessary and sufficient!
+    step = int(t_segment*rate)
     # extract Fourier series from data segements:
     n = int(periods/freq*rate)
     freqs = []
     indices = np.arange(0, max(1, len(data) - step + 1), step//8)
     if len(indices) <= 1:
-        step //= 2
+        t_segment /= 2
+        step = int(t_segment*rate)
         indices = np.arange(0, max(1, len(data) - step + 1), step//8)
+    times = indices/rate
     frange = np.linspace(freq - freq_resolution, freq + freq_resolution, nfreqs)
     for i in indices:
         w, f = fourier_freq_range(data[i:i + step], rate, frange, 6, n)
         freqs.append(f)
     freqs = np.array(freqs)
+    mean_coeffs = np.zeros(0, dtype=complex)
     mean_eod = np.zeros((0, 3))
     if len(freqs) == 0:
         # TODO: Why??? How can indices be empty?
-        return mean_eod, freq, np.array([]), f'no frequencies detected ({len(indicies)} indices, freqs={freqs})'
+        return mean_coeffs, mean_eod, freq, np.array([]), 0, f'no frequencies detected ({len(indicies)} indices, freqs={freqs})'
+    # refined Fourier series and waveforms:
     n = int(periods/np.mean(freqs)*frate)
+    coeffs = np.zeros((len(indices), max_harmonics), dtype=complex)
     waves = np.zeros((len(indices), n))
     for k in range(len(indices)):
         i = indices[k]
-        w = fourier_wave(data[i:i + step], rate, freqs[k],
-                         max_harmonics, frate, n)
+        c = fourier_coeffs(data[i:i + step], rate, freqs[k],
+                           max_harmonics)
+        w = fourier_synthesis(freqs[k], c, frate, n)
+        coeffs[k] = c
         waves[k] = w
     if plot_level > 0:
         fig, axs = plt.subplots(2, 3, width_ratios=[8, 8, 1],
@@ -171,7 +235,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     # only snippets that are most similar:
     if len(waves) <= 1:
         eodf = np.mean(freqs) if len(freqs) > 0 else freq
-        print(f'extract {freq:7.2f}Hz wave  fish: {len(indices)} segments, EODf={eodf:.2f}Hz')
+        print(f'extract {freq:7.2f}Hz wave  fish: {len(waves)} segments, EODf={eodf:.2f}Hz')
         # TODO: what to do with single segment?
     else:
         corr = np.corrcoef(waves)
@@ -180,7 +244,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         if len(corr_vals) == 0:
             if plot_level > 0:
                 plt.show()
-            return mean_eod, freq, indices/rate, f'waveforms not stable (max_corr={np.max(corr):.4f} SMALLER than {min_corr:.4f})'
+            return mean_coeffs, mean_eod, freq, times, 0, f'waveforms not stable (max_corr={np.max(corr):.4f} SMALLER than {min_corr:.4f})'
         # higher correlation threshold:
         min_c = corr_vals[len(corr_vals)//2]
         # number of high correlations for each segment:
@@ -223,8 +287,9 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
                 break
         
         waves = waves[mask]
+        coeffs = coeffs[mask]
         freqs = freqs[mask]
-        indices = indices[mask]
+        times = times[mask]
         if plot_level > 0:
             axs[0, 1].set_title('Correlations')
             m = axs[0, 1].pcolormesh(corr, vmin=min_corr, vmax=1)
@@ -253,25 +318,27 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
             axs[1, 1].yaxis.set_major_locator(plt.MultipleLocator(1))
             axs[1, 1].legend()
         if verbose > 0:
-            np.set_printoptions(formatter={'float': lambda x: f'{x:.2f}'})
             eodf = np.mean(freqs) if len(freqs) > 0 else np.nan
-            print(f'extract {freq:7.2f}Hz wave  fish: min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax}, segments={len(corr)}, num_selected={np.sum(mask)}, selected={np.nonzero(mask)[0]}, EODfs={freqs}, EODf={eodf:.2f}Hz')
+            with np.printoptions(formatter={'float': lambda x: f'{x:.2f}'},
+                                 linewidth=10000):
+                print(f'extract {freq:7.2f}Hz wave  fish: min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax}, segments={len(corr)}, num_selected={len(mask)}, selected={mask}, EODfs={freqs}, EODf={eodf:.2f}Hz')
         if len(waves) == 0:
             if plot_level > 0:
                 plt.show()
-            return mean_eod, freq, indices/rate, f'waveforms not stable (min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax})'
+            return mean_coeffs, mean_eod, freq, times, 0, f'waveforms not stable (min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax})'
     # only the largest snippets:
     ampls = np.std(waves, axis=1)
     mask = ampls >= min_ampl_frac*np.max(ampls)
     if verbose > 0 and np.sum(mask) < len(ampls):
         print(f'                              removed {len(ampls) - np.sum(mask)} small amplitude segments')
     waves = waves[mask]
+    coeffs = coeffs[mask]
     freqs = freqs[mask]
-    indices = indices[mask]
+    times = times[mask]
     if len(waves) == 0:
         if plot_level > 0:
             plt.show()
-        return mean_eod, freq, indices/rate, 'ERROR: no large waveform'
+        return mean_coeffs, mean_eod, freq, times, 0, 'no large waveform'
     if plot_level > 0:
         axs[1, 0].set_title(f'selected EODs: EODf={np.mean(freqs):.2f}Hz')
         t = np.arange(waves.shape[1])*1000/frate
@@ -280,12 +347,22 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         axs[1, 0].set_xlabel('time [ms]')
         plt.show()
 
+    eod_freq = np.mean(freqs)
+    mean_coeffs = np.mean(coeffs, 0)
     mean_eod = np.zeros((n, 3))
     mean_eod[:, 0] = np.arange(len(mean_eod))/frate
     mean_eod[:, 1] = np.mean(waves, axis=0)
+    mean_eod[:, 1] = fourier_synthesis(eod_freq, mean_coeffs, frate, n)
     mean_eod[:, 2] = np.std(waves, axis=0)
-    eod_freq = np.mean(freqs)
-    return mean_eod, eod_freq, indices/rate, ''
+    t_covered = 0
+    t_end = 0
+    for t in times:
+        if t_end < t:
+            t_end = t
+            t_covered += t + t_segment - t_end
+        t_end = t + t_segment
+    n_eods = int(t_covered*eod_freq)
+    return mean_coeffs, mean_eod, eod_freq, times, n_eods, ''
 
 
 def fourier_series(t, freq, *ap):

@@ -230,7 +230,7 @@ def unfilter(data, rate, cutoff):
 
     Parameters
     ----------
-    data: ndarray
+    data: 1D ndarray of float
         High-pass filtered original data.
     rate: float
         Sampling rate of `data` in Hertz.
@@ -1303,7 +1303,11 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
         label = '' # f'p-p amplitude = {props["p-p-amplitude"]:.3g} {unit}\n'
         if 'n' in props:
             eods = 'EODs' if props['n'] > 1 else 'EOD'
-            label += f'n = {props["n"]} {eods}\n'
+            segs = ''
+            if 'n_segments' in props:
+                n_segs = props['n_segments']
+                segs = f' (in {n_segs} segment{"s" if n_segs > 1 else ""})'
+            label += f'n = {props["n"]} {eods}{segs}\n'
         if 'flipped' in props and props['flipped']:
             label += 'flipped\n'
         if 'polaritybalance' in props:
