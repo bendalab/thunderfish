@@ -433,9 +433,11 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             mean_eod, eod_freq, times, skips = \
                 extract_wave(data[i0:i1], rate, fish[0, 0], power_freqs[1],
                              verbose=verbose - 1, plot_level=plot_level)
-            if len(mean_eod) == 0:
+            if len(mean_eod) == 0 or len(skips) > 0:
                 if verbose > 0:
                     print(f'skip    {fish[0, 0]:7.2f}Hz wave  fish:', skips)
+                    if verbose > 1:
+                        print()
                 continue
             for h in range(len(fish)):
                 fish[h, 0] = (h + 1)*eod_freq

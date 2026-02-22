@@ -140,6 +140,9 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     n = int(periods/freq*rate)
     freqs = []
     indices = np.arange(0, max(1, len(data) - step + 1), step//8)
+    if len(indices) <= 1:
+        step //= 2
+        indices = np.arange(0, max(1, len(data) - step + 1), step//8)
     frange = np.linspace(freq - freq_resolution, freq + freq_resolution, nfreqs)
     for i in indices:
         w, f = fourier_freq_range(data[i:i + step], rate, frange, 6, n)
@@ -166,7 +169,11 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
             axs[0, 0].plot(t, w)
         axs[0, 0].set_xlabel('time [ms]')
     # only snippets that are most similar:
-    if len(waves) > 1:
+    if len(waves) <= 1:
+        eodf = np.mean(freqs) if len(freqs) > 0 else freq
+        print(f'extract {freq:7.2f}Hz wave  fish: {len(indices)} segments, EODf={eodf:.2f}Hz')
+        # TODO: what to do with single segment?
+    else:
         corr = np.corrcoef(waves)
         np.fill_diagonal(corr, 0.0)
         corr_vals = np.sort(corr[corr > min_corr])
