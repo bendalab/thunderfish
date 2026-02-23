@@ -73,6 +73,7 @@ from thunderlab.dataloader import DataLoader
 
 from .fakefish import normalize_pulsefish, export_pulsefish
 from .fakefish import normalize_wavefish, export_wavefish
+from .waveanalysis import normalize_fourier_coeffs
 from .waveanalysis import save_wave_eodfs, load_wave_eodfs
 from .waveanalysis import save_wave_fish, load_wave_fish
 from .waveanalysis import save_wave_spectrum, load_wave_spectrum
@@ -298,10 +299,7 @@ def unfilter_coeff(freq, coeffs, fcutoff):
     ihp_coeffs = np.zeros(len(coeffs), dtype=complex)
     ihp_coeffs[1:] = 1 - 1j/(np.arange(1, len(coeffs))*freq/fcutoff)
     coeffs *= ihp_coeffs
-    # set phase of first harmonics to zero:
-    phi0 = np.angle(coeffs[1])
-    for k in range(1, len(coeffs)):
-        coeffs[k] *= np.exp(-1j*k*phi0)
+    coeffs = normalize_fourier_coeffs(coeffs)
     return coeffs
 
 

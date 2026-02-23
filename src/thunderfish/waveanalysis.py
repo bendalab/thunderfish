@@ -22,6 +22,7 @@ Analysis of wave-type EOD waveforms.
 ## Fourier series
 
 - `fourier_coeffs()`: extract Fourier coefficients from data.
+- `normalize_fourier_coeffs()`: set phase of first harmonics and offset to zero.
 - `fourier_synthesis()`: compute waveform from Fourier coefficients.
 
 ## Fit functions
@@ -67,17 +68,38 @@ def fourier_coeffs(data, rate, freq, n_harmonics):
     -------
     coeffs: 1D array of complex
         For each harmonics the complex valued Fourier coefficient.
-        The first one is the offset. The second one is the coefficient
-        of the fundamental and its phase is normalized to zero.
+        The first one is the offset and the second one is the coefficient
+        of the fundamental.
     """
-    t = np.arange(len(data))/rate
+    deltat = 1/rate
+    t = np.arange(len(data))*deltat
+    iomega = -1j*2*np.pi*freq*t
+    fac = 2/len(data)       # = 2*deltat/T
     coeffs = np.zeros(n_harmonics, dtype=complex)
     for k in range(n_harmonics):
-        coeffs[k] = np.trapz(data*np.exp(-1j*2*np.pi*k*freq*t), t)*2/t[-1]
-    # set phase of first harmonics to zero:
+        coeffs[k] = np.sum(data*np.exp(iomega*k))*fac
+    return coeffs
+
+
+def normalize_fourier_coeffs(coeffs):
+    """Set phase of first harmonics and offset to zero.
+
+    Parameters
+    ----------
+    coeffs: 1D array of complex
+        For each harmonics the complex valued Fourier coefficient
+        as, for example, returned by `fourier_coeffs()`.
+        The first one is the offset.
+
+    Returns
+    -------
+    coeffs: 1D array of complex
+        The normalized Fourier coefficients.
+    """
     phi0 = np.angle(coeffs[1])
-    for k in range(1, n_harmonics):
+    for k in range(1, len(coeffs)):
         coeffs[k] *= np.exp(-1j*k*phi0)
+    coeffs[0] = 0 + 0j
     return coeffs
 
 
@@ -106,9 +128,10 @@ def fourier_synthesis(freq, coeffs, rate, n):
         `n` samples.
     """
     time = np.arange(n)/rate
+    iomega = 1j*2*np.pi*freq*time
     wave = np.zeros(len(time))
     for k in range(len(coeffs)):
-        wave += np.real(coeffs[k]*np.exp(1j*2*np.pi*k*freq*time))
+        wave += np.real(coeffs[k]*np.exp(iomega*k))
     return wave
 
 
@@ -192,15 +215,15 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     freq_resolution *= ffac
     t_segment = 2/freq_resolution # twice as long window is essential!
     nfreqs = 1 + 2*2*ffac         # twice the frequency resolution is necessary and sufficient!
-    step = int(t_segment*rate)
+    step = max(16, int(t_segment*rate))
     # extract Fourier series from data segements:
     n = int(periods/freq*rate)
     freqs = []
-    indices = np.arange(0, max(1, len(data) - step + 1), step//8)
+    indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//8))
     if len(indices) <= 1:
         t_segment /= 2
-        step = int(t_segment*rate)
-        indices = np.arange(0, max(1, len(data) - step + 1), step//8)
+        step = max(8, int(t_segment*rate))
+        indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//8))
     times = indices/rate
     frange = np.linspace(freq - freq_resolution, freq + freq_resolution, nfreqs)
     for i in indices:
@@ -220,6 +243,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         i = indices[k]
         c = fourier_coeffs(data[i:i + step], rate, freqs[k],
                            max_harmonics)
+        c = normalize_fourier_coeffs(c)
         w = fourier_synthesis(freqs[k], c, frate, n)
         coeffs[k] = c
         waves[k] = w

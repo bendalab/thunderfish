@@ -70,20 +70,20 @@ def abbrv_genus(name):
 
 
 musical_intervals = {
-    'unison': (1/1, 1, 1, 0),
-    'minor second': (16/15, 16, 15, 1),
-    'major second': (9/8, 9, 8, 2),
-    'minor third': (6/5, 6, 5, 3),
-    'major third': (5/4, 5, 4, 4),
-    'forth': (4/3, 4, 3, 5),
-    'tritone': (45/32, 45, 32, 6),  # =1.406, half way between forth and fifth: 17/6/2=1.4167, sqrt(2)=1.4142
-    'fifth': (3/2, 3, 2, 7),
-    'minor sixth': (8/5, 8, 5, 8),
-    'major sixth': (5/3, 5, 3, 9),
-    'subminor seventh': (7/4, 7, 4, 9.5),
-    'minor seventh': (9/5, 9, 5, 10),
-    'major seventh': (15/8, 15, 8, 11),
-    'octave': (2/1, 2, 1, 12),
+    'unison': (1/1, 1, 1, 0),             # 1
+    'minor second': (16/15, 16, 15, 1),   # 1.0667
+    'major second': (9/8, 9, 8, 2),       # 1.125
+    'minor third': (6/5, 6, 5, 3),        # 1.2
+    'major third': (5/4, 5, 4, 4),        # 1.25
+    'forth': (4/3, 4, 3, 5),              # 1.3333
+    'tritone': (45/32, 45, 32, 6),        # 1.4063, half way between forth and fifth: 17/6/2=1.4167, sqrt(2)=1.4142
+    'fifth': (3/2, 3, 2, 7),              # 1.5
+    'minor sixth': (8/5, 8, 5, 8),        # 1.6
+    'major sixth': (5/3, 5, 3, 9),        # 1.6667
+    'subminor seventh': (7/4, 7, 4, 9.5), # 1.75
+    'minor seventh': (9/5, 9, 5, 10),     # 1.8
+    'major seventh': (15/8, 15, 8, 11),   # 1.875
+    'octave': (2/1, 2, 1, 12),            # 2
 }
 """Name, frequency ratio, nominator, denominator, and index of musical intervals
 """
@@ -247,9 +247,9 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
         phase = np.cumsum(frequency)/rate
     # generate EOD:
     data = np.zeros(len(phase))
-    for har, (ampl, phi) in enumerate(zip(amplitudes, phases)):
+    for h, (ampl, phi) in enumerate(zip(amplitudes, phases)):
         if np.isfinite(ampl) and np.isfinite(phi):
-            data += ampl * np.sin(2*np.pi*(har+1)*phase + phi - (har+1)*phase0)
+            data += ampl*np.sin(2*np.pi*(h + 1)*phase + phi - (h + 1)*phase0)
     # add noise:
     data += noise_std * np.random.randn(len(data))
     return data
