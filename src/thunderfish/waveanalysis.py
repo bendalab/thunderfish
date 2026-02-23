@@ -327,8 +327,8 @@ def fourier_series(t, freq, *ap):
     return x
 
 
-def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
-                 n_harmonics=3, flip_wave='none'):
+def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
+                 power_n_harmonics=0, n_harmonics=3, flip_wave='none'):
     """Analyze the EOD waveform of a wave fish.
     
     Parameters
@@ -348,6 +348,10 @@ def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
         The frequency of the EOD or the list of harmonics (rows) with
         frequency and peak height (columns) as returned from
         `harmonics.harmonic_groups()`.
+    coeffs: None or 1-D array of complex
+        The Fourier coefficients of an EOD waveform.
+        If provided, they are taken for the spectrum and the waveform
+        is updated from them.
     n_harm: int
         Maximum number of harmonics used for the Fourier decomposition.
     power_n_harmonics: int
@@ -440,11 +444,14 @@ def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
             eeod = eod
         else:
             eeod = np.column_stack((eod, np.zeros(len(eod))))
+        rate = 1/np.mean(np.diff(eeod[:, 0]))
     else:
         if isinstance(ratetime, (list, tuple, np.ndarray)):
             time = ratetime
+            rate = 1/np.mean(np.diff(time))
         else:
-            time = np.arange(len(eod))/ratetime
+            rate = ratetime
+            time = np.arange(len(eod))/rate
         eeod = np.zeros((len(eod), 3))
         eeod[:, 0] = time
         eeod[:, 1] = eod
@@ -458,39 +465,49 @@ def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
         freq0 = freq[0][0]
 
     error_str = ''
+
+    # spectrum:
+    has_spec = coeffs is not None
+    if not has_spec:
+        coeffs = fourier_coeffs(meod[:, 1], meod[:, 0], freq0, n_harm)
+        phase1 = np.angle(coeffs[1])
+        deltat = phase1/(2*np.pi*freq0)
+        meod[:, 0] -= deltat   # TODO: test direction of shift
+
+    # update waveform:
+    coeffs = normalize_fourier_coeffs(coeffs)
+    eodw = fourier_synthesis(freq0, coeffs, meod[:, 0])
+    if has_spec:
+        meod[:, 1] = eodw
+    meod[:, -1] = eodw
         
-    # subtract mean and flip:
-    period = 1.0/freq0
-    pinx = int(np.ceil(period/(meod[1,0]-meod[0,0])))
-    maxn = (len(meod)//pinx)*pinx
-    if maxn < pinx: maxn = len(meod)
-    offs = (len(meod) - maxn)//2
-    meod[:, 1] -= np.mean(meod[offs:offs+pinx,1])
+    # subtract mean:
+    pinx = int(np.ceil(rate/freq0)) # one period
+    if not has_spec:
+        maxn = (len(meod)//pinx)*pinx   # integer multiple of period
+        if maxn < pinx:
+            maxn = len(meod)
+        offs = (len(meod) - maxn)//2    # center
+        meod[:, 1] -= np.mean(meod[offs:offs + pinx, 1])
+
+    # flip:
     flipped = False
-    if 'flip' in flip_wave or ('auto' in flip_wave and -np.min(meod[:, 1]) > np.max(meod[:, 1])):
+    if 'flip' in flip_wave or ('auto' in flip_wave and -np.min(eodw) > np.max(eodw)):
+        eodw = -eodw
         meod[:, 1] = -meod[:, 1]
+        meod[:, -1] = -meod[:, -1]
+        coeffs *= np.exp(1j*np.pi)
         flipped = True
     
-    # move peak of waveform to zero:
-    offs = len(meod)//4
-    maxinx = offs+np.argmax(meod[offs:3*offs,1])
-    meod[:, 0] -= meod[maxinx,0]
-    
-    # indices of exactly one or two periods around peak:
-    if len(meod) < pinx:
-        raise IndexError('data need to contain at least one EOD period')
-    if len(meod) >= 2*pinx:
-        i0 = maxinx - pinx if maxinx >= pinx else 0
-        i1 = i0 + 2*pinx
-        if i1 > len(meod):
-            i1 = len(meod)
-            i0 = i1 - 2*pinx
-    else:
-        i0 = maxinx - pinx//2 if maxinx >= pinx//2 else 0
-        i1 = i0 + pinx
+    # indices of exactly one period:
+    if len(meod) < 2*pinx:
+        raise IndexError('data need to contain at least two EOD periods')
+    i0 = (len(meod) - pinx)//2
+    i1 = i0 + pinx
 
-    # subtract mean:
-    meod[:, 1] -= np.mean(meod[i0:i1,1])
+    # maximum:
+    maxinx = i0 + np.argmax(eodw[i0:i1])
+    meod[:, 0] -= meod[maxinx, 0]
 
     # zero crossings:
     ui, di = threshold_crossings(meod[:, 1], 0.0)
@@ -507,10 +524,11 @@ def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
     else:
         down_time = 0.0
         error_str += '%.1f Hz wave fish: no downward zero crossing. ' % freq0
+    period = 1/freq0
     peak_width = down_time - up_time
     trough_width = period - peak_width
     peak_time = 0.0
-    trough_time = meod[maxinx+np.argmin(meod[maxinx:maxinx+pinx,1]),0]
+    trough_time = meod[maxinx + np.argmin(meod[maxinx:maxinx + pinx, 1]), 0] - meod[maxinx, 0]
     phase1 = peak_time - up_time
     phase2 = down_time - peak_time
     phase3 = trough_time - down_time
@@ -520,36 +538,6 @@ def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
     if distance > period/2:
         min_distance = period - distance
     
-    # fit fourier series:
-    ampl = 0.5*(np.max(meod[:, 1])-np.min(meod[:, 1]))
-    while n_harm > 1:
-        params = [freq0]
-        for i in range(1, n_harm+1):
-            params.extend([ampl/i, 0.0])
-        try:
-            popt, pcov = curve_fit(fourier_series, meod[i0:i1,0],
-                                   meod[i0:i1,1], params, maxfev=2000)
-            break
-        except (RuntimeError, TypeError):
-            error_str += '%.1f Hz wave fish: fit of fourier series failed for %d harmonics. ' % (freq0, n_harm)
-            n_harm //= 2
-    # store fourier fit:
-    meod[:, -1] = fourier_series(meod[:, 0], *popt)
-    # make all amplitudes positive:
-    for i in range(n_harm):
-        if popt[i*2+1] < 0.0:
-            popt[i*2+1] *= -1.0
-            popt[i*2+2] += np.pi
-    # phases relative to fundamental:
-    # phi0 = 2*pi*f0*dt <=> dt = phi0/(2*pi*f0)
-    # phik = 2*pi*i*f0*dt = i*phi0
-    phi0 = popt[2]
-    for i in range(n_harm):
-        popt[i*2+2] -= (i + 1)*phi0
-        # all phases in the range -pi to pi:
-        popt[i*2+2] %= 2*np.pi
-        if popt[i*2+2] > np.pi:
-            popt[i*2+2] -= 2*np.pi
     # store fourier spectrum:
     if hasattr(freq, 'shape'):
         n = n_harm
@@ -572,10 +560,13 @@ def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
             spec_data[i,6] = freq[k,1]
             k += 1
     else:
-        spec_data = np.zeros((n_harm, 6))
-    for i in range(n_harm):
-        spec_data[i,:6] = [i, (i+1)*freq0, popt[i*2+1], popt[i*2+1]/popt[1],
-                           decibel((popt[i*2+1]/popt[1])**2.0), popt[i*2+2]]
+        spec_data = np.zeros((len(coeffs), 6))
+    ampl1 = np.abs(coeffs[1])
+    for i in range(1, min(len(coeffs), len(spec_data))):
+        ampl = np.abs(coeffs[i])
+        phase = np.angle(coeffs[i])
+        spec_data[i, :6] = [i - 1, i*freq0, ampl, ampl/ampl1,
+                            decibel((ampl/ampl1)**2.0), phase]
     # smoothness of power spectrum:
     db_powers = decibel(spec_data[:n_harm,2]**2)
     db_diff = np.std(np.diff(db_powers))
@@ -590,12 +581,12 @@ def analyze_wave(eod, ratetime, freq, n_harm=10, power_n_harmonics=0,
     thd = np.sqrt(np.nansum(spec_data[1:, 3]))
 
     # peak-to-peak and trough amplitudes:
-    ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
-    relpeakampl = max(np.max(meod[i0:i1,1]), np.abs(np.min(meod[i0:i1,1])))/ppampl
+    ppampl = np.max(eodw[i0:i1]) - np.min(eodw[i0:i1])
+    relpeakampl = max(np.max(eodw[i0:i1]), np.abs(np.min(eodw[i0:i1])))/ppampl
     
     # variance and fit error:
-    rmssem = np.sqrt(np.mean(meod[i0:i1,2]**2.0))/ppampl if meod.shape[1] > 2 else None
-    rmserror = np.sqrt(np.mean((meod[i0:i1,1] - meod[i0:i1,-1])**2.0))/ppampl
+    rmssem = np.sqrt(np.mean(meod[i0:i1, 2]**2.0))/ppampl if meod.shape[1] > 2 else None
+    rmserror = np.sqrt(np.mean((meod[i0:i1, 1] - meod[i0:i1, -1])**2.0))/ppampl
 
     # store results:
     props = {}

@@ -445,9 +445,9 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             unfilter_cutoff = cfg.value('unfilterCutoff')
             if unfilter_cutoff:
                 coeffs = unfilter_coeff(eod_freq, coeffs, unfilter_cutoff)
-                w = fourier_synthesis(eod_freq, coeffs,
-                                      1/mean_eod[1, 0], len(mean_eod))
                 if plot_level > 0:
+                    w = fourier_synthesis(eod_freq, coeffs,
+                                          1/mean_eod[1, 0], len(mean_eod))
                     fig, ax = plt.subplots(layout='constrained')
                     ax.set_title(f'EODf={eod_freq:.1f}Hz, unfilter high-pass filter $f_{{cutoff}}={unfilter_cutoff:.0f}$Hz')
                     ax.plot(1000*mean_eod[:, 0], mean_eod[:, 1],
@@ -456,9 +456,9 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
                     ax.set_xlabel('time [ms]')
                     ax.legend()
                     plt.show()
-                mean_eod[:, 1] = w
             mean_eod, props, sdata, error_str = \
-                analyze_wave(mean_eod, None, fish, **analyze_wave_args(cfg))
+                analyze_wave(mean_eod, None, fish, coeffs,
+                             **analyze_wave_args(cfg))
             if error_str:
                 print(f'{name}: {error_str}')
             eod_times = np.arange(i0/rate, i1/rate, 1/fish[0, 0])
