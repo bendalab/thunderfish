@@ -356,7 +356,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     mean_eod[:, 1] = fourier_synthesis(eod_freq, mean_coeffs, frate, n)
     mean_eod[:, 2] = np.std(waves, axis=0)
     t_covered = 0
-    t_end = 0
+    t_end = -1
     for t in times:
         if t_end < t:
             t_end = t

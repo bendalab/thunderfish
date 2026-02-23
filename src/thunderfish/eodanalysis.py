@@ -605,10 +605,13 @@ def clipped_fraction(data, rate, eod_times, mean_eod,
     eod_idx = np.round(eod_times*rate).astype(int)
     eod_snippets = snippets(data, eod_idx, w0, w1)
     # fraction of clipped snippets:
-    clipped_frac = np.sum(np.any((eod_snippets > max_clip) |
-                                 (eod_snippets < min_clip), axis=1))\
-                   / len(eod_snippets)
-    return clipped_frac
+    if len(eod_snippets) == 0:
+        return 0
+    else:
+        clipped_frac = np.sum(np.any((eod_snippets > max_clip) |
+                                     (eod_snippets < min_clip), axis=1)) \
+                             / len(eod_snippets)
+        return clipped_frac
 
 
 def wave_quality(props, harm_relampl=None, min_freq=0.0,
