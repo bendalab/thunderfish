@@ -41,7 +41,7 @@
 import sys
 import numpy as np
 
-from .waveanalysis import normalize_fourier_coeffs, fourier_synthesis
+from thunderlab.fourier import normalize_fourier_coeffs, fourier_synthesis
 
 
 species_name = dict(Sine='Sinewave',

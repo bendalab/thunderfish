@@ -38,6 +38,7 @@ from audioio.audioconverter import parse_load_kwargs
 from audioio import get_str, play, fade, load_audio
 from thunderlab.configfile import ConfigFile
 from thunderlab.dataloader import DataLoader
+from thunderlab.fourier import fourier_synthesis
 from thunderlab.powerspectrum import decibel, plot_decibel_psd, spectrogram
 from thunderlab.powerspectrum import add_spectrum_config, spectrum_args
 from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
@@ -54,7 +55,7 @@ from .harmonics import harmonic_groups, closest, consistent
 from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_groups
 from .fakefish import pulsefish_spectrum
 from .pulseanalysis import analyze_pulse, plot_pulse_eods, plot_pulse_spectrum
-from .waveanalysis import extract_wave, fourier_synthesis, analyze_wave, plot_wave_spectrum
+from .waveanalysis import extract_wave, analyze_wave, plot_wave_spectrum
 from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, unfilter_coeff, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_eod_waveform, plot_eod_snippets

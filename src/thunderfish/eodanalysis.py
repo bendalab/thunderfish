@@ -67,13 +67,13 @@ except ImportError:
 from pathlib import Path
 from audioio import get_str
 from thunderlab.eventdetection import detect_peaks, snippets
+from thunderlab.fourier import normalize_fourier_coeffs
 from thunderlab.powerspectrum import decibel
 from thunderlab.tabledata import TableData
 from thunderlab.dataloader import DataLoader
 
 from .fakefish import normalize_pulsefish, export_pulsefish
 from .fakefish import normalize_wavefish, export_wavefish
-from .waveanalysis import normalize_fourier_coeffs
 from .waveanalysis import save_wave_eodfs, load_wave_eodfs
 from .waveanalysis import save_wave_fish, load_wave_fish
 from .waveanalysis import save_wave_spectrum, load_wave_spectrum
