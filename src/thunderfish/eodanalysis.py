@@ -6,6 +6,11 @@ Analyse EOD waveforms.
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
+## Undo high-pass filter
+
+- `unfilter()`: apply inverse high-pass filter on time series.
+- `unfilter_coeff()`: apply inverse high-pass filter on Fourier coefficients.
+
 ## Similarity of EOD waveforms
 
 - `wave_similarity()`: root-mean squared difference between two wave fish EODs.
@@ -22,7 +27,7 @@ Analyse EOD waveforms.
 
 - `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
 - `plot_eod_snippets()`: plot a few EOD waveform snippets.
-- `plot_eod_waveform()`: plot and annotate the averaged EOD-waveform with standard error.
+- `plot_eod_waveform()`: plot and annotate an EOD waveform.
 
 ## Storage
 
@@ -217,8 +222,8 @@ def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
     return eodf*q10**((temp_adjust - temp) / 10.0)
 
 
-def unfilter(data, rate, cutoff):
-    """Apply inverse high-pass filter on data.
+def unfilter(data, rate, fcutoff):
+    """Apply inverse high-pass filter on time series.
 
     Assumes high-pass filter
     \\[ \\tau \\dot y = -y + \\tau \\dot x \\]
@@ -234,7 +239,7 @@ def unfilter(data, rate, cutoff):
         High-pass filtered original data.
     rate: float
         Sampling rate of `data` in Hertz.
-    cutoff: float
+    fcutoff: float
         Cutoff frequency \\(f_{cutoff}\\) of the high-pass filter in Hertz.
 
     Returns
@@ -242,7 +247,7 @@ def unfilter(data, rate, cutoff):
     data: ndarray
         Recovered original data.
     """
-    tau = 0.5/np.pi/cutoff
+    tau = 0.5/np.pi/fcutoff
     fac = tau*rate
     data -= np.mean(data)
     d0 = data[0]
@@ -253,6 +258,51 @@ def unfilter(data, rate, cutoff):
         data[k] = x
         d0 = d1
     return data
+
+
+def unfilter_coeff(freq, coeffs, fcutoff):
+    """Apply inverse high-pass filter on Fourier coefficients.
+
+    Assumes first-order high-pass filter
+    \\[ \\tau \\dot y = -y + \\tau \\dot x \\]
+    has been applied on the original data \\(x\\), where
+    \\(\\tau=(2\\pi f_{cutoff})^{-1}\\) is the time constant of the
+    filter. The transfer function of this high-pass filter is
+    \\[ H(\\omega) = \\frac{i\\omega\\tau}{1 + i\\omega\\tau} \\]
+
+    To undo the effect of the high-pass filter, the complex-valued
+    Fourier coefficients \\(c_k\\) of the waveform for frequencies \\(k f_0\\)
+    are multiplied with the inverse transfer function
+    \\[ IH(\\omega) = \\frac{1}{H(\\omega)} = 1 - i\\frac{1}{\\omega\\tau} \\]
+    which simplifies for the harmonics to
+    \\[ IH(kf_0) = 1 - i\\frac{f_{cutoff}}{k f_0} \\]
+    
+
+    Parameters
+    ----------
+    freq: float
+        Fundamental frequency \\(f_0\\).
+    coeffs: 1D array of complex
+        For each harmonics the complex valued Fourier coefficient
+        as, for example, returned by `fourier_coeffs()`.
+        The first one is the offset.
+    fcutoff: float
+        Cutoff frequency \\(f_{cutoff}\\) of the high-pass filter in Hertz.
+
+    Returns
+    -------
+    coeffs: 1D array of complex
+        Unfiltered Fourier coefficients. Normalized to zero phase shift
+        of the fundamental and no offset.
+    """
+    ihp_coeffs = np.zeros(len(coeffs), dtype=complex)
+    ihp_coeffs[1:] = 1 - 1j/(np.arange(1, len(coeffs))*freq/fcutoff)
+    coeffs *= ihp_coeffs
+    # set phase of first harmonics to zero:
+    phi0 = np.angle(coeffs[1])
+    for k in range(1, len(coeffs)):
+        coeffs[k] *= np.exp(-1j*k*phi0)
+    return coeffs
 
 
 def load_species_waveforms(species_file='none'):
@@ -878,7 +928,7 @@ def plot_eod_waveform(ax, eod_waveform, props, phases=None,
                                        markersize=5, mec='white', mew=1),
                       zero_style=dict(lw=0.5, color='0.7'),
                       fontsize='medium'):
-    """Plot mean EOD, its standard error, and an optional fit to the EOD.
+    """Plot and annotate an EOD waveform.
 
     Parameters
     ----------

@@ -54,9 +54,9 @@ from .harmonics import harmonic_groups, closest, consistent
 from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_groups
 from .fakefish import pulsefish_spectrum
 from .pulseanalysis import analyze_pulse, plot_pulse_eods, plot_pulse_spectrum
-from .waveanalysis import extract_wave, analyze_wave, plot_wave_spectrum
+from .waveanalysis import extract_wave, fourier_synthesis, analyze_wave, plot_wave_spectrum
 from .eodanalysis import eod_waveform
-from .eodanalysis import unfilter, clipped_fraction
+from .eodanalysis import unfilter_coeff, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
@@ -443,7 +443,19 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
                 fish[h, 0] = (h + 1)*eod_freq
             unfilter_cutoff = cfg.value('unfilterCutoff')
             if unfilter_cutoff:
-                unfilter(mean_eod[:, 1], 1/mean_eod[1, 0], unfilter_cutoff)
+                coeffs = unfilter_coeff(eod_freq, coeffs, unfilter_cutoff)
+                w = fourier_synthesis(eod_freq, coeffs,
+                                      1/mean_eod[1, 0], len(mean_eod))
+                if plot_level > 0:
+                    fig, ax = plt.subplots(layout='constrained')
+                    ax.set_title(f'EODf={eod_freq:.1f}Hz, unfilter high-pass filter $f_{{cutoff}}={unfilter_cutoff:.0f}$Hz')
+                    ax.plot(1000*mean_eod[:, 0], mean_eod[:, 1],
+                            label='original')
+                    ax.plot(1000*mean_eod[:, 0], w, label='unfiltered')
+                    ax.set_xlabel('time [ms]')
+                    ax.legend()
+                    plt.show()
+                mean_eod[:, 1] = w
             mean_eod, props, sdata, error_str = \
                 analyze_wave(mean_eod, None, fish, **analyze_wave_args(cfg))
             if error_str:

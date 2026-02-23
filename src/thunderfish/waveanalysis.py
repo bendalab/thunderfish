@@ -68,7 +68,7 @@ def fourier_coeffs(data, rate, freq, n_harmonics):
     coeffs: 1D array of complex
         For each harmonics the complex valued Fourier coefficient.
         The first one is the offset. The second one is the coefficient
-        of the fundamental and its ohase is normalized to zero.
+        of the fundamental and its phase is normalized to zero.
     """
     t = np.arange(len(data))/rate
     coeffs = np.zeros(n_harmonics, dtype=complex)
@@ -349,6 +349,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
 
     eod_freq = np.mean(freqs)
     mean_coeffs = np.mean(coeffs, 0)
+    mean_coeffs[0] = 0  # no offset
     mean_eod = np.zeros((n, 3))
     mean_eod[:, 0] = np.arange(len(mean_eod))/frate
     mean_eod[:, 1] = np.mean(waves, axis=0)
