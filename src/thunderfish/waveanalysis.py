@@ -73,7 +73,7 @@ def fourier_coeffs(data, rate, freq, n_harmonics):
     """
     deltat = 1/rate
     t = np.arange(len(data))*deltat
-    iomega = -1j*2*np.pi*freq*t
+    iomega = -2j*np.pi*freq*t
     fac = 2/len(data)       # = 2*deltat/T
     coeffs = np.zeros(n_harmonics, dtype=complex)
     for k in range(n_harmonics):
@@ -128,7 +128,7 @@ def fourier_synthesis(freq, coeffs, rate, n):
         `n` samples.
     """
     time = np.arange(n)/rate
-    iomega = 1j*2*np.pi*freq*time
+    iomega = 2j*np.pi*freq*time
     wave = np.zeros(len(time))
     for k in range(len(coeffs)):
         wave += np.real(coeffs[k]*np.exp(iomega*k))
@@ -203,8 +203,8 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
             w = np.zeros(len(twave))
             t = np.arange(len(data))/rate
             for k in range(nh):
-                Xk = np.trapz(data*np.exp(-1j*2*np.pi*k*f*t), t)*2/t[-1]
-                w += np.real(Xk*np.exp(1j*2*np.pi*k*f*twave))
+                Xk = np.trapz(data*np.exp(-2j*np.pi*k*f*t), t)*2/t[-1]
+                w += np.real(Xk*np.exp(2j*np.pi*k*f*twave))
             if np.max(w) - np.min(w) > np.max(wave) - np.min(wave):
                 wave = w
                 freq = f

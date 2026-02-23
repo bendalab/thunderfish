@@ -41,6 +41,8 @@
 import sys
 import numpy as np
 
+from .waveanalysis import normalize_fourier_coeffs, fourier_synthesis
+
 
 species_name = dict(Sine='Sinewave',
                     Alepto='Apteronotus leptorhynchus',
@@ -134,11 +136,11 @@ wavefish_harmonics = dict(Sine=Sine_harmonics,
 
 
 def wavefish_spectrum(fish):
-    """Amplitudes and phases of a wavefish EOD.
+    """Fourier coefficients (amplitude and phases) of a wavefish EOD.
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays or 2-D array
+    fish: string, dict or tuple of lists/arrays or 2-D array of float or 1-D array of complex
         Specify relative amplitudes and phases of the fundamental and its harmonics.
         If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
         If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
@@ -147,13 +149,14 @@ def wavefish_spectrum(fish):
         If 2-D array, as returned from waveanalysis.analyse_wave(),
         then take relative amplitudes from third column and phases
         from fifth colum.
+        If 1-D array of complex, take the coefficients as is.
 
     Returns
     -------
-    amplitudes: array of floats
-        Amplitudes of the fundamental and its harmonics.
-    phases: array of floats
-        Phases in radians of the fundamental and its harmonics.
+    coeffs: 1D array of complex
+        For each harmonics the complex valued Fourier coefficient.
+        The first one is the offset and the second one is the coefficient
+        of the fundamental.
 
     Raises
     ------
@@ -162,7 +165,11 @@ def wavefish_spectrum(fish):
     IndexError:
         Amplitudes and phases differ in length.
     """
-    if isinstance(fish, np.ndarray) and fish.ndim == 2:
+    if isinstance(fish, np.ndarray) and fish.ndim == 1 and \
+       fish.dtype == complex:
+        return fish
+    elif isinstance(fish, np.ndarray) and fish.ndim == 2 and \
+         fish.dtype == float:
         amplitudes = fish[:, 3]
         phases = fish[:, 5]
     elif isinstance(fish, (tuple, list)):
@@ -181,15 +188,19 @@ def wavefish_spectrum(fish):
         raise IndexError('need exactly as many phases as amplitudes')
     # remove NaNs:
     for k in reversed(range(len(amplitudes))):
-        if np.isfinite(amplitudes[k]) or np.isfinite(phases[k]):
+        if np.isfinite(amplitudes[k]) and np.isfinite(phases[k]):
             amplitudes = amplitudes[:k+1]
             phases = phases[:k+1]
             break
-    return amplitudes, phases
+    # make coefficients:
+    coeffs = np.zeros(len(amplitudes) + 1, dtype=complex)
+    for k in range(len(amplitudes)):
+        coeffs[k + 1] = amplitudes[k]*np.exp(1j*phases[k])
+    return coeffs
 
 
 def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
-                  duration=1.0, phase0=0.0, noise_std=0.05):
+                  duration=1.0, phase0=0.0, noise_std=0.0):
     """Simulate EOD waveform of a wave-type fish.
                   
     The waveform is constructed by superimposing sinewaves of integral
@@ -204,8 +215,8 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays or 2-D array
-        Specify relative amplitudes and phases of the fundamental and its harmonics.
+    fish: string, dict or tuple of lists/arrays or 2-D array float or 1-D array of complex
+        Specify Fourier coefficients of EOD waveform.
         If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
         If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
         If tuple then the first element is the list of amplitudes and
@@ -213,6 +224,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
         If 2-D array, as returned from waveanalysis.analyse_wave(),
         then take relative amplitudes from third column and phases
         from fifth colum.
+        If 1-D array of complex, take the coefficients as is.
     frequency: float or array of floats
         EOD frequency of the fish in Hertz. Either fixed number or array for
         time-dependent frequencies.
@@ -238,7 +250,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
         Amplitudes and phases differ in length.
     """
     # get relative amplitude and phases:
-    amplitudes, phases = wavefish_spectrum(fish)
+    coeffs = wavefish_spectrum(fish)
     # compute phase:
     if np.isscalar(frequency):
         phase = np.arange(0, duration, 1.0/rate)
@@ -246,10 +258,10 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
     else:
         phase = np.cumsum(frequency)/rate
     # generate EOD:
+    iomega = 1j*2*np.pi*phase
     data = np.zeros(len(phase))
-    for h, (ampl, phi) in enumerate(zip(amplitudes, phases)):
-        if np.isfinite(ampl) and np.isfinite(phi):
-            data += ampl*np.sin(2*np.pi*(h + 1)*phase + phi - (h + 1)*phase0)
+    for h, c in enumerate(coeffs):
+        data += np.real(c*np.exp(iomega*h + 1j*h*phase0))
     # add noise:
     data += noise_std * np.random.randn(len(data))
     return data
@@ -266,8 +278,8 @@ def normalize_wavefish(fish, mode='peak'):
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays or 2-D array
-        Specify relative amplitudes and phases of the fundamental and its harmonics.
+    fish: string, dict or tuple of lists/arrays or 2-D array float or 1-D array of complex
+        Specify Fourier coefficients of EOD waveform.
         If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
         If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
         If tuple then the first element is the list of amplitudes and
@@ -275,6 +287,7 @@ def normalize_wavefish(fish, mode='peak'):
         If 2-D array, as returned from waveanalysis.analyse_wave(),
         then take relative amplitudes from third column and phases
         from fifth colum.
+        If 1-D array of complex, take the coefficients as is.
     mode: 'peak' or 'zero'
         How to normalize amplitude and phases:
         - 'peak': normalize waveform to a peak-to-peak amplitude of two
@@ -289,30 +302,24 @@ def normalize_wavefish(fish, mode='peak'):
         Adjusted phases in radians of the fundamental and its harmonics.
 
     """
-    # get relative amplitude and phases:
-    amplitudes, phases = wavefish_spectrum(fish)
+    coeffs = wavefish_spectrum(fish)
     if mode == 'zero':
-        newamplitudes = np.array(amplitudes)/amplitudes[0]
-        newphases = np.array([p+(k+1)*(-phases[0]) for k, p in enumerate(phases)])
-        newphases %= 2.0*np.pi
-        newphases[newphases>np.pi] -= 2.0*np.pi
-        return newamplitudes, newphases
+        coeffs = normalize_fourier_coeffs(coeffs)/np.abs(coeffs[1])
+        return coeffs
     else:
         # generate waveform:
         eodf = 100.0
         rate = 100000.0
-        data = wavefish_eods(fish, eodf, rate, 2.0/eodf, noise_std=0.0)
+        n = int(2/eodf*rate) + 1
+        data = fourier_synthesis(eodf, coeffs, rate, n)
         # normalize amplitudes:
         ampl = 0.5*(np.max(data) - np.min(data))
-        newamplitudes = np.array(amplitudes)/ampl
+        coeffs /= ampl
         # shift phases:
         deltat = np.argmax(data[:int(rate/eodf)])/rate
-        deltap = 2.0*np.pi*deltat*eodf
-        newphases = np.array([p+(k+1)*deltap for k, p in enumerate(phases)])
-        newphases %= 2.0*np.pi
-        newphases[newphases>np.pi] -= 2.0*np.pi
-        # return:
-        return newamplitudes, newphases
+        deltap = 2j*np.pi*deltat*eodf
+        coeffs *= np.exp(deltap*np.arange(len(coeffs)))
+        return coeffs
 
 
 def export_wavefish(fish, name='Unknown_harmonics', species='', file=None):
@@ -322,8 +329,8 @@ def export_wavefish(fish, name='Unknown_harmonics', species='', file=None):
 
     Parameters
     ----------
-    fish: string, dict or tuple of lists/arrays or 2-D array
-        Specify relative amplitudes and phases of the fundamental and its harmonics and optional species name.
+    fish: string, dict or tuple of lists/arrays or 2-D array float or 1-D array of complex
+        Specify Fourier coefficients of EOD waveform.
         If string then take amplitudes, phases, and species from the `wavefish_harmonics` dictionary.
         If dictionary then take amplitudes, phases, and species from the 'amlitudes', 'phases', and 'species' keys.
         If tuple then the first element is the list of amplitudes and
@@ -331,6 +338,7 @@ def export_wavefish(fish, name='Unknown_harmonics', species='', file=None):
         If 2-D array, as returned from waveanalysis.analyse_wave(),
         then take relative amplitudes from third column and phases
         from fifth colum.
+        If 1-D array of complex, take the coefficients as is.
     name: str
         Name of the dictionary to be written. If empty take species name.
     species: str
@@ -346,7 +354,9 @@ def export_wavefish(fish, name='Unknown_harmonics', species='', file=None):
     if fish is None or (isinstance(fish, dict) and len(fish) == 0):
         return {}
     # get relative amplitude and phases:
-    amplitudes, phases = wavefish_spectrum(fish)
+    coeffs = wavefish_spectrum(fish)
+    amplitudes = np.abs(coeffs)
+    phases = np.angle(coeffs)
     harmonics = dict(amplitudes=amplitudes,
                      phases=phases)
     # species:
