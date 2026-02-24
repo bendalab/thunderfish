@@ -433,6 +433,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             i1 = int(power_times[window[1]]*rate) + iw
             coeffs, mean_eod, eod_freq, times, n_eods, skips = \
                 extract_wave(data[i0:i1], rate, fish[0, 0], power_freqs[1],
+                             n_harmonics=cfg.value('eodHarmonics'),
                              verbose=verbose - 1, plot_level=plot_level)
             if len(mean_eod) == 0 or len(skips) > 0:
                 if verbose > 0:

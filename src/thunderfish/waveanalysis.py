@@ -47,7 +47,7 @@ from .harmonics import fundamental_freqs_and_power
 
 
 def extract_wave(data, rate, freq, freq_resolution, periods=5,
-                 frate=1e6, max_harmonics=21,
+                 frate=1e6, n_harmonics=21,
                  min_corr=0.99, min_ampl_frac=0.5,
                  verbose=0, plot_level=0):
     """Retrieve average EOD waveform via Fourier transform.
@@ -70,8 +70,8 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         The snippet size is the EOD period (`1/freq`)  times `periods`.
     frate: float
         Sampling rate used for the waveform estimates.
-    max_harmonics: int
-        Compute Fourier series up to this order.
+    n_harmonics: int
+        Number of harmonics used for the Fourier decomposition.
     min_corr: float
         Minimum required correlation between two waveform estimates.
     min_ampl_fac: float
@@ -148,12 +148,12 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         return mean_coeffs, mean_eod, freq, np.array([]), 0, f'no frequencies detected ({len(indicies)} indices, freqs={freqs})'
     # refined Fourier series and waveforms:
     n = int(periods/np.mean(freqs)*frate)
-    coeffs = np.zeros((len(indices), max_harmonics), dtype=complex)
+    coeffs = np.zeros((len(indices), n_harmonics), dtype=complex)
     waves = np.zeros((len(indices), n))
     for k in range(len(indices)):
         i = indices[k]
         c = fourier_coeffs(data[i:i + step], rate, freqs[k],
-                           max_harmonics)
+                           n_harmonics)
         c = normalize_fourier_coeffs(c)
         w = fourier_synthesis(freqs[k], c, frate, n)
         coeffs[k] = c
@@ -327,8 +327,8 @@ def fourier_series(t, freq, *ap):
     return x
 
 
-def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
-                 power_n_harmonics=0, n_harmonics=3, flip_wave='none'):
+def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
+                 power_n_harmonics=0, power_add_harmonics=3, flip_wave='none'):
     """Analyze the EOD waveform of a wave fish.
     
     Parameters
@@ -352,15 +352,15 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
         The Fourier coefficients of an EOD waveform.
         If provided, they are taken for the spectrum and the waveform
         is updated from them.
-    n_harm: int
-        Maximum number of harmonics used for the Fourier decomposition.
+    n_harmonics: int
+        Number of harmonics used for the Fourier decomposition.
     power_n_harmonics: int
         Sum over the first `power_n_harmonics` harmonics for computing
         the total power.  If 0 sum over all harmonics.
-    n_harmonics: int
+    power_add_harmonics: int
         The maximum power of higher harmonics is computed from
         harmonics higher than the maximum harmonics within the first
-        three harmonics plus `n_harmonics`.
+        three harmonics plus `power_add_harmonics`.
     flip_wave: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
@@ -469,7 +469,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
     # spectrum:
     has_spec = coeffs is not None
     if not has_spec:
-        coeffs = fourier_coeffs(meod[:, 1], meod[:, 0], freq0, n_harm)
+        coeffs = fourier_coeffs(meod[:, 1], meod[:, 0], freq0, n_harmonics)
         phase1 = np.angle(coeffs[1])
         deltat = phase1/(2*np.pi*freq0)
         meod[:, 0] -= deltat   # TODO: test direction of shift
@@ -569,15 +569,15 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
         spec_data[i - 1, :6] = [i, i*freq0, ampl, ampl/ampl1,
                                 decibel((ampl/ampl1)**2.0), phase]
     # smoothness of power spectrum:
-    db_powers = decibel(spec_data[:n_harm,2]**2)
+    db_powers = decibel(spec_data[:n_harmonics,2]**2)
     db_diff = np.std(np.diff(db_powers))
     # maximum relative power of higher harmonics:
     p_max = np.argmax(db_powers[:3])
     db_powers -= db_powers[p_max]
-    if len(db_powers[p_max+n_harmonics:]) == 0:
+    if len(db_powers[p_max + power_add_harmonics:]) == 0:
         max_harmonics_power = -100.0
     else:
-        max_harmonics_power = np.max(db_powers[p_max+n_harmonics:])
+        max_harmonics_power = np.max(db_powers[p_max + power_add_harmonics:])
     # total harmonic distortion:
     thd = np.sqrt(np.nansum(spec_data[1:, 3]))
 
@@ -610,8 +610,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
     props['p-p-distance'] = distance/period
     props['min-p-p-distance'] = min_distance/period
     props['relpeakampl'] = relpeakampl
-    pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
-    pnh = min(n_harm, pnh)
+    pnh = power_n_harmonics if power_n_harmonics > 0 else n_harmonics
+    pnh = min(n_harmonics, pnh)
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
     if hasattr(freq, 'shape'):
         props['datapower'] = decibel(np.sum(freq[:pnh,1]))

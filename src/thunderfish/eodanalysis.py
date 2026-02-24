@@ -1866,7 +1866,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
 def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
                             min_sem=False, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
-                            n_harm=10, min_pulse_win=0.001,
+                            n_harmonics=21, min_pulse_win=0.001,
                             start_end_thresh_fac=0.01, peak_thresh_fac=0.002,
                             min_dist=50.0e-6, width_frac = 0.5,
                             fit_frac = 0.5, fit_gaussians=True,
@@ -1891,7 +1891,7 @@ def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
     cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
     cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave fish to make largest extremum positive (flip, none, or auto).')
     cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse fish to make the first large peak positive (flip, none, or auto).')
-    cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
+    cfg.add('eodHarmonics', n_harmonics, '', 'Number of harmonics fitted to the EOD waveform.')
     cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
     cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the p-p amplitude.')
     cfg.add('eodStartEndThresholdFactor', start_end_thresh_fac, '', 'Threshold for for start and end time of pulse EODs as a fraction of the p-p amplitude.')
@@ -1948,7 +1948,7 @@ def analyze_wave_args(cfg):
         Dictionary with names of arguments of the `analyze_wave()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'n_harm': 'eodHarmonics',
+    a = cfg.map({'n_harmonics': 'eodHarmonics',
                  'power_n_harmonics': 'powerNHarmonics',
                  'flip_wave': 'flipWaveEOD'})
     return a
