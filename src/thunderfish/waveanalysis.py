@@ -70,7 +70,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         The snippet size is the EOD period (`1/freq`)  times `periods`.
     frate: float
         Sampling rate used for the waveform estimates.
-    max_hamonics: int
+    max_harmonics: int
         Compute Fourier series up to this order.
     min_corr: float
         Minimum required correlation between two waveform estimates.
@@ -419,8 +419,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
 
     spec_data: 2-D array of floats
         First six columns are from the spectrum of the extracted
-        waveform.  First column is the index of the harmonics, second
-        column its frequency, third column its amplitude, fourth
+        waveform.  First column is the harmonics (fundamental is one),
+        second column its frequency, third column its amplitude, fourth
         column its amplitude relative to the fundamental, fifth column
         is power of harmonics relative to fundamental in decibel, and
         sixth column the phase shift relative to the fundamental.
@@ -539,34 +539,35 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harm=10,
         min_distance = period - distance
     
     # store fourier spectrum:
+    # harmonics, frequency, amplitude, relative amplitude, power, phase, data power
     if hasattr(freq, 'shape'):
-        n = n_harm
-        n += np.sum(freq[:, 0] > (n_harm+0.5)*freq[0,0])
+        n = len(coeffs) - 1
+        n += np.sum(freq[:, 0] > (len(coeffs) - 0.5)*freq0)
         spec_data = np.zeros((n, 7))
         spec_data[:, :] = np.nan
         k = 0
-        for i in range(n_harm):
-            while k < len(freq) and freq[k,0] < (i+0.5)*freq0:
+        for i in range(len(coeffs)):
+            while k < len(freq) and freq[k, 0] < (i + 0.5)*freq0:
                 k += 1
             if k >= len(freq):
                 break
-            if freq[k,0] < (i+1.5)*freq0:
-                spec_data[i,6] = freq[k,1]
+            if freq[k, 0] < (i + 1.5)*freq0:
+                spec_data[i, 6] = freq[k, 1]
                 k += 1
-        for i in range(n_harm, n):
+        for i in range(len(coeffs), n):
             if k >= len(freq):
                 break
-            spec_data[i,:2] = [np.round(freq[k,0]/freq0)-1, freq[k,0]]
-            spec_data[i,6] = freq[k,1]
+            spec_data[i, :2] = [np.round(freq[k, 0]/freq0), freq[k, 0]]
+            spec_data[i, 6] = freq[k, 1]
             k += 1
     else:
-        spec_data = np.zeros((len(coeffs), 6))
+        spec_data = np.zeros((len(coeffs) - 1, 6))
     ampl1 = np.abs(coeffs[1])
-    for i in range(1, min(len(coeffs), len(spec_data))):
+    for i in range(1, min(len(coeffs), len(spec_data) + 1)):
         ampl = np.abs(coeffs[i])
         phase = np.angle(coeffs[i])
-        spec_data[i, :6] = [i - 1, i*freq0, ampl, ampl/ampl1,
-                            decibel((ampl/ampl1)**2.0), phase]
+        spec_data[i - 1, :6] = [i, i*freq0, ampl, ampl/ampl1,
+                                decibel((ampl/ampl1)**2.0), phase]
     # smoothness of power spectrum:
     db_powers = decibel(spec_data[:n_harm,2]**2)
     db_diff = np.std(np.diff(db_powers))
@@ -636,7 +637,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
         Axes for phase plot.
     spec: 2-D array
         The amplitude spectrum of a single pulse as returned by
-        `analyze_wave()`.  First column is the index of the harmonics,
+        `analyze_wave()`.  First column is the harmonics,
         second column its frequency, third column its amplitude,
         fourth column its amplitude relative to the fundamental, fifth
         column is power of harmonics relative to fundamental in
@@ -658,7 +659,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
     """
     n = min(9, np.sum(np.isfinite(spec[:, 2])))
     # amplitudes:
-    markers, stemlines, _ = axa.stem(spec[:n, 0] + 1, spec[:n, 2],
+    markers, stemlines, _ = axa.stem(spec[:n, 0], spec[:n, 2],
                                      basefmt='none')
     setp(markers, clip_on=False, **ampl_style)
     setp(stemlines, **ampl_stem_style)
@@ -673,7 +674,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
     # phases:
     phases = spec[:n, 5]
     phases[phases<0.0] = phases[phases<0.0] + 2*np.pi
-    markers, stemlines, _ = axp.stem(spec[:n, 0] + 1, phases[:n],
+    markers, stemlines, _ = axp.stem(spec[:n, 0], phases[:n],
                                      basefmt='none')
     setp(markers, clip_on=False, **phase_style)
     setp(stemlines, **phase_stem_style)
