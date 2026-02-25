@@ -363,7 +363,7 @@ def analyse_wave_spectrum(freq, coeffs, power_add_harmonics=3):
         spec = np.zeros((n, 7))
         spec[:, :] = np.nan
         k = 0
-        for i in range(1, len(coeffs)):
+        for i in range(len(coeffs) - 1):
             while k < len(freq) and freq[k, 0] < (i - 0.5)*freq1:
                 k += 1
             if k >= len(freq):
@@ -371,7 +371,7 @@ def analyse_wave_spectrum(freq, coeffs, power_add_harmonics=3):
             if freq[k, 0] < (i + 0.5)*freq1:
                 spec[i, 6] = freq[k, 1]
                 k += 1
-        for i in range(len(coeffs), n):
+        for i in range(len(coeffs) - 1, n):
             if k >= len(freq):
                 break
             spec[i, :2] = [np.round(freq[k, 0]/freq1), freq[k, 0]]
@@ -630,7 +630,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     # variance and fit error:
     rmssem = np.sqrt(np.mean(meod[i0:i1, 2]**2.0))/ppampl if meod.shape[1] > 2 else None
     rmserror = np.sqrt(np.mean((meod[i0:i1, 1] - meod[i0:i1, -1])**2.0))/ppampl
-    
+
+    # spectral analysis:
     spec, power, data_power, thd, db_diff, max_harmonics_power = \
         analyse_wave_spectrum(freq, coeffs, power_add_harmonics)
 
@@ -640,7 +641,6 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     props['EODf'] = freq1
     props['p-p-amplitude'] = ppampl
     props['flipped'] = flipped
-    props['amplitude'] = 0.5*ppampl  # remove it
     props['rmserror'] = rmserror
     if rmssem:
         props['noise'] = rmssem
