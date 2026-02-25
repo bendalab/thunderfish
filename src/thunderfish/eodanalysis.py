@@ -1949,7 +1949,6 @@ def analyze_wave_args(cfg):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'n_harmonics': 'eodHarmonics',
-                 'power_n_harmonics': 'powerNHarmonics',
                  'flip_wave': 'flipWaveEOD'})
     return a
 
