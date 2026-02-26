@@ -457,7 +457,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
                     ax.set_xlabel('time [ms]')
                     ax.legend()
                     plt.show()
-            mean_eod, props, sdata, error_str = \
+            mean_eod, props, phases, sdata, error_str = \
                 analyze_wave(mean_eod, None, fish, coeffs,
                              **analyze_wave_args(cfg))
             if error_str:
@@ -493,7 +493,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
                 eod_props.append(props)
                 mean_eods.append(mean_eod)
                 spec_data.append(sdata)
-                phase_data.append(dict())
+                phase_data.append(phases)
                 pulseeod_data.append(dict())
                 if verbose > 0:
                     print(f'take    {props['EODf']:7.2f}Hz wave  fish:', msg)

@@ -76,6 +76,7 @@ from .fakefish import normalize_pulsefish, export_pulsefish
 from .fakefish import normalize_wavefish, export_wavefish
 from .waveanalysis import save_wave_eodfs, load_wave_eodfs
 from .waveanalysis import save_wave_fish, load_wave_fish
+from .waveanalysis import save_wave_phases, load_wave_phases
 from .waveanalysis import save_wave_spectrum, load_wave_spectrum
 from .pulseanalysis import save_pulse_fish, load_pulse_fish
 from .pulseanalysis import save_pulse_spectrum, load_pulse_spectrum
@@ -1455,7 +1456,7 @@ def load_eod_waveform(file_path):
     return mean_eod, data.unit('mean')
 
 
-file_types = ['waveeodfs', 'wavefish', 'pulsefish', 'eodwaveform',
+file_types = ['waveeodfs', 'wavefish', 'pulsefish', 'eodwaveform', 'wavephases',
               'wavespectrum', 'pulsephases', 'pulsegaussians', 'pulsespectrum', 'pulsetimes']
 """List of all file types generated and supported by the `save_*` and `load_*` functions."""
 
@@ -1627,8 +1628,12 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
                     write_file_zip(zf, save_wave_spectrum, output_basename,
                                    sdata, unit, i, **kwargs)
             # phases:
-            write_file_zip(zf, save_pulse_phases, output_basename,
-                           pdata, unit, i, **kwargs)
+            if 'area' in pdata:
+                write_file_zip(zf, save_pulse_phases, output_basename,
+                               pdata, unit, i, **kwargs)
+            else:
+                write_file_zip(zf, save_wave_phases, output_basename,
+                               pdata, unit, i, **kwargs)
             # pulses:
             write_file_zip(zf, save_pulse_gaussians, output_basename,
                            pulse, unit, i, **kwargs)
@@ -1732,6 +1737,8 @@ def load_analysis(file_pathes):
             mean_eods[idx], unit = load_eod_waveform(f)
         elif ftype == 'wavespectrum':
             spec_data[idx], unit = load_wave_spectrum(f)
+        elif ftype == 'pulsephases':
+            phase_data[idx], unit = load_wave_phases(f)
         elif ftype == 'pulsephases':
             phase_data[idx], unit = load_pulse_phases(f)
         elif ftype == 'pulsegaussians':

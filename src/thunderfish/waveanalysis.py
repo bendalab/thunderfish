@@ -6,6 +6,7 @@ Analysis of wave-type EOD waveforms.
 - `extract_wave()`: retrieve average EOD waveform via Fourier transform.
 - `condition_wave()`: subtract offset, flip, and shift wave-type EOD waveform.
 - `analyze_wave_properties()`: characterize basic properties of a wave-type EOD.
+- `analyze_wave_phases()`: characterize all phases of a wave-type EOD.
 - `analyse_wave_spectrum()`: analyze the spectrum of a wave-type EOD.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 
@@ -19,6 +20,8 @@ Analysis of wave-type EOD waveforms.
 - `load_wave_eodfs()`: load frequencies of wave EODs from file.
 - `save_wave_fish()`: save properties of wave EODs to file.
 - `load_wave_fish()`: load properties of wave EODs from file.
+- `save_wave_phases()`: save phase properties of wave-type EOD to file.
+- `load_wave_phases()`: load phase properties of wave-type EOD from file.
 - `save_wave_spectrum()`: save amplitude and phase spectrum of wave EOD to file.
 - `load_wave_spectrum()`: load amplitude and phase spectrum of wave EOD from file.
 """
@@ -35,6 +38,7 @@ except ImportError:
 from pathlib import Path
 from scipy.optimize import curve_fit
 from numba import jit
+from thunderlab.eventdetection import detect_peaks
 from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
 from thunderlab.fourier import fourier_coeffs, normalize_fourier_coeffs
 from thunderlab.fourier import fourier_synthesis
@@ -459,16 +463,18 @@ def analyze_wave_properties(eod, ratetime, freq):
     """
     if eod.ndim == 2:
         time = eod[:, 0]
-        eod = eod[:, -1] if eod.shape[1] > 2 else eod[:, 1]
-    elif isinstance(ratetime, (list, tuple, np.ndarray)):
-        time = ratetime
+        eodw = eod[:, -1] if eod.shape[1] > 2 else eod[:, 1]
     else:
-        time = np.arange(len(eod))/ratetime
+        eodw = eod
+        if isinstance(ratetime, (list, tuple, np.ndarray)):
+            time = ratetime
+        else:
+            time = np.arange(len(eod))/ratetime
     
     # cut out one period:
     period = 1/freq
     mask = (time >= 0) & (time <= period)
-    eodp = eod[mask]
+    eodp = eodw[mask]
     timep = time[mask]
 
     # amplitudes:
@@ -476,42 +482,19 @@ def analyze_wave_properties(eod, ratetime, freq):
     pos_ampl = abs(eodp[pos_idx])
     neg_idx = np.argmin(eodp)
     neg_ampl = abs(eodp[neg_idx])
+    pp_ampl = pos_ampl + neg_ampl
     distance = abs(timep[neg_idx] - timep[pos_idx])
     min_distance = distance
     if distance > period/2:
         min_distance = period - distance
-
-    """
-    # zero crossings:
-    ui, di = threshold_crossings(meod[:, 1], 0.0)
-    ut, dt = threshold_crossing_times(meod[:, 0], meod[:, 1], 0.0, ui, di)
-    ut, dt = merge_events(ut, dt, 0.02/freq1)
-    ncrossings = int(np.round((len(ut) + len(dt))/(meod[-1,0]-meod[0,0])/freq1))
-    if np.any(ut<0.0):    
-        up_time = ut[ut<0.0][-1]
-    else:
-        up_time = 0.0 
-        error_str += '%.1f Hz wave fish: no upward zero crossing. ' % freq1
-    if np.any(dt>0.0):
-        down_time = dt[dt>0.0][0]
-    else:
-        down_time = 0.0
-        error_str += '%.1f Hz wave fish: no downward zero crossing. ' % freq1
-    peak_width = down_time - up_time
-    trough_width = period - peak_width
-    peak_time = 0.0
-    trough_time = meod[maxinx + np.argmin(meod[maxinx:maxinx + pinx, 1]), 0] - meod[maxinx, 0]
-    phase1 = peak_time - up_time
-    phase2 = down_time - peak_time
-    phase3 = trough_time - down_time
-    phase4 = up_time + period - trough_time
-
-    # peak-to-peak and trough amplitudes:
-    ppampl = np.max(eodw[i0:i1]) - np.min(eodw[i0:i1])
-    relpeakampl = max(np.max(eodw[i0:i1]), np.abs(np.min(eodw[i0:i1])))/ppampl
-    """
     
-    return pos_ampl, neg_ampl, distance, min_distance
+    # variance and fit error:
+    rmssem = None
+    if eod.ndim == 2 and eod.shape[1] > 2:
+        rmssem = np.sqrt(np.mean(eod[mask, 2]**2.0))/pp_ampl
+    rmserror = np.sqrt(np.mean((eod[mask, 1] - eod[mask, -1])**2.0))/pp_ampl
+    
+    return pos_ampl, neg_ampl, distance, min_distance, rmssem, rmserror
 
     
 def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
@@ -543,13 +526,11 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
     
         - "indices": indices of each phase
           (1 is P1, i.e. the largest positive peak)
-        - "times": times of each phase relative to P1 in seconds
+        - "times": times of each phase within an EOD cycle
         - "amplitudes": amplitudes of each phase
         - "relamplitudes": amplitudes normalized to amplitude of P1 phase
         - "widths": widths of each phase computed from zeros
         - "zeros": time point where amplitude between this and the next phase is half the difference.
-    
-        Empty dictionary if waveform is not a pulse EOD.
 
     """
     if eod.ndim == 2:
@@ -559,22 +540,68 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
         time = ratetime
     else:
         time = np.arange(len(eod))/ratetime
-    deltat = np.mean(np.diff(time))
-    
-    # cut out one period:
+    dt = np.mean(np.diff(time))
     period = 1/freq
-    mask = (time >= 0) & (time <= period)
-    eodp = eod[mask]
-    timep = time[mask]
 
-    # amplitudes:
-    pos_idx = np.argmax(eodp)
-    pos_ampl = abs(eodp[pos_idx])
-    neg_idx = np.argmin(eodp)
-    neg_ampl = abs(eodp[neg_idx])
+    # threshold:
+    mask = (time >= 0) & (time <= period)
+    pp_ampl = np.max(eod[mask]) - np.min(eod[mask])
+    thresh = thresh_frac*pp_ampl
+
+    # find peaks and troughs:
+    peak_idx, trough_idx = detect_peaks(eod, thresh)
+    pt_idx = np.sort(np.concatenate((peak_idx, trough_idx)))
+
+    # maximum peak in first period after zero:
+    pt_pidx = pt_idx[(time[pt_idx] >= -0.25*period) & (time[pt_idx] <= 0.75*period)]
+    pi = np.argmax(eod[pt_pidx])
+    max_inx = np.nonzero(pt_idx == pt_pidx[pi])[0][0]
+    max_time = time[pt_idx[max_inx]]
+
+    # analyse phases:
+    times = []
+    amplitudes = []
+    widths = []
+    zero_times = []
+    p_time = 0
+    sign_fac = 1
+    i = 0
+    for k in range(max_inx - 1, len(pt_idx)):
+        idx = pt_idx[k]
+        if time[idx] - max_time >= period - dt/2:
+            break
+        n_idx = pt_idx[k + 1]
+        th = 0.5*(eod[idx] + eod[n_idx])
+        snippet = eod[idx:n_idx] - th
+        stimes = time[idx:n_idx]
+        zidx = np.nonzero(snippet[:-1]*snippet[1:] < 0)[0]
+        if len(zidx) == 0:
+            zero_times,append(np.nan)
+        else:
+            zidx = zidx[len(zidx)//2]  # reduce to single zero crossing
+            snippet = snippet[zidx:zidx + 2]
+            stimes = stimes[zidx:zidx + 2]
+            if sign_fac > 0:
+                z_time = np.interp(0, snippet[::-1], stimes[::-1])
+            else:
+                z_time = np.interp(0, snippet, stimes)
+        if i > 0:                
+            times.append(time[idx])
+            amplitudes.append(eod[idx])
+            widths.append(z_time - p_time)
+            zero_times.append(z_time)
+        p_time = z_time
+        i += 1
+        sign_fac *= -1
+    amplitudes = np.array(amplitudes)
     
     # store phase properties:
-    phases = dict()
+    phases = dict(indices=np.arange(len(times)) + 1,
+                  times=np.array(times),
+                  amplitudes=amplitudes,
+                  relamplitudes=amplitudes/amplitudes[0],
+                  widths=np.array(widths),
+                  zeros=np.array(zero_times))
     return phases
     
     
@@ -770,6 +797,16 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
         - maxdb: maximum power of higher harmonics relative to peak power
           in decibel.
 
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase within an EOD cycle
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase computed from zeros
+        - "zeros": time point where amplitude between this and the next phase is half the difference.
     spec: 2-D array of floats
         First six columns are from the spectrum of the extracted
         waveform.  First column is the harmonics (fundamental is one),
@@ -816,6 +853,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     freq1 = freq
     if hasattr(freq, 'shape'):
         freq1 = freq[0][0]
+    period = 1/freq1
 
     error_str = ''
 
@@ -840,7 +878,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
         meod[:, 1] = meod[:, -1]
 
     # waveform properties:
-    pos_ampl, neg_ampl, distance, min_distance = \
+    pos_ampl, neg_ampl, distance, min_distance, rmssem, rmserror = \
         analyze_wave_properties(meod, None, freq1)
     pp_ampl = pos_ampl + neg_ampl
     max_ampl = max(pos_ampl, neg_ampl)
@@ -848,47 +886,11 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
 
     # phases:
     phases = analyze_wave_phases(meod, None, freq1, thresh_frac=0.05)
+    p_inx = np.argmax(phases['amplitudes'])
+    peak_width = phases['widths'][p_inx]
+    t_inx = np.argmin(phases['amplitudes'])
+    trough_width = phases['widths'][t_inx]
     
-    # indices of exactly one period:
-    pinx = int(np.ceil(rate/freq1)) # one period
-    if len(meod) < 2*pinx:
-        raise IndexError('data need to contain at least two EOD periods')
-    i0 = (len(meod) - pinx)//2
-    i1 = i0 + pinx
-
-    # maximum:
-    maxinx = i0 + np.argmax(eodw[i0:i1])
-    #meod[:, 0] -= meod[maxinx, 0]
-
-    # zero crossings:
-    ui, di = threshold_crossings(meod[:, 1], 0.0)
-    ut, dt = threshold_crossing_times(meod[:, 0], meod[:, 1], 0.0, ui, di)
-    ut, dt = merge_events(ut, dt, 0.02/freq1)
-    ncrossings = int(np.round((len(ut) + len(dt))/(meod[-1,0]-meod[0,0])/freq1))
-    if np.any(ut<0.0):    
-        up_time = ut[ut<0.0][-1]
-    else:
-        up_time = 0.0 
-        error_str += '%.1f Hz wave fish: no upward zero crossing. ' % freq1
-    if np.any(dt>0.0):
-        down_time = dt[dt>0.0][0]
-    else:
-        down_time = 0.0
-        error_str += '%.1f Hz wave fish: no downward zero crossing. ' % freq1
-    period = 1/freq1
-    peak_width = down_time - up_time
-    trough_width = period - peak_width
-    peak_time = 0.0
-    trough_time = meod[maxinx + np.argmin(meod[maxinx:maxinx + pinx, 1]), 0] - meod[maxinx, 0]
-    phase1 = peak_time - up_time
-    phase2 = down_time - peak_time
-    phase3 = trough_time - down_time
-    phase4 = up_time + period - trough_time
-    
-    # variance and fit error:
-    rmssem = np.sqrt(np.mean(meod[i0:i1, 2]**2.0))/pp_ampl if meod.shape[1] > 2 else None
-    rmserror = np.sqrt(np.mean((meod[i0:i1, 1] - meod[i0:i1, -1])**2.0))/pp_ampl
-
     # spectral analysis:
     spec, power, data_power, thd, db_diff, max_harmonics_power = \
         analyse_wave_spectrum(freq, coeffs, power_add_harmonics)
@@ -898,7 +900,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     props['type'] = 'wave'
     props['flipped'] = flipped
     props['EODf'] = freq1
-    props['period'] = 1/freq1
+    props['period'] = period
     props['pos-ampl'] = pos_ampl
     props['neg-ampl'] = neg_ampl
     props['max-ampl'] = max_ampl
@@ -909,14 +911,10 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     if rmssem:
         props['noise'] = rmssem
     props['rmserror'] = rmserror
-    props['ncrossings'] = ncrossings
+    props['nphases'] = len(phases)
     props['peakwidth'] = peak_width/period
     props['troughwidth'] = trough_width/period
     props['minwidth'] = min(peak_width, trough_width)/period
-    props['leftpeak'] = phase1/period
-    props['rightpeak'] = phase2/period
-    props['lefttrough'] = phase3/period
-    props['righttrough'] = phase4/period
     props['power'] = power
     if data_power is not None:
         props['datapower'] = data_power
@@ -924,7 +922,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     props['dbdiff'] = db_diff
     props['maxdb'] = max_harmonics_power
     
-    return meod, props, spec, error_str
+    return meod, props, phases, spec, error_str
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
@@ -1150,14 +1148,10 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     if 'clipped' in wave_props[0]:
         td.append('clipped', '%', '%.1f', value=wave_props, fac=100)
     td.append_section('timing')
-    td.append('ncrossings', '', '%d', value=wave_props)
+    td.append('nphases', '', '%d', value=wave_props)
     td.append('peakwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('troughwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('minwidth', '%', '%.2f', value=wave_props, fac=100)
-    td.append('leftpeak', '%', '%.2f', value=wave_props, fac=100)
-    td.append('rightpeak', '%', '%.2f', value=wave_props, fac=100)
-    td.append('lefttrough', '%', '%.2f', value=wave_props, fac=100)
-    td.append('righttrough', '%', '%.2f', value=wave_props, fac=100)
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-wavefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
@@ -1210,15 +1204,112 @@ def load_wave_fish(file_path):
         props['rmserror'] /= 100
         if 'clipped' in props:
             props['clipped'] /= 100
-        props['ncrossings'] = int(props['ncrossings'])
+        props['nphases'] = int(props['nphases'])
         props['peakwidth'] /= 100
         props['troughwidth'] /= 100
         props['minwidth'] /= 100
-        props['leftpeak'] /= 100
-        props['rightpeak'] /= 100
-        props['lefttrough'] /= 100
-        props['righttrough'] /= 100
     return eod_props
+
+
+def save_wave_phases(phases, unit, idx, basename, **kwargs):
+    """Save phase properties of wave-type EOD to file.
+
+    Parameters
+    ----------
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase within an EOD cycle
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase computed from zeros
+        - "zeros": time point where amplitude between this and the next phase is half the difference.
+    
+        as returned by `analyze_wave_phases()` and  `analyze_wave()`.
+    unit: string
+        Unit of the waveform data.
+    idx: int or None
+        Index of fish.
+    basename: string or stream
+        If string, path and basename of file.
+        If `basename` does not have an extension,
+        '-wavephases', the fish index, and a file extension are appended.
+        If stream, write wave phases into this stream.
+    kwargs:
+        Arguments passed on to `TableData.write()`.
+
+    Returns
+    -------
+    filename: Path
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
+
+    See Also
+    --------
+    load_wave_phases()
+    """
+    if len(phases) == 0:
+        return None
+    td = TableData()
+    td.append('index', '', '%.0f', value=phases['indices'])
+    td.append('time', 'ms', '%.4f', value=phases['times'], fac=1000)
+    td.append('amplitude', unit, '%.5f', value=phases['amplitudes'])
+    td.append('relampl', '%', '%.2f', value=phases['relamplitudes'], fac=100)
+    td.append('width', 'ms', '%.4f', value=phases['widths'], fac=1000)
+    td.append('zeros', 'ms', '%.4f', value=phases['zeros'], fac=1000)
+    fp = ''
+    ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
+    if not ext:
+        fp = '-wavephases'
+        if idx is not None:
+            fp += f'-{idx}'
+    return td.write_file_stream(basename, fp, **kwargs)
+
+
+def load_wave_phases(file_path):
+    """Load phase properties of wave-type EOD from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase within an EOD cycle
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase computed from zeros
+        - "zeros": time point where amplitude between this and the next phase is half the difference.
+    
+    unit: string
+        Unit of phase amplitudes.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
+
+    See Also
+    --------
+    save_wave_phases()
+    """
+    data = TableData(file_path)
+    phases = dict(indices=data['index'].astype(int),
+                  times=data['time']*0.001,
+                  amplitudes=data['amplitude'],
+                  relamplitudes=data['relampl']*0.01,
+                  widths=data['width']*0.001,
+                  zeros=data['zeros']*0.001)
+    return phases, data.unit('amplitude')
 
 
 def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
