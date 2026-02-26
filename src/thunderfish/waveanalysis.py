@@ -308,7 +308,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     return mean_coeffs, mean_eod, eod_freq, times, n_eods, ''
 
 
-def condition_wave(eod, ratetime, freq, coeffs=None, flip_wave='none'):
+def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
     """Subtract offset and flip wave-type EOD waveform.
     
     Parameters
@@ -328,7 +328,7 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip_wave='none'):
         The frequency of the EOD.
     coeffs: None or 1-D array of complex
         The Fourier coefficients of an EOD waveform.
-    flip_wave: 'auto', 'none', 'flip'
+    flip: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
         - 'none' do not flip waveform.
@@ -375,9 +375,9 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip_wave='none'):
 
     # flip:
     flipped = False
-    if 'flip' in flip_wave:
+    if flip.lower() in ['flip', 'true', 'yes']:
         flipped = True
-    elif 'auto' in flip_wave:
+    elif flip.lower() == 'auto':
         if -np.min(eodw) > np.max(eodw):
             flipped = True
     if flipped:
@@ -506,7 +506,7 @@ def analyse_wave_spectrum(freq, coeffs, power_add_harmonics=3):
 
     
 def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
-                 power_add_harmonics=3, flip_wave='none'):
+                 power_add_harmonics=3, flip='none'):
     """Analyze the EOD waveform of a wave fish.
     
     Parameters
@@ -536,7 +536,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
         The maximum power of higher harmonics is computed from
         harmonics higher than the maximum harmonics within the first
         three harmonics plus `power_add_harmonics`.
-    flip_wave: 'auto', 'none', 'flip'
+    flip: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
         - 'none' do not flip waveform.
@@ -657,8 +657,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     meod[:, -1] = eodw
 
     # subtract mean and flip:
-    meod, coeffs, flipped = condition_wave(meod, ratetime, freq1, coeffs,
-                                           flip_wave)
+    meod, coeffs, flipped = condition_wave(meod, ratetime, freq1, coeffs, flip)
     if has_spec:
         meod[:, 1] = meod[:, -1]
     

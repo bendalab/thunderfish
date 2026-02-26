@@ -1765,7 +1765,7 @@ def main(cargs=None):
     if args.unwrap:
         cfg.set('unwrapData', not cfg.value('unwrapData'))
     errors = cfg.set_values(args.config_params)
-    if len(errors) > 0:
+    if errors:
         print('Failed to set configuration parameters:')
         for s in errors:
             print('   ', s)

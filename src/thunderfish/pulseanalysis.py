@@ -138,8 +138,10 @@ def condition_pulse(eod, ratetime=None, sem=None, flip='none',
     # flip waveform:
     max_idx = np.argmax(meod)
     min_idx = np.argmin(meod)
-    flipped = 'flip' in flip.lower()
-    if 'auto' in flip.lower():
+    flipped = False
+    if flip.lower() in ['flip', 'true', 'yes']:
+        flipped = True
+    elif flip.lower() == 'auto':
         max_ampl = abs(meod[max_idx])
         min_ampl = abs(meod[min_idx])
         amplitude = max(max_ampl, min_ampl)
