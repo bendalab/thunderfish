@@ -4,7 +4,7 @@ Analysis of wave-type EOD waveforms.
 ## Analysis of wave-type EODs
 
 - `extract_wave()`: retrieve average EOD waveform via Fourier transform.
-- `condition_wave()`: subtract offset and flip wave-type EOD waveform.
+- `condition_wave()`: subtract offset, flip, and shift wave-type EOD waveform.
 - `analyze_wave_properties()`: characterize basic properties of a wave-type EOD.
 - `analyse_wave_spectrum()`: analyze the spectrum of a wave-type EOD.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
@@ -310,7 +310,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
 
 
 def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
-    """Subtract offset and flip wave-type EOD waveform.
+    """Subtract offset, flip, and shift wave-type EOD waveform.
     
     Parameters
     ----------
@@ -320,7 +320,7 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
         sampling rate in `ratetime`.  If a 2-D array, then first
         column is time in seconds, second column the EOD
         waveform, and the last column - if present - is the waveform
-        obtained from Fourier decomposition. Allother columns are optional
+        obtained from Fourier decomposition. All other columns are optional
         and are not used.
     ratetime: None or float or array of float
         If a 1-D array is passed on to `eod` then either the sampling
@@ -339,10 +339,15 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
     eod: 1-D or 2-D array
         Same shape as the input `eod`.
         If no `coeffs` are provided, the mean over integer multiples of
-        the period of the waveform was subtracted.
-        If waveform was flipped, it was flipped in the second and last column.
+        the period of the waveform is subtracted.
+        If waveform is flipped, it is flipped in the second and last column.
         If a last column is present, the waveform in the last column
-        is recomputed from the flipped FOurier coefficients.
+        is recomputed from the flipped Fourier coefficients.
+        In the first time column, time zero is set to the maximum
+        of the first Fourier component.
+    time: 1-D array
+        If `eod` is an 1-D array, then a time array is returned,
+        with zero set to the maximum of the first Fourier component.
     coeffs: None or 1-D array of complex
         The Fourier coefficients of an EOD waveform with \\(\\pi\\)
         added to the phases if waveform has been flipped.
@@ -353,26 +358,24 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
         True if waveform was flipped.
     """
     if eod.ndim == 2:
-        rate = 1.0/(eod[1, 0] - eod[0, 0])
+        time = eod[:, 0]
         eodw = eod[:, -1] if eod.shape[1] > 2 else eod[:, 1]
     else:
         eodw = eod
         if isinstance(ratetime, (list, tuple, np.ndarray)):
-            rate = 1.0/(ratetime[1] - ratetime[0])
+            time = ratetime
         else:
-            rate = ratetime
+            time = np.arange(len(eod))/ratetime
         
     # subtract mean:
     if coeffs is None:
-        pinx = int(np.ceil(rate/freq)) # one period
-        maxn = (len(eodw)//pinx)*pinx   # integer multiple of period
-        if maxn < pinx:
-            maxn = len(eodw)
-        offs = (len(eodw) - maxn)//2    # center
+        period = 1/freq
+        p_time = np.floor((time[-1] - time[0])/period)*periods
+        mask = (time >= time[-1] - p_time)
         if eod.ndim == 2:
-            eod -= np.mean(eod[offs:offs + pinx])
+            eod[:, 1] -= np.mean(eod[mask, 1])
         else:
-            eod[:, 1] -= np.mean(eod[offs:offs + pinx, 1])
+            eod -= np.mean(eod[mask])
 
     # flip:
     flipped = False
@@ -390,15 +393,35 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
             eod *= -1
         if coeffs is not None:
             coeffs *= np.exp(1j*np.pi)
-            coeffs = normalize_fourier_coeffs(coeffs)
-            if eod.ndim == 2 and eod.shape[1] > 2:
-                eod[:, -1] = fourier_synthesis(freq, coeffs, eod[:, 0])
 
-    # return:
-    if coeffs is not None:
-        return eod, coeffs, flipped
+    # shift time:
+    if coeffs is None:
+        c = fourier_coeffs(eodw, time, freq, 2)
     else:
-        return eod, flipped
+        c = coeffs
+    period = 1/freq
+    phi1 = np.angle(c[1])
+    t_zero = -phi1/(2*np.pi*freq)
+    min_t = period
+    if time[-1] - time[0] < 3*period:
+        min_t = 0.5*period
+    while t_zero < min_t:
+        t_zero += period
+    time -= time[0] + t_zero
+    if coeffs is not None:
+        for k in range(1, len(coeffs)):
+            coeffs[k] *= np.exp(-1j*k*phi1)
+    if eod.ndim == 2:
+        eod[:, 0] = time
+    
+    # return:
+    r = [eod]
+    if eod.ndim == 1:
+        r.append(time)
+    if coeffs is not None:
+        r.append(coeffs)
+    r.append(flipped)
+    return r
 
 
 def analyze_wave_properties(eod, ratetime, freq):
@@ -437,23 +460,16 @@ def analyze_wave_properties(eod, ratetime, freq):
     if eod.ndim == 2:
         time = eod[:, 0]
         eod = eod[:, -1] if eod.shape[1] > 2 else eod[:, 1]
+    elif isinstance(ratetime, (list, tuple, np.ndarray)):
+        time = ratetime
     else:
-        eod = eod
-        if isinstance(ratetime, (list, tuple, np.ndarray)):
-            time = ratetime
-        else:
-            time = np.arange(len(eod))/ratetime
-    deltat = np.mean(np.diff(time))
+        time = np.arange(len(eod))/ratetime
     
-    # indices of exactly one period:
+    # cut out one period:
     period = 1/freq
-    pinx = int(np.ceil(period/deltat)) # one period
-    if len(eod) < 2*pinx:
-        raise IndexError('data need to contain at least two EOD periods')
-    i0 = (len(eod) - pinx)//2
-    i1 = i0 + pinx
-    eodp = eod[i0:i1]
-    timep = time[i0:i1]
+    mask = (time >= 0) & (time <= period)
+    eodp = eod[mask]
+    timep = time[mask]
 
     # amplitudes:
     pos_idx = np.argmax(eodp)
@@ -496,8 +512,71 @@ def analyze_wave_properties(eod, ratetime, freq):
     """
     
     return pos_ampl, neg_ampl, distance, min_distance
-    
 
+    
+def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
+    """Characterize all phases of a wave-type EOD.
+    
+    Parameters
+    ----------
+    eod: 1-D or 2-D array
+        The eod waveform to be analyzed.  If an 1-D array, then this
+        is the waveform and you need to also pass a time array or
+        sampling rate in `ratetime`.  If a 2-D array, then first
+        column is time in seconds, second column the EOD
+        waveform, and the last column - if present - is the waveform
+        obtained from Fourier decomposition. Allother columns are optional
+        and are not used.
+    ratetime: None or float or array of float
+        If a 1-D array is passed on to `eod` then either the sampling
+        rate in Hertz or the time array corresponding to `eod`.
+    freq: float
+        The frequency of the EOD.
+    thresh_frac: float
+        Threshold for detecting peaks and troughs is this fraction from
+        p-p amplitude.
+    
+    Returns
+    -------
+    phases: dict
+        Dictionary with
+    
+        - "indices": indices of each phase
+          (1 is P1, i.e. the largest positive peak)
+        - "times": times of each phase relative to P1 in seconds
+        - "amplitudes": amplitudes of each phase
+        - "relamplitudes": amplitudes normalized to amplitude of P1 phase
+        - "widths": widths of each phase computed from zeros
+        - "zeros": time point where amplitude between this and the next phase is half the difference.
+    
+        Empty dictionary if waveform is not a pulse EOD.
+
+    """
+    if eod.ndim == 2:
+        time = eod[:, 0]
+        eod = eod[:, -1] if eod.shape[1] > 2 else eod[:, 1]
+    elif isinstance(ratetime, (list, tuple, np.ndarray)):
+        time = ratetime
+    else:
+        time = np.arange(len(eod))/ratetime
+    deltat = np.mean(np.diff(time))
+    
+    # cut out one period:
+    period = 1/freq
+    mask = (time >= 0) & (time <= period)
+    eodp = eod[mask]
+    timep = time[mask]
+
+    # amplitudes:
+    pos_idx = np.argmax(eodp)
+    pos_ampl = abs(eodp[pos_idx])
+    neg_idx = np.argmin(eodp)
+    neg_ampl = abs(eodp[neg_idx])
+    
+    # store phase properties:
+    phases = dict()
+    return phases
+    
     
 def analyse_wave_spectrum(freq, coeffs, power_add_harmonics=3):
     """Analyze the spectrum of a wave-type EOD.
@@ -756,7 +835,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     meod[:, -1] = eodw
 
     # subtract mean and flip:
-    meod, coeffs, flipped = condition_wave(meod, ratetime, freq1, coeffs, flip)
+    meod, coeffs, flipped = condition_wave(meod, None, freq1, coeffs, flip)
     if has_spec:
         meod[:, 1] = meod[:, -1]
 
@@ -766,6 +845,9 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     pp_ampl = pos_ampl + neg_ampl
     max_ampl = max(pos_ampl, neg_ampl)
     rel_max_ampl = max_ampl/pp_ampl
+
+    # phases:
+    phases = analyze_wave_phases(meod, None, freq1, thresh_frac=0.05)
     
     # indices of exactly one period:
     pinx = int(np.ceil(rate/freq1)) # one period
@@ -776,7 +858,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
 
     # maximum:
     maxinx = i0 + np.argmax(eodw[i0:i1])
-    meod[:, 0] -= meod[maxinx, 0]
+    #meod[:, 0] -= meod[maxinx, 0]
 
     # zero crossings:
     ui, di = threshold_crossings(meod[:, 1], 0.0)
