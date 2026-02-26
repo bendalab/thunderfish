@@ -1764,8 +1764,13 @@ def main(cargs=None):
         cfg.set('fileFormat', args.format)
     if args.unwrap:
         cfg.set('unwrapData', not cfg.value('unwrapData'))
-    cfg.set_values(args.config_params)
-
+    errors = cfg.set_values(args.config_params)
+    if len(errors) > 0:
+        print('Failed to set configuration parameters:')
+        for s in errors:
+            print('   ', s)
+        exit()
+        
     # list or save configuration:
     if args.list_config > 0:
         cfg.write(comments=args.list_config > 1)
