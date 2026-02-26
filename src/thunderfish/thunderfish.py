@@ -1844,7 +1844,7 @@ def main(cargs=None):
     v = verbose
     if len(files) > 1:
         v += 1
-    
+
     # run on pool:
     pool_args = (results, load_kwargs, cfg, args.channel, args.time,
                  args.time_file, args.mode, log_freq, min_freq,
