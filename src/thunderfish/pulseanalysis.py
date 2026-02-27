@@ -1900,7 +1900,7 @@ def plot_pulse_eod(ax, eod_waveform, props, phases=None,
         # find free quadrant:
         q_row, q_col = np.unravel_index(np.argmin(quadrants), quadrants.shape)
         # place text in quadrant:
-        y = 1 if q_row == 0 else 0
+        y = 1.05 if q_row == 0 else 0
         va = 'top' if q_row == 0 else 'bottom'
         x = 0.03 if q_col == 0 else 0.97
         ha = 'left' if q_col == 0 else 'right'

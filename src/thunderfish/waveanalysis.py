@@ -134,7 +134,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     n = int(periods/freq*rate)
     freqs = []
     indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//8))
-    if len(indices) <= 1:
+    if len(indices) < 4:
         t_segment /= 2
         step = max(8, int(t_segment*rate))
         indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//8))
@@ -150,7 +150,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         # TODO: Why??? How can indices be empty?
         return mean_coeffs, mean_eod, freq, np.array([]), 0, f'no frequencies detected ({len(indicies)} indices, freqs={freqs})'
     """
-    # just take the frequencies from the spectrum and keep the segement size:
+    # just take the frequencies from the spectrum and keep the segment size:
     # this does not perform well in mutli-fish settings!
     # the improved frequency resolution seems to be essential!
     t_segment = min(len(data)/rate, 1/freq_resolution)
@@ -554,7 +554,7 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
     pt_idx = np.sort(np.concatenate((peak_idx, trough_idx)))
 
     # maximum peak in first period after zero:
-    pt_pidx = pt_idx[(time[pt_idx] >= -0.25*period) & (time[pt_idx] <= 0.75*period)]
+    pt_pidx = pt_idx[(time[pt_idx] >= -0.25*period) & (time[pt_idx] < 0.75*period)]
     pi = np.argmax(eod[pt_pidx])
     max_inx = np.nonzero(pt_idx == pt_pidx[pi])[0][0]
     max_time = time[pt_idx[max_inx]]
@@ -569,7 +569,7 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
     i = 0
     for k in range(max_inx - 1, len(pt_idx)):
         idx = pt_idx[k]
-        if time[idx] - max_time >= period - dt/2:
+        if time[idx] - max_time >= period - dt:
             break
         n_idx = pt_idx[k + 1]
         th = 0.5*(eod[idx] + eod[n_idx])
@@ -927,7 +927,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
 
         
 def plot_wave_eod(ax, eod_waveform, props, phases=None,
-                  unit=None, wave_periods=2,
+                  unit=None, wave_periods=2, rel_width=True,
                   wave_style=dict(lw=1.5, color='tab:red'),
                   sem_style=dict(color='0.8'),
                   phase_style=dict(zorder=0, ls='', marker='o', color='tab:red',
@@ -945,20 +945,21 @@ def plot_wave_eod(ax, eod_waveform, props, phases=None,
     eod_waveform: 2-D array
         EOD waveform. First column is time in seconds, second column
         the (mean) eod waveform. The optional third column is the
-        standard error, the optional fourth column is a fit of the
-        whole waveform, and the optional fourth column is a fit of 
-        the tails of a pulse waveform.
+        standard error. Further columns are ignored.
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
-        returned by `analyze_wave()` and `analyze_pulse()`.
+        returned by `analyze_wave()`.
     phases: dict
         Dictionary with phase properties as returned by
-        `analyze_pulse_phases()`, `analyze_pulse()`, and
-        `load_pulse_phases()`.
+        `analyze_wave_phases()`, `analyze_wave()`, and
+        `load_wave_phases()`.
     unit: str
         Optional unit of the data used for y-label.
     wave_periods: float
         How many periods of a wave EOD are shown.
+    rel_width: bool
+        If True annotate width in percent relative to the EOD period,
+        otherwise report them in ms.
     wave_style: dict
         Arguments passed on to the plot command for the EOD waveform.
     sem_style: dict
@@ -991,7 +992,7 @@ def plot_wave_eod(ax, eod_waveform, props, phases=None,
     ax.set_xlabel('Time [msec]')
     # amplitude axis:                
     ylim = np.max(np.abs(eod[(time >= xlim_l) & (time <= xlim_r)])) 
-    ax.set_ylim(-1.15*ylim, +1.15*ylim)
+    ax.set_ylim(-1.2*ylim, +1.2*ylim)
     if unit:
         ax.set_ylabel(f'Amplitude [{unit}]')
     else:
@@ -1006,8 +1007,6 @@ def plot_wave_eod(ax, eod_waveform, props, phases=None,
     pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:, 1]))[0]
     dyu = 2*ylim/pixely
     yfs = fs*dyu
-    texts = []
-    quadrants = np.zeros((2, 2), dtype=int)
     # plot zero line:
     ax.axhline(0.0, zorder=10, **zero_style)
     # plot waveform:
@@ -1019,161 +1018,104 @@ def plot_wave_eod(ax, eod_waveform, props, phases=None,
                         zorder=20, **sem_style)
     # plot and annotate phases:
     if phases is not None and len(phases) > 0:
-        upper_area_text = False
-        lower_area_text = False
         # mark zero crossings:
         zeros = 1000*phases['zeros']
-        ax.plot(zeros, np.interp(zeros, time, eod), **zerox_style)
+        zeros_ampls = np.interp(zeros, time, eod)
+        ax.plot(zeros, zeros_ampls, **zerox_style)
+        ax.plot(zeros[-1] - period, zeros_ampls[-1], **zerox_style)
+        # mark phase peak/trough:
+        times = 1000*phases['times']
+        amplitudes = phases['amplitudes']
+        ax.plot(times, amplitudes, **phase_style)
+        # annotate period:
+        ax.plot(times[0] + period, amplitudes[0], **phase_style)
+        ax.text(times[0] + period + xfs, amplitudes[0], f'T={period:.3g}ms',
+                va='center', zorder=100, fontsize=fontsize)
         # phase peaks and troughs:
-        max_peak_idx = np.argmax(phases['amplitudes'])
-        min_trough_idx = np.argmin(phases['amplitudes'])
-        for i in range(len(phases['times'])):
+        widths = phases['widths']
+        for i in range(len(times)):
             index = phases['indices'][i]
-            ptime = 1000*phases['times'][i]
+            ptime = times[i]
             if ptime < xlim_l or ptime > xlim_r:
                 continue
             pi = np.argmin(np.abs(time - ptime))
-            pampl = phases['amplitudes'][i]
+            pampl = amplitudes[i]
             relampl = phases['relamplitudes'][i]
-            # classify phase:
-            ampl_phase = phases['amplitudes'][i]
-            ampl_left = phases['amplitudes'][i - 1] if i > 0 else 0
-            ampl_right = phases['amplitudes'][i + 1] if i + 1 < len(phases['amplitudes']) else 0
-            local_maximum = ampl_phase > ampl_left and ampl_phase > ampl_right
-            if local_maximum:
-                right_phase = (i >= max_peak_idx)
-                min_max_phase = (i == max_peak_idx)
-                local_phase = (ampl_phase < 0)
-            else:
-                right_phase = i >= min_trough_idx 
-                min_max_phase = (i == min_trough_idx)
-                local_phase = (ampl_phase > 0)
-            sign = np.sign(pampl)
-            # mark phase peak/trough:
-            ax.plot(ptime, pampl, **phase_style)
             # text for phase label:
             label = f'P{index:.0f}'
-            if index != 1 and not local_phase:
-                if np.abs(ptime) < 1:
-                    ts = f'{1000*ptime:.0f}\u00b5s'
-                elif np.abs(ptime) < 10:
-                    ts = f'{ptime:.2f}ms'
-                else:
-                    ts = f'{ptime:.3g}ms'
+            if np.abs(ptime) < 1:
+                ts = f'{1000*ptime:.0f}\u00b5s'
+            elif np.abs(ptime) < 10:
+                ts = f'{ptime:.2f}ms'
+            else:
+                ts = f'{ptime:.3g}ms'
+            if index == 1:
+                label += f'(@ {ts})'
+            else:
                 if np.abs(relampl) < 0.05:
                     ps = f'{100*relampl:.1f}%'
                 else:
                     ps = f'{100*relampl:.0f}%'
                 label += f'({ps} @ {ts})'
             # position of phase label:
-            ltime = ptime
-            lampl = pampl
-            valign = 'top' if sign < 0 else 'baseline'
-            add = True
-            if local_phase or (min_max_phase and abs(pampl)/ylim < 0.8):
-                halign = 'center'
-                dx = 0
-                dy = 0.6*yfs
-                if local_phase:
-                    add = False
-            elif min_max_phase:
-                halign = 'left' if right_phase else 'right'
-                dx = xfs if right_phase else -xfs
-                dy = 0
-                if abs(relampl) > 0.85:
-                    dx *= 2
-                    dy = -1.5*yfs
+            nampl = amplitudes[i - 1 if i > 0 else i + 1]
+            local_min = pampl < nampl
+            if i == 0:
+                ax.text(ptime + xfs, pampl, label,
+                        ha='left', va='center', zorder=100, fontsize=fontsize)
             else:
-                dx = 0
-                dy = 0.8*yfs
-                if right_phase:
-                    halign = 'left'
-                    if i > 0 and np.isfinite(phases['zeros'][i - 1]):
-                        ltime = 1000*phases['zeros'][i - 1]
-                    else:
-                        dx = -2*xfs
-                    #np.sum(phases['amplitudes'][i + 1:]*pampl > 0)
-                else:
-                    halign = 'right'
-                    if np.isfinite(phases['zeros'][i]):
-                        ltime = 1000*phases['zeros'][i]
-                    else:
-                        dx = 2*xfs
-            if sign < 0:
-                dy = -dy
-            ta = ax.text(ltime + dx, lampl + dy, label,
-                         ha=halign, va=valign, zorder=100, fontsize=fontsize)
-            if add:
-                texts.append(ta)
-        # arrange text vertically to avoid overlaps:
-        ul_texts = []
-        ur_texts = []
-        ll_texts = []
-        lr_texts = []
-        for t in texts:
-            x, y = t.get_position()
-            if y > 0:
-                if x >= phases['times'][max_peak_idx]:
-                    ur_texts.append(t)
-                else:
-                    ul_texts.append(t)
+                dy = 1.5*yfs
+                valign = 'bottom'
+                if local_min:
+                    dy = -dy
+                    valign = 'top'
+                ax.text(ptime, pampl + dy, label,
+                        ha='center', va=valign, zorder=100, fontsize=fontsize)
+            # text for width label:
+            pwidth = 1000*widths[i]
+            if rel_width:
+                ws = f'{100*pwidth/period:.2g}%'
+            elif pwidth < 1:
+                ws = f'{1000*pwidth:.0f}\u00b5s'
+            elif pwidth < 10:
+                ws = f'{pwidth:.2f}ms'
             else:
-                if x >= phases['times'][min_trough_idx]:
-                    lr_texts.append(t)
-                else:
-                    ll_texts.append(t)
-        for ts, (j, k) in zip([ul_texts, ur_texts, ll_texts, lr_texts],
-                              [(0, 0), (0, 1), (1, 0), (1, 1)]):
-            if len(ts) > 1:
-                ys = []
-                for t in ts:
-                    # alternative:
-                    #renderer = ax.get_fig().canvas.renderer
-                    #bbox = t.get_window_extent(renderer).transformed(ax.transData.inverted())
-                    x, y = t.get_position()
-                    ys.append(abs(y))
-                idx = np.argsort(ys)
-                x, y = ts[idx[0]].get_position()
-                yp = abs(y)
-                for i in idx[1:]:
-                    t = ts[i]
-                    x, y = t.get_position()
-                    s = t.get_text()
-                    if abs(y) < abs(yp) + 2*yfs and \
-                       len(s) > 4 and s[:2] != '\u03c4=':
-                        y = np.sign(y)*(abs(yp) + 2*yfs)
-                        t.set_y(y)
-                    if len(s) >= 4 and abs(y) > 0.5*ylim:
-                        quadrants[j, k] += 1
-                    yp = y
+                ws = f'{pwidth:.3g}ms'
+            if i > 0:
+                x = 0.5*(zeros[i - 1] + zeros[i])
+            else:
+                x = 0.5*(zeros[-1] - period + zeros[i])
+            y = 0.5*(zeros_ampls[i - 1] + zeros_ampls[i])
+            if local_min:
+                if y > amplitudes[i - 1] - yfs:
+                    y = amplitudes[i - 1] - yfs
+                if y > amplitudes[(i + 1)%len(amplitudes)] - yfs:
+                    y = amplitudes[(i + 1)%len(amplitudes)] - yfs
+            else:
+                if y < amplitudes[i - 1] + yfs:
+                    y = amplitudes[i - 1] + yfs
+                if y < amplitudes[(i + 1)%len(amplitudes)] + yfs:
+                    y = amplitudes[(i + 1)%len(amplitudes)] + yfs
+            if pwidth < 0.25*period:
+                ax.text(x, y, ws, ha='center', va='center', rotation='vertical', zorder=100, fontsize=fontsize)
+            else:
+                ax.text(x, y, ws, ha='center', va='center', zorder=100, fontsize=fontsize)
     # annotate plot:
-    if unit is None or len(unit) == 0 or unit == 'a.u.':
-        unit = ''
     if props is not None:
-        label = '' # f'p-p amplitude = {props["p-p-amplitude"]:.3g} {unit}\n'
+        label = ''
         if 'n' in props:
             eods = 'EODs' if props['n'] > 1 else 'EOD'
             segs = ''
             if 'n_segments' in props:
                 n_segs = props['n_segments']
                 segs = f' (in {n_segs} segment{"s" if n_segs > 1 else ""})'
-            label += f'n = {props["n"]} {eods}{segs}\n'
+            label += f'n = {props["n"]} {eods}{segs}'
         if 'flipped' in props and props['flipped']:
-            label += 'flipped\n'
-        if 'polaritybalance' in props:
-            label += f'PB={100*props["polaritybalance"]:.0f} %\n'
-        # weigh left quadrants less:
-        quadrants *= 2
-        quadrants[quadrants[:, 1] > 0, 1] -= 1 
-        # find free quadrant:
-        q_row, q_col = np.unravel_index(np.argmin(quadrants), quadrants.shape)
-        # place text in quadrant:
-        y = 1 if q_row == 0 else 0
-        va = 'top' if q_row == 0 else 'bottom'
-        x = 0.03 if q_col == 0 else 0.97
-        ha = 'left' if q_col == 0 else 'right'
-        ax.text(x, y, label, transform=ax.transAxes,
-                va=va, ha=ha, zorder=100)
+            if len(label) > 0:
+                label += '\n'
+            label += 'flipped'
+        ax.text(0.03, 1.05, label, transform=ax.transAxes,
+                va='top', ha='left', zorder=100)
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
