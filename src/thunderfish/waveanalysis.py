@@ -12,6 +12,7 @@ Analysis of wave-type EOD waveforms.
 
 ## Visualization
 
+- `plot_wave_eod()`: plot and annotate a wave-type EOD waveform.
 - `plot_wave_spectrum()`: plot and annotate spectrum of wave EODs.
 
 ## Storage
@@ -261,8 +262,8 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
             axs[1, 1].set_ylim(bottom=0)
             axs[1, 1].set_xlabel('segment')
             axs[1, 1].set_ylabel('num_c')
-            axs[1, 1].xaxis.set_major_locator(plt.MultipleLocator(1))
-            axs[1, 1].yaxis.set_major_locator(plt.MultipleLocator(1))
+            axs[1, 1].xaxis.set_major_locator(MultipleLocator(1))
+            axs[1, 1].yaxis.set_major_locator(MultipleLocator(1))
             axs[1, 1].legend()
         if verbose > 0:
             eodf = np.mean(freqs) if len(freqs) > 0 else np.nan
@@ -924,6 +925,256 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     
     return meod, props, phases, spec, error_str
 
+        
+def plot_wave_eod(ax, eod_waveform, props, phases=None,
+                  unit=None, wave_periods=2,
+                  wave_style=dict(lw=1.5, color='tab:red'),
+                  sem_style=dict(color='0.8'),
+                  phase_style=dict(zorder=0, ls='', marker='o', color='tab:red',
+                                   markersize=5, mec='white', mew=1),
+                  zerox_style=dict(zorder=50, ls='', marker='o', color='black',
+                                   markersize=5, mec='white', mew=1),
+                  zero_style=dict(lw=0.5, color='0.7'),
+                  fontsize='medium'):
+    """Plot and annotate a wave-type EOD waveform.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes used for plotting.
+    eod_waveform: 2-D array
+        EOD waveform. First column is time in seconds, second column
+        the (mean) eod waveform. The optional third column is the
+        standard error, the optional fourth column is a fit of the
+        whole waveform, and the optional fourth column is a fit of 
+        the tails of a pulse waveform.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform as
+        returned by `analyze_wave()` and `analyze_pulse()`.
+    phases: dict
+        Dictionary with phase properties as returned by
+        `analyze_pulse_phases()`, `analyze_pulse()`, and
+        `load_pulse_phases()`.
+    unit: str
+        Optional unit of the data used for y-label.
+    wave_periods: float
+        How many periods of a wave EOD are shown.
+    wave_style: dict
+        Arguments passed on to the plot command for the EOD waveform.
+    sem_style: dict
+        Arguments passed on to the fill_between command for the
+        standard error of the EOD.
+    phase_style: dict
+        Arguments passed on to the plot command for marking EOD phases.
+    zerox_style: dict
+        Arguments passed on to the plot command for marking zero crossings.
+    zero_style: dict
+        Arguments passed on to the plot command for the zero line.
+    fontsize: str or float or int
+        Fontsize for annotation text.
+
+    """
+    time = 1000*eod_waveform[:, 0]
+    eod = eod_waveform[:, 1]
+    # time axis:                
+    period = 1000.0/props['EODf']
+    xlim_l = -0.5*wave_periods*period
+    xlim_r = +0.5*wave_periods*period + period
+    xlim = xlim_r - xlim_l
+    ax.set_xlim(xlim_l, xlim_r)
+    if xlim < 2:
+        ax.xaxis.set_major_locator(MultipleLocator(0.5))
+    elif xlim < 4:
+        ax.xaxis.set_major_locator(MultipleLocator(1))
+    elif xlim < 8:
+        ax.xaxis.set_major_locator(MultipleLocator(2))
+    ax.set_xlabel('Time [msec]')
+    # amplitude axis:                
+    ylim = np.max(np.abs(eod[(time >= xlim_l) & (time <= xlim_r)])) 
+    ax.set_ylim(-1.15*ylim, +1.15*ylim)
+    if unit:
+        ax.set_ylabel(f'Amplitude [{unit}]')
+    else:
+        ax.set_ylabel('Amplitude')
+    # ax height dimensions:
+    t = ax.text(0, 0, 'test', fontsize=fontsize)
+    fs = t.get_fontsize()
+    t.remove()
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:, 0]))[0]
+    dxu = 2*xlim/pixelx
+    xfs = fs*dxu
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:, 1]))[0]
+    dyu = 2*ylim/pixely
+    yfs = fs*dyu
+    texts = []
+    quadrants = np.zeros((2, 2), dtype=int)
+    # plot zero line:
+    ax.axhline(0.0, zorder=10, **zero_style)
+    # plot waveform:
+    ax.plot(time, eod, zorder=45, **wave_style)
+    # plot standard error:
+    if eod_waveform.shape[1] > 2:
+        std_eod = eod_waveform[:, 2]
+        ax.fill_between(time, eod + std_eod, eod - std_eod,
+                        zorder=20, **sem_style)
+    # plot and annotate phases:
+    if phases is not None and len(phases) > 0:
+        upper_area_text = False
+        lower_area_text = False
+        # mark zero crossings:
+        zeros = 1000*phases['zeros']
+        ax.plot(zeros, np.interp(zeros, time, eod), **zerox_style)
+        # phase peaks and troughs:
+        max_peak_idx = np.argmax(phases['amplitudes'])
+        min_trough_idx = np.argmin(phases['amplitudes'])
+        for i in range(len(phases['times'])):
+            index = phases['indices'][i]
+            ptime = 1000*phases['times'][i]
+            if ptime < xlim_l or ptime > xlim_r:
+                continue
+            pi = np.argmin(np.abs(time - ptime))
+            pampl = phases['amplitudes'][i]
+            relampl = phases['relamplitudes'][i]
+            # classify phase:
+            ampl_phase = phases['amplitudes'][i]
+            ampl_left = phases['amplitudes'][i - 1] if i > 0 else 0
+            ampl_right = phases['amplitudes'][i + 1] if i + 1 < len(phases['amplitudes']) else 0
+            local_maximum = ampl_phase > ampl_left and ampl_phase > ampl_right
+            if local_maximum:
+                right_phase = (i >= max_peak_idx)
+                min_max_phase = (i == max_peak_idx)
+                local_phase = (ampl_phase < 0)
+            else:
+                right_phase = i >= min_trough_idx 
+                min_max_phase = (i == min_trough_idx)
+                local_phase = (ampl_phase > 0)
+            sign = np.sign(pampl)
+            # mark phase peak/trough:
+            ax.plot(ptime, pampl, **phase_style)
+            # text for phase label:
+            label = f'P{index:.0f}'
+            if index != 1 and not local_phase:
+                if np.abs(ptime) < 1:
+                    ts = f'{1000*ptime:.0f}\u00b5s'
+                elif np.abs(ptime) < 10:
+                    ts = f'{ptime:.2f}ms'
+                else:
+                    ts = f'{ptime:.3g}ms'
+                if np.abs(relampl) < 0.05:
+                    ps = f'{100*relampl:.1f}%'
+                else:
+                    ps = f'{100*relampl:.0f}%'
+                label += f'({ps} @ {ts})'
+            # position of phase label:
+            ltime = ptime
+            lampl = pampl
+            valign = 'top' if sign < 0 else 'baseline'
+            add = True
+            if local_phase or (min_max_phase and abs(pampl)/ylim < 0.8):
+                halign = 'center'
+                dx = 0
+                dy = 0.6*yfs
+                if local_phase:
+                    add = False
+            elif min_max_phase:
+                halign = 'left' if right_phase else 'right'
+                dx = xfs if right_phase else -xfs
+                dy = 0
+                if abs(relampl) > 0.85:
+                    dx *= 2
+                    dy = -1.5*yfs
+            else:
+                dx = 0
+                dy = 0.8*yfs
+                if right_phase:
+                    halign = 'left'
+                    if i > 0 and np.isfinite(phases['zeros'][i - 1]):
+                        ltime = 1000*phases['zeros'][i - 1]
+                    else:
+                        dx = -2*xfs
+                    #np.sum(phases['amplitudes'][i + 1:]*pampl > 0)
+                else:
+                    halign = 'right'
+                    if np.isfinite(phases['zeros'][i]):
+                        ltime = 1000*phases['zeros'][i]
+                    else:
+                        dx = 2*xfs
+            if sign < 0:
+                dy = -dy
+            ta = ax.text(ltime + dx, lampl + dy, label,
+                         ha=halign, va=valign, zorder=100, fontsize=fontsize)
+            if add:
+                texts.append(ta)
+        # arrange text vertically to avoid overlaps:
+        ul_texts = []
+        ur_texts = []
+        ll_texts = []
+        lr_texts = []
+        for t in texts:
+            x, y = t.get_position()
+            if y > 0:
+                if x >= phases['times'][max_peak_idx]:
+                    ur_texts.append(t)
+                else:
+                    ul_texts.append(t)
+            else:
+                if x >= phases['times'][min_trough_idx]:
+                    lr_texts.append(t)
+                else:
+                    ll_texts.append(t)
+        for ts, (j, k) in zip([ul_texts, ur_texts, ll_texts, lr_texts],
+                              [(0, 0), (0, 1), (1, 0), (1, 1)]):
+            if len(ts) > 1:
+                ys = []
+                for t in ts:
+                    # alternative:
+                    #renderer = ax.get_fig().canvas.renderer
+                    #bbox = t.get_window_extent(renderer).transformed(ax.transData.inverted())
+                    x, y = t.get_position()
+                    ys.append(abs(y))
+                idx = np.argsort(ys)
+                x, y = ts[idx[0]].get_position()
+                yp = abs(y)
+                for i in idx[1:]:
+                    t = ts[i]
+                    x, y = t.get_position()
+                    s = t.get_text()
+                    if abs(y) < abs(yp) + 2*yfs and \
+                       len(s) > 4 and s[:2] != '\u03c4=':
+                        y = np.sign(y)*(abs(yp) + 2*yfs)
+                        t.set_y(y)
+                    if len(s) >= 4 and abs(y) > 0.5*ylim:
+                        quadrants[j, k] += 1
+                    yp = y
+    # annotate plot:
+    if unit is None or len(unit) == 0 or unit == 'a.u.':
+        unit = ''
+    if props is not None:
+        label = '' # f'p-p amplitude = {props["p-p-amplitude"]:.3g} {unit}\n'
+        if 'n' in props:
+            eods = 'EODs' if props['n'] > 1 else 'EOD'
+            segs = ''
+            if 'n_segments' in props:
+                n_segs = props['n_segments']
+                segs = f' (in {n_segs} segment{"s" if n_segs > 1 else ""})'
+            label += f'n = {props["n"]} {eods}{segs}\n'
+        if 'flipped' in props and props['flipped']:
+            label += 'flipped\n'
+        if 'polaritybalance' in props:
+            label += f'PB={100*props["polaritybalance"]:.0f} %\n'
+        # weigh left quadrants less:
+        quadrants *= 2
+        quadrants[quadrants[:, 1] > 0, 1] -= 1 
+        # find free quadrant:
+        q_row, q_col = np.unravel_index(np.argmin(quadrants), quadrants.shape)
+        # place text in quadrant:
+        y = 1 if q_row == 0 else 0
+        va = 'top' if q_row == 0 else 'bottom'
+        x = 0.03 if q_col == 0 else 0.97
+        ha = 'left' if q_col == 0 else 'right'
+        ax.text(x, y, label, transform=ax.transAxes,
+                va=va, ha=ha, zorder=100)
+
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
                        ampl_style=dict(ls='', marker='o', color='tab:blue', markersize=6),
@@ -1398,7 +1649,6 @@ def main():
     import matplotlib.pyplot as plt
     from thunderlab.eventdetection import snippets
     from .fakefish import wavefish_eods, export_wavefish
-    from .eodanalysis import plot_eod_waveform
 
     print('Analysis of wave-type EOD waveforms.')
 
@@ -1424,7 +1674,7 @@ def main():
 
     # plot:
     fig, axs = plt.subplot_mosaic('wa\nwp', layout='constrained')
-    plot_eod_waveform(axs['w'], mean_eod, props, unit=unit)
+    plot_wave_eod(axs['w'], mean_eod, props, unit=unit)
     axs['w'].set_title(f'wave fish: EODf = {props["EODf"]:.1f} Hz')
     plot_wave_spectrum(axs['a'], axs['p'], power, props)
     plt.show()

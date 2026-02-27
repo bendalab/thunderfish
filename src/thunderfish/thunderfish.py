@@ -54,11 +54,13 @@ from .harmonics import harmonic_groups_args, psd_peak_detection_args
 from .harmonics import harmonic_groups, closest, consistent
 from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_groups
 from .fakefish import pulsefish_spectrum
-from .pulseanalysis import analyze_pulse, plot_pulse_eods, plot_pulse_spectrum
-from .waveanalysis import extract_wave, analyze_wave, plot_wave_spectrum
+from .pulseanalysis import analyze_pulse, plot_pulse_eodtimes
+from .pulseanalysis import plot_pulse_eod, plot_pulse_spectrum
+from .waveanalysis import extract_wave, analyze_wave
+from .waveanalysis import plot_wave_eod, plot_wave_spectrum
 from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, unfilter_coeff, clipped_fraction
-from .eodanalysis import plot_eod_recording, plot_eod_waveform, plot_eod_snippets
+from .eodanalysis import plot_eod_recording, plot_eod_snippets
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .eodanalysis import add_species_config
@@ -92,21 +94,30 @@ rec_style = dict(color=trace_color, lw=2)
                            
 spectrum_style = dict(color=spectrum_color, lw=2)
 
-eod_styles = dict(wave_style=dict(color=trace_color, lw=1.3),
-                  magnified_style=dict(color=trace_color, lw=0.8),
-                  positive_style=dict(facecolor='#00A050', alpha=0.2,
-                                      edgecolor='none'),
-                  negative_style=dict(facecolor='#1040C0', alpha=0.2,
-                                      edgecolor='none'),
-                  sem_style=dict(color='0.8'),
-                  fit_style=dict(color=fit_color, lw=1),
-                  phase_style=dict(zorder=50, ls='', marker='o', color=trace_color,
-                                   markersize=5, mec='white', mew=1),
-                  zerox_style=dict(zorder=50, ls='', marker='o', color='black',
-                                   markersize=5, mec='white', mew=1),
-                  zero_style=dict(color='0.3', lw=0.5),
-                  fontsize='small')
-                      
+pulse_eod_styles = dict(wave_style=dict(color=trace_color, lw=1.3),
+                        magnified_style=dict(color=trace_color, lw=0.8),
+                        positive_style=dict(facecolor='#00A050', alpha=0.2,
+                                            edgecolor='none'),
+                        negative_style=dict(facecolor='#1040C0', alpha=0.2,
+                                            edgecolor='none'),
+                        sem_style=dict(color='0.8'),
+                        fit_style=dict(color=fit_color, lw=1),
+                        phase_style=dict(zorder=50, ls='', marker='o',
+                                         color=trace_color,
+                                         markersize=5, mec='white', mew=1),
+                        zerox_style=dict(zorder=50, ls='', marker='o',
+                                         color='black',
+                                         markersize=5, mec='white', mew=1),
+                        zero_style=dict(color='0.3', lw=0.5),
+                        fontsize='small')
+
+wave_eod_styles = dict(wave_style=pulse_eod_styles['wave_style'],
+                       sem_style=pulse_eod_styles['sem_style'],
+                       phase_style=pulse_eod_styles['phase_style'],
+                       zerox_style=pulse_eod_styles['zerox_style'],
+                       zero_style=pulse_eod_styles['zero_style'],
+                       fontsize=pulse_eod_styles['fontsize'])
+
 snippet_style = dict(scaley=False, lw=0.5, color='0.6')
 
 wave_spec_styles = dict(ampl_style=dict(marker='o', color=spectrum_color,
@@ -784,11 +795,11 @@ def plot_eods(title, message_filename, raw_data, rate, channel, idx0,
         if data is not None and len(data) > 0:
             plot_eod_recording(axr, data, rate, unit, twidth,
                                idx0/rate, rec_style)
-            plot_pulse_eods(axr, data, rate,
-                            zoom_window, twidth, eod_props,
-                            idx0/rate, colors=pulse_colors,
-                            markers=pulse_markers, frameon=True,
-                            loc='upper right')
+            plot_pulse_eodtimes(axr, data, rate,
+                                zoom_window, twidth, eod_props,
+                                idx0/rate, colors=pulse_colors,
+                                markers=pulse_markers, frameon=True,
+                                loc='upper right')
         if axr.get_legend() is not None:
             axr.get_legend().get_frame().set_color('white')
         axr.set_title('Recording', fontsize=14, y=1.05)
@@ -908,11 +919,14 @@ def plot_eods(title, message_filename, raw_data, rate, channel, idx0,
                                markersize=p[pk].get_markersize(), mec='none', clip_on=False,
                                label=p[pk].get_label(), transform=ax.transAxes)
                 ax.add_line(ma)
-        plot_eod_waveform(ax, mean_eod, props, phases, unit, **eod_styles)
-        if props['type'] == 'pulse' and 'times' in props:
-            plot_eod_snippets(ax, data, rate, mean_eod[0,0], mean_eod[-1,0],
-                              props['times'], n_snippets, props['flipped'],
-                              props['aoffs'], snippet_style)
+        if props['type'] == 'wave':
+            plot_wave_eod(ax, mean_eod, props, phases, unit, **wave_eod_styles)
+        else:
+            plot_pulse_eod(ax, mean_eod, props, phases, unit, **pulse_eod_styles)
+            if 'times' in props:
+                plot_eod_snippets(ax, data, rate, mean_eod[0,0], mean_eod[-1,0],
+                                  props['times'], n_snippets, props['flipped'],
+                                  props['aoffs'], snippet_style)
         if not large_plots and k < max_plots-2:
             ax.set_xlabel('')
         ax.format_coord = meaneod_format_coord
@@ -1070,10 +1084,10 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
         pulse_markers = pulse_markers[3:]
         plot_eod_recording(ax, raw_data[idx0:idx1], rate, unit,
                            twidth, idx0/rate, rec_style)
-        plot_pulse_eods(ax, raw_data[idx0:idx1], rate, zoom_window,
-                        twidth, eod_props, idx0/rate,
-                        colors=pulse_colors, markers=pulse_markers,
-                        frameon=True, loc='upper right')
+        plot_pulse_eodtimes(ax, raw_data[idx0:idx1], rate, zoom_window,
+                            twidth, eod_props, idx0/rate,
+                            colors=pulse_colors, markers=pulse_markers,
+                            frameon=True, loc='upper right')
         if ax.get_legend() is not None:
             ax.get_legend().get_frame().set_color('white')
         axes_style(ax)
@@ -1136,14 +1150,16 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
             fig.subplots_adjust(left=0.18, right=0.98, bottom=0.14, top=0.9-top)
             if not props is None:
                 ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
-            plot_eod_waveform(ax, meod, props, phases, unit, **eod_styles)
-            data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-            if not props is None and props['type'] == 'pulse' and \
-               'times' in props:
-                plot_eod_snippets(ax, data, rate, meod[0,0],
-                                  meod[-1,0], props['times'],
-                                  n_snippets, props['flipped'],
-                                  props['aoffs'], snippet_style)
+            if props is not None and props['type'] == 'wave':
+                plot_wave_eod(ax, meod, props, phases, unit, **wave_eod_styles)
+            else:
+                plot_pulse_eod(ax, meod, props, phases, unit, **pulse_eod_styles)
+                if 'times' in props:
+                    data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
+                    plot_eod_snippets(ax, data, rate, meod[0,0],
+                                      meod[-1,0], props['times'],
+                                      n_snippets, props['flipped'],
+                                      props['aoffs'], snippet_style)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if multi_pdf is not None:
@@ -1203,13 +1219,16 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
             ax1 = fig.add_subplot(gs[:,0])
             if not props is None:
                 ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
-            plot_eod_waveform(ax1, meod, props, phases, unit, **eod_styles)
-            data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-            if not props is None and props['type'] == 'pulse' and 'times' in props:
-                plot_eod_snippets(ax1, data, rate, meod[0,0],
-                                  meod[-1,0], props['times'],
-                                  n_snippets, props['flipped'],
-                                  props['aoffs'], snippet_style)
+            if props is not None and props['type'] == 'wave':
+                plot_wave_eod(ax1, meod, props, phases, unit, **wave_eod_styles)
+            else:
+                plot_pulse_eod(ax1, meod, props, phases, unit, **pulse_eod_styles)
+                if 'times' in props:
+                    data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
+                    plot_eod_snippets(ax1, data, rate, meod[0,0],
+                                      meod[-1,0], props['times'],
+                                      n_snippets, props['flipped'],
+                                      props['aoffs'], snippet_style)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
             if not props is None and props['type'] == 'pulse':

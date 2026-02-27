@@ -33,14 +33,15 @@ from thunderlab.powerspectrum import decibel, plot_decibel_psd
 from thunderlab.tabledata import write_table_args
 
 from .thunderfish import configuration, detect_eods
-from .thunderfish import rec_style, spectrum_style, eod_styles, snippet_style
+from .thunderfish import rec_style, spectrum_style
+from .thunderfish import wave_eod_styles, pulse_eod_styles, snippet_style
 from .thunderfish import wave_spec_styles, pulse_spec_styles
 from .bestwindow import clip_args, clip_amplitudes
 from .harmonics import colors_markers, plot_harmonic_groups
-from .eodanalysis import plot_eod_waveform, plot_eod_snippets
+from .eodanalysis import plot_eod_snippets
 from .eodanalysis import plot_eod_recording, save_analysis
-from .pulseanalysis import plot_pulse_eods, plot_pulse_spectrum
-from .waveanalysis import plot_wave_spectrum
+from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_eod, plot_pulse_spectrum
+from .waveanalysis import plot_wave_eod, plot_wave_spectrum 
 from .harmonics import annotate_harmonic_group
 
 
@@ -67,11 +68,11 @@ class TracePlot():
         plot_eod_recording(self.ax, data, rate, unit,
                            twidth, time[0], rec_style)
         zoom_window = [1.2, 1.3]
-        plot_pulse_eods(self.ax, data, rate, zoom_window,
-                        twidth, eod_props, time[0],
-                        colors=pulse_colors,
-                        markers=pulse_markers,
-                        frameon=True, loc='upper right')
+        plot_pulse_eodtimes(self.ax, data, rate, zoom_window,
+                            twidth, eod_props, time[0],
+                            colors=pulse_colors,
+                            markers=pulse_markers,
+                            frameon=True, loc='upper right')
         if self.ax.get_legend() is not None:
             self.ax.get_legend().get_frame().set_color('white')
 
@@ -190,20 +191,22 @@ class EODPlot():
         self.navi.hide()
         gs = self.canvas.figure.add_gridspec(2, 2)
         self.axe = self.canvas.figure.add_subplot(gs[:, 0])
-        plot_eod_waveform(self.axe, mean_eod, props, phases,
-                          unit=unit, **eod_styles)
-        if props['type'] == 'pulse' and 'times' in props:
-            plot_eod_snippets(self.axe, data, rate,
-                              mean_eod[0, 0], mean_eod[-1, 0],
-                              props['times'], n_snippets,
-                              props['flipped'],
-                              props['aoffs'], snippet_style)
         if props['type'] == 'wave':
+            plot_wave_eod(self.axe, mean_eod, props, phases,
+                          unit=unit, **wave_eod_styles)
             self.axa = self.canvas.figure.add_subplot(gs[0, 1])
             self.axp = self.canvas.figure.add_subplot(gs[1, 1], sharex=self.axa)
             plot_wave_spectrum(self.axa, self.axp, spectrum, props,
                                unit=unit, **wave_spec_styles)
         else:
+            plot_pulse_eod(self.axe, mean_eod, props, phases,
+                           unit=unit, **pulse_eod_styles)
+            if 'times' in props:
+                plot_eod_snippets(self.axe, data, rate,
+                                  mean_eod[0, 0], mean_eod[-1, 0],
+                                  props['times'], n_snippets,
+                                  props['flipped'],
+                                  props['aoffs'], snippet_style)
             self.axs = self.canvas.figure.add_subplot(gs[:, 1])
             plot_pulse_spectrum(self.axs, spectrum, props,
                                 **pulse_spec_styles)
