@@ -1,19 +1,19 @@
 """
-Analysis of wave-type EOD waveforms.
+Analysis of wave-type EODs.
 
-## Analysis of wave-type EODs
+## Analysis
 
 - `extract_wave()`: retrieve average EOD waveform via Fourier transform.
 - `condition_wave()`: subtract offset, flip, and shift wave-type EOD waveform.
 - `analyze_wave_properties()`: characterize basic properties of a wave-type EOD.
 - `analyze_wave_phases()`: characterize all phases of a wave-type EOD.
 - `analyse_wave_spectrum()`: analyze the spectrum of a wave-type EOD.
-- `analyze_wave()`: analyze the EOD waveform of a wave fish.
+- `analyze_wave()`: full analysis the EOD waveform of a wave fish.
 
 ## Visualization
 
 - `plot_wave_eod()`: plot and annotate a wave-type EOD waveform.
-- `plot_wave_spectrum()`: plot and annotate spectrum of wave EODs.
+- `plot_wave_spectrum()`: plot and annotate spectrum of wave-type EODs.
 
 ## Storage
 
@@ -25,6 +25,12 @@ Analysis of wave-type EOD waveforms.
 - `load_wave_phases()`: load phase properties of wave-type EOD from file.
 - `save_wave_spectrum()`: save amplitude and phase spectrum of wave EOD to file.
 - `load_wave_spectrum()`: load amplitude and phase spectrum of wave EOD from file.
+
+## Configuration
+
+- `add_wave_analysis_config()`: add parameters for `analyze_wave()` to configuration.
+- `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
+
 """
 
 import numpy as np
@@ -51,7 +57,7 @@ from .harmonics import fundamental_freqs_and_power
 
 
 def extract_wave(data, rate, freq, freq_resolution, periods=5,
-                 frate=1e6, n_harmonics=21,
+                 frate=1e6, n_harmonics=20,
                  min_corr=0.99, min_ampl_frac=0.5,
                  verbose=0, plot_level=0):
     """Retrieve average EOD waveform via Fourier transform.
@@ -518,8 +524,8 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
     freq: float
         The frequency of the EOD.
     thresh_frac: float
-        Threshold for detecting peaks and troughs is this fraction from
-        p-p amplitude.
+        Threshold for detecting peaks and troughs as a fraction of
+        the p-p amplitude.
     
     Returns
     -------
@@ -607,7 +613,7 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
     return phases
     
     
-def analyse_wave_spectrum(freq, coeffs, n_harmonics=8):
+def analyse_wave_spectrum(freq, coeffs, n_phase_harmonics=8):
     """Analyze the spectrum of a wave-type EOD.
     
     Parameters
@@ -620,7 +626,7 @@ def analyse_wave_spectrum(freq, coeffs, n_harmonics=8):
         The Fourier coefficients of an EOD waveform.
         If provided, they are taken for the spectrum and the waveform
         is updated from them.
-    n_harmonics: int
+    n_phase_harmonics: int
         Number of harmonics over which to compute the slope of the phases.
     
     Returns
@@ -656,7 +662,7 @@ def analyse_wave_spectrum(freq, coeffs, n_harmonics=8):
         A measure of smoothness of the spectrum.
     phase_slope: float
         Slope of a linear regression between phases and multipliers of
-        the first `n_harmonics` harmonics.
+        the first `n_phase_harmonics` harmonics.
     """
     if hasattr(freq, 'shape'):
         freq1 = freq[0][0]
@@ -706,7 +712,7 @@ def analyse_wave_spectrum(freq, coeffs, n_harmonics=8):
     db_diff = np.std(np.diff(db_powers))
 
     # slope of unwraped phases:
-    phases = spec[:n_harmonics, 5]
+    phases = spec[:n_phase_harmonics, 5]
     phases = np.unwrap(phases)
     r = linregress(np.arange(len(phases)), phases)
     phase_slope = r.slope
@@ -715,8 +721,9 @@ def analyse_wave_spectrum(freq, coeffs, n_harmonics=8):
 
     
 def analyze_wave(eod, ratetime, freq, coeffs=None,
-                 n_harmonics=21, flip='none'):
-    """Analyze the EOD waveform of a wave fish.
+                 n_harmonics=20, flip='none', thresh_frac=0.05,
+                 n_phase_harmonics=8):
+    """Full analysis of the EOD waveform of a wave fish.
     
     Parameters
     ----------
@@ -745,6 +752,11 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
         - 'none' do not flip waveform.
+    thresh_frac: float
+        Threshold for detecting peaks and troughs as a fraction of
+        the p-p amplitude.
+    n_phase_harmonics: int
+        Number of harmonics over which to compute the slope of the phases.
     
     Returns
     -------
@@ -886,7 +898,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     rel_max_ampl = max_ampl/pp_ampl
 
     # phases:
-    phases = analyze_wave_phases(meod, None, freq1, thresh_frac=0.05)
+    phases = analyze_wave_phases(meod, None, freq1, thresh_frac=thresh_frac)
     p_inx = np.argmax(phases['amplitudes'])
     peak_width = phases['widths'][p_inx]
     t_inx = np.argmin(phases['amplitudes'])
@@ -894,7 +906,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     
     # spectral analysis:
     spec, power, data_power, thd, db_diff, phase_slope = \
-        analyse_wave_spectrum(freq, coeffs)
+        analyse_wave_spectrum(freq, coeffs,
+                              n_phase_harmonics=n_phase_harmonics)
 
     # store results:
     props = {}
@@ -1616,6 +1629,52 @@ def load_wave_spectrum(file_path):
     spec = data.array()
     spec[:, 3] *= 0.01
     return spec, data.unit('amplitude')
+
+        
+def add_wave_analysis_config(cfg, n_harmonics=20, flip_wave='none',
+                             thresh_frac=0.05, n_phase_harmonics=8):
+    """Add all parameters needed for `analyse_wave()` as a new
+    section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+        
+    See `eod_waveform()`, `analyze_wave()`, and `analyze_pulse()` for
+    details on the remaining arguments.
+    """
+    cfg.add_section('Wave-type EOD analysis:')
+    cfg.add('eodHarmonics', n_harmonics, '', 'Number of harmonics fitted to the EOD waveform.')
+    cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave fish to make largest extremum positive (flip, none, or auto).')
+    cfg.add('waveEODThresholdFraction', 100*thresh_frac, '%', 'Threshold for detecting peaks and troughs in wave-type EODs as a fraction of the p-p amplitude.')
+    cfg.add('waveEODPhaseHarmonics', n_phase_harmonics, '', 'Number of harmonics over which to compute the slope of the phases..')
+
+
+def analyze_wave_args(cfg):
+    """Translates a configuration to the respective parameter names of
+    the `analyze_wave()` function.
+    
+    The return value can then be passed as key-word arguments to this
+    function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `analyze_wave()` function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'n_harmonics': 'eodHarmonics',
+                 'flip': 'flipWaveEOD',
+                 'thresh_frac': 'waveEODThresholdFraction',
+                 'n_phase_harmonics': 'waveEODPhaseHarmonics'})
+    a['thresh_frac'] *= 0.01
+    return a
 
 
 def main():

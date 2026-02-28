@@ -45,7 +45,6 @@ Analyse EOD waveforms.
 
 - `add_eod_analysis_config()`: add parameters for EOD analysis functions to configuration.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
-- `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 - `add_species_config()`: add parameters needed for assigning EOD waveforms to species.
 - `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
@@ -1463,29 +1462,6 @@ def eod_waveform_args(cfg):
                  'min_win': 'eodMinSnippet',
                  'max_eods': 'eodMaxEODs',
                  'min_sem': 'eodMinSem'})
-    return a
-
-
-def analyze_wave_args(cfg):
-    """Translates a configuration to the respective parameter names of
-    the function `analyze_wave()`.
-    
-    The return value can then be passed as key-word arguments to this
-    function.
-
-    Parameters
-    ----------
-    cfg: ConfigFile
-        The configuration.
-
-    Returns
-    -------
-    a: dict
-        Dictionary with names of arguments of the `analyze_wave()` function
-        and their values as supplied by `cfg`.
-    """
-    a = cfg.map({'n_harmonics': 'eodHarmonics',
-                 'flip': 'flipWaveEOD'})
     return a
 
 

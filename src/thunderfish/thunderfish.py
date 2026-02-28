@@ -58,11 +58,12 @@ from .pulseanalysis import analyze_pulse, plot_pulse_eodtimes
 from .pulseanalysis import plot_pulse_eod, plot_pulse_spectrum
 from .waveanalysis import extract_wave, analyze_wave
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum
+from .waveanalysis import add_wave_analysis_config, analyze_wave_args
 from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, unfilter_coeff, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_eod_snippets
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
-from .eodanalysis import analyze_wave_args, analyze_pulse_args
+from .eodanalysis import analyze_pulse_args
 from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
@@ -167,6 +168,7 @@ def configuration():
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     del cfg['eodMinSem']
+    add_wave_analysis_config(cfg)
     add_eod_quality_config(cfg)
     add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
