@@ -35,10 +35,6 @@ Analyse EOD waveforms.
 - `load_analysis()`: load EOD analysis files.
 - `load_recording()`: load recording.
 
-## Filter functions
-
-- `unfilter()`: apply inverse low-pass filter on data.
-
 ## Configuration
 
 - `add_eod_analysis_config()`: add parameters for EOD analysis functions to configuration.
@@ -1207,7 +1203,7 @@ def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
     cfg.add('eodMinSem', min_sem, '', 'Use minimum of s.e.m. to set maximum number of EODs used to compute the average EOD.')
-    cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect first large peak positive (flip, none, or auto).')
+    cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect of high-pass filter of recording device using the specified cutoff frequency of the filter.')
 
 
 def eod_waveform_args(cfg):

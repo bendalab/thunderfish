@@ -158,7 +158,7 @@ def configuration():
     cfg.add('frequencyThreshold', 1.0, 'Hz',
             'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
     # TODO: make this threshold dependent on frequency resolution!
-    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')  # needed by fishfinder
+    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')  # still needed by fishfinder
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
