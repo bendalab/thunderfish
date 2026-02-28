@@ -127,7 +127,8 @@ wave_spec_styles = dict(ampl_style=dict(marker='o', color=spectrum_color,
                         phase_style=dict(marker='p', color=spectrum_color,
                                          markersize=6),
                         phase_stem_style=dict(color=spectrum_color, alpha=0.5,
-                                              lw=1))
+                                              lw=1),
+                        phase_twopi_style=dict(color='k', ls='--', lw=0.5))
 
 pulse_spec_styles = dict(max_freq=40_000,
                          spec_style=dict(color=spectrum_color, lw=2),

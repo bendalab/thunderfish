@@ -31,7 +31,7 @@ import numpy as np
 
 try:
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import MultipleLocator
+    from matplotlib.ticker import MultipleLocator, FuncFormatter
     from matplotlib.artist import setp
 except ImportError:
     pass
@@ -1122,7 +1122,8 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
                        ampl_style=dict(ls='', marker='o', color='tab:blue', markersize=6),
                        ampl_stem_style=dict(color='tab:blue', alpha=0.5, lw=2),
                        phase_style=dict(ls='', marker='p', color='tab:blue', markersize=6),
-                       phase_stem_style=dict(color='tab:blue', alpha=0.5, lw=2)):
+                       phase_stem_style=dict(color='tab:blue', alpha=0.5, lw=2),
+                       phase_twopi_style=dict(color='k', ls='--', lw=0.5)):
     """Plot and annotate spectrum of wave EOD.
 
     Parameters
@@ -1152,7 +1153,21 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
         Properties of the markers of the phase plot.
     phase_stem_style: dict
         Properties of the stems of the phase plot.
+    phase_twopi_style: dict
+        Properties of the horizontal lines marking \\(2\\pi\\)
+        in the phase plot.
     """
+    def pi_fmt(x, pos):
+        i = int(np.round(x/np.pi))
+        if i == 1:
+            return '\u03c0'
+        elif i == 0:
+            return '0'
+        elif i == -1:
+            return '-\u03c0'
+        else:
+            return f'{i}\u03c0'
+        
     n = min(9, np.sum(np.isfinite(spec[:, 2])))
     # amplitudes:
     markers, stemlines, _ = axa.stem(spec[:n, 0], spec[:n, 2],
@@ -1169,7 +1184,14 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
         axa.set_ylabel('Amplitude')
     # phases:
     phases = spec[:n, 5]
-    phases[phases<0.0] = phases[phases<0.0] + 2*np.pi
+    phases = np.unwrap(phases)
+    min_p = np.floor(np.min(phases)/np.pi)*np.pi
+    max_p = np.ceil(np.max(phases)/np.pi)*np.pi
+    if max_p - min_p < 1.5*np.pi:
+        max_p += np.pi
+    for p in np.arange(min_p + np.pi, max_p, np.pi):
+        if np.abs(p - np.round(p/2/np.pi)*2*np.pi) < 1e-8:
+            axp.axhline(p, **phase_twopi_style)
     markers, stemlines, _ = axp.stem(spec[:n, 0], phases[:n],
                                      basefmt='none')
     setp(markers, clip_on=False, **phase_style)
@@ -1177,9 +1199,12 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
     axp.set_xlim(0.5, n + 0.5)
     axp.xaxis.set_major_locator(MultipleLocator(1))
     axp.tick_params('x', direction='out')
-    axp.set_ylim(0, 2*np.pi)
-    axp.set_yticks([0, np.pi, 2*np.pi])
-    axp.set_yticklabels(['0', '\u03c0', '2\u03c0'])
+    axp.set_ylim(min_p, max_p)
+    if max_p - min_p < 3.5*np.pi:
+        axp.yaxis.set_major_locator(MultipleLocator(1*np.pi))
+    else:
+        axp.yaxis.set_major_locator(MultipleLocator(2*np.pi))
+    axp.yaxis.set_major_formatter(FuncFormatter(pi_fmt))
     axp.set_xlabel('Harmonics')
     axp.set_ylabel('Phase')
 
