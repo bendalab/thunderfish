@@ -469,11 +469,9 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
                     ax.set_xlabel('time [ms]')
                     ax.legend()
                     plt.show()
-            mean_eod, props, phases, sdata, error_str = \
+            mean_eod, props, phases, sdata = \
                 analyze_wave(mean_eod, None, fish, coeffs,
                              **analyze_wave_args(cfg))
-            if error_str:
-                print(f'{name}: {error_str}')
             eod_times = np.arange(i0/rate, i1/rate, 1/fish[0, 0])
             clipped_frac = clipped_fraction(data[i0:i1], rate, eod_times,
                                             mean_eod, min_clip, max_clip)

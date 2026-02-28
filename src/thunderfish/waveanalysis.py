@@ -38,6 +38,7 @@ except ImportError:
 
 from pathlib import Path
 from scipy.optimize import curve_fit
+from scipy.stats import linregress
 from numba import jit
 from thunderlab.eventdetection import detect_peaks
 from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
@@ -531,7 +532,7 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
         - "amplitudes": amplitudes of each phase
         - "relamplitudes": amplitudes normalized to amplitude of P1 phase
         - "widths": widths of each phase computed from zeros
-        - "zeros": time point where amplitude between this and the next phase is half the difference.
+        - "zeros": time point where amplitude between this and the next phase is half their difference.
 
     """
     if eod.ndim == 2:
@@ -606,7 +607,7 @@ def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
     return phases
     
     
-def analyse_wave_spectrum(freq, coeffs, power_add_harmonics=3):
+def analyse_wave_spectrum(freq, coeffs, n_harmonics=8):
     """Analyze the spectrum of a wave-type EOD.
     
     Parameters
@@ -619,41 +620,43 @@ def analyse_wave_spectrum(freq, coeffs, power_add_harmonics=3):
         The Fourier coefficients of an EOD waveform.
         If provided, they are taken for the spectrum and the waveform
         is updated from them.
-    power_add_harmonics: int
-        The maximum power of higher harmonics is computed from
-        harmonics higher than the maximum harmonics within the first
-        three harmonics plus `power_add_harmonics`.
+    n_harmonics: int
+        Number of harmonics over which to compute the slope of the phases.
     
     Returns
     -------
-    spec: 2-D array of floats
+    spec: 2-D array of float
+        Amplitudes and phases for each harmonic.
+        Rows are the harmonics, first row is the fundamental frequency
+        with multiplier 1, relative amplitude of one, relative power of 0dB,
+        and phase shift of zero.
         First six columns are from the spectrum of the extracted
-        waveform.  First column is the harmonics (fundamental is one),
-        second column its frequency, third column its amplitude, fourth
-        column its amplitude relative to the fundamental, fifth column
-        is power of harmonics relative to fundamental in decibel, and
-        sixth column the phase shift relative to the fundamental.
-        If `freq` is a list of harmonics, a seventh column is added to
-        `spec_data` that contains the powers of the harmonics from the
-        original power spectrum of the raw data.  Rows are the
-        harmonics, first row is the fundamental frequency with index
-        0, relative amplitude of one, relative power of 0dB, and phase
-        shift of zero.
+        waveform, optional column 6 is from the spectrum of the recording:
+
+        - column 0: multiplier of the harmonics (fundamental is one)
+        - column 1: frequency in Hertz
+        - column 2: amplitude
+        - column 3: amplitude relative to the one of the fundamental
+        - column 4: power of harmonics relative to fundamental in decibel
+        - column 5: phase shift relative to the fundamental
+        - column 6: if `freq` is a list of harmonics, the powers of
+          the harmonics from the power spectrum of the raw data.
 
     power: float
         Total power, i.e. sum of squared Fourier amplitudes.
     data_power: float or None
         Total power (sum of data powers) in the data, if available.
-        Only sum over as many harmonics as we have Fourier coefficients.
+        Only sum over as many harmonics as there are Fourier coefficients.
     thd: float
-        Total harmonic distortion. Square root of the sum of the squared
-        amplitudes of all harmonics relativ to the amplitude of
-        the fundamental. 
+        Total harmonic distortion of the amplitudes \\(a_i\\) of the harmonics
+        is power in the higher harmonics relative to the fundamental:
+        \\[ \\text{thd} = \\sqrt{\\sum_{i=2}^n \\left(\\frac{a_i}{a_1}\\right)^2} \\]
     db_diff: float
         Standard deviation of the differences of the decibel powers.
-        As a measure of smoothness of the spectrum.
-    max_harmonics_power: float
-        Maximum power in decibel ofhigher harmonics.
+        A measure of smoothness of the spectrum.
+    phase_slope: float
+        Slope of a linear regression between phases and multipliers of
+        the first `n_harmonics` harmonics.
     """
     if hasattr(freq, 'shape'):
         freq1 = freq[0][0]
@@ -695,24 +698,24 @@ def analyse_wave_spectrum(freq, coeffs, power_add_harmonics=3):
     if spec.shape[1] > 6:
         data_power = decibel(np.nansum(spec[:pnh, 6]))
         
-    # smoothness of power spectrum:
-    db_powers = decibel(spec[:len(coeffs) - 1, 2]**2)
-    db_diff = np.std(np.diff(db_powers))
-    # maximum relative power of higher harmonics:
-    p_max = np.argmax(db_powers[:3])
-    db_powers -= db_powers[p_max]
-    if len(db_powers[p_max + power_add_harmonics:]) == 0:
-        max_harmonics_power = -100.0
-    else:
-        max_harmonics_power = np.max(db_powers[p_max + power_add_harmonics:])
     # total harmonic distortion:
     thd = np.sqrt(np.nansum(spec[1:, 3])**2)
+        
+    # smoothness of power spectrum:
+    db_powers = spec[:len(coeffs) - 1, 4]
+    db_diff = np.std(np.diff(db_powers))
 
-    return spec, power, data_power, thd, db_diff, max_harmonics_power
+    # slope of unwraped phases:
+    phases = spec[:n_harmonics, 5]
+    phases = np.unwrap(phases)
+    r = linregress(np.arange(len(phases)), phases)
+    phase_slope = r.slope
+
+    return spec, power, data_power, thd, db_diff, phase_slope
 
     
-def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
-                 power_add_harmonics=3, flip='none'):
+def analyze_wave(eod, ratetime, freq, coeffs=None,
+                 n_harmonics=21, flip='none'):
     """Analyze the EOD waveform of a wave fish.
     
     Parameters
@@ -738,10 +741,6 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
         is updated from them.
     n_harmonics: int
         Number of harmonics used for the Fourier decomposition.
-    power_add_harmonics: int
-        The maximum power of higher harmonics is computed from
-        harmonics higher than the maximum harmonics within the first
-        three harmonics plus `power_add_harmonics`.
     flip: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
@@ -795,8 +794,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
           of fundamental.  
         - dbdiff: smoothness of power spectrum as standard deviation of
           differences in decibel power.
-        - maxdb: maximum power of higher harmonics relative to peak power
-          in decibel.
+        - phaseslope: slope of a linear regression between phases and
+          multipliers of the harmonics.
 
     phases: dict
         Dictionary with
@@ -807,23 +806,26 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
         - "amplitudes": amplitudes of each phase
         - "relamplitudes": amplitudes normalized to amplitude of P1 phase
         - "widths": widths of each phase computed from zeros
-        - "zeros": time point where amplitude between this and the next phase is half the difference.
+        - "zeros": time point where amplitude between this and the next phase
+          is half their difference.
+    
     spec: 2-D array of floats
+    spec: 2-D array of float
+        Amplitudes and phases for each harmonic.
+        Rows are the harmonics, first row is the fundamental frequency
+        with multiplier 1, relative amplitude of one, relative power of 0dB,
+        and phase shift of zero.
         First six columns are from the spectrum of the extracted
-        waveform.  First column is the harmonics (fundamental is one),
-        second column its frequency, third column its amplitude, fourth
-        column its amplitude relative to the fundamental, fifth column
-        is power of harmonics relative to fundamental in decibel, and
-        sixth column the phase shift relative to the fundamental.
-        If `freq` is a list of harmonics, a seventh column is added to
-        `spec` that contains the powers of the harmonics from the
-        original power spectrum of the raw data.  Rows are the
-        harmonics, first row is the fundamental frequency with index
-        0, relative amplitude of one, relative power of 0dB, and phase
-        shift of zero.
-    error_str: string
-        If fitting of the fourier series failed,
-        this is reported in this string.
+        waveform, optional column 6 is from the spectrum of the recording:
+
+        - column 0: multiplier of the harmonics (fundamental is one)
+        - column 1: frequency in Hertz
+        - column 2: amplitude
+        - column 3: amplitude relative to the one of the fundamental
+        - column 4: power of harmonics relative to fundamental in decibel
+        - column 5: phase shift relative to the fundamental
+        - column 6: if `freq` is a list of harmonics, the powers of
+          the harmonics from the power spectrum of the raw data.
 
     Raises
     ------
@@ -855,8 +857,6 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     if hasattr(freq, 'shape'):
         freq1 = freq[0][0]
     period = 1/freq1
-
-    error_str = ''
 
     # spectrum:
     has_spec = coeffs is not None
@@ -893,8 +893,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
     trough_width = phases['widths'][t_inx]
     
     # spectral analysis:
-    spec, power, data_power, thd, db_diff, max_harmonics_power = \
-        analyse_wave_spectrum(freq, coeffs, power_add_harmonics)
+    spec, power, data_power, thd, db_diff, phase_slope = \
+        analyse_wave_spectrum(freq, coeffs)
 
     # store results:
     props = {}
@@ -921,9 +921,9 @@ def analyze_wave(eod, ratetime, freq, coeffs=None, n_harmonics=21,
         props['datapower'] = data_power
     props['thd'] = thd
     props['dbdiff'] = db_diff
-    props['maxdb'] = max_harmonics_power
+    props['phaseslope'] = phase_slope
     
-    return meod, props, phases, spec, error_str
+    return meod, props, phases, spec
 
         
 def plot_wave_eod(ax, eod_waveform, props, phases=None,
@@ -1174,6 +1174,9 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
                                      basefmt='none')
     setp(markers, clip_on=False, **ampl_style)
     setp(stemlines, **ampl_stem_style)
+    if props and 'thd' in props:
+        axa.text(1, 1, f'thd={100*props["thd"]:.0f}%',
+                 ha='right', va='top', transform=axa.transAxes)
     axa.set_xlim(0.5, n + 0.5)
     axa.set_ylim(bottom=0)
     axa.xaxis.set_major_locator(MultipleLocator(1))
@@ -1199,6 +1202,9 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
     axp.set_xlim(0.5, n + 0.5)
     axp.xaxis.set_major_locator(MultipleLocator(1))
     axp.tick_params('x', direction='out')
+    if props and 'phaseslope' in props:
+        axp.text(0.03, 1, f'slope={props["phaseslope"]:.2g}',
+                 va='top', transform=axp.transAxes)
     axp.set_ylim(min_p, max_p)
     if max_p - min_p < 3.5*np.pi:
         axp.yaxis.set_major_locator(MultipleLocator(1*np.pi))
@@ -1357,9 +1363,6 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('power', 'dB', '%7.2f', value=wave_props)
     if 'datapower' in wave_props[0]:
         td.append('datapower', 'dB', '%7.2f', value=wave_props)
-    td.append('thd', '%', '%.2f', value=wave_props, fac=100)
-    td.append('dbdiff', 'dB', '%7.2f', value=wave_props)
-    td.append('maxdb', 'dB', '%7.2f', value=wave_props)
     if 'noise' in wave_props[0]:
         td.append('noise', '%', '%.1f', value=wave_props, fac=100)
     td.append('rmserror', '%', '%.2f', value=wave_props, fac=100)
@@ -1370,6 +1373,9 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('peakwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('troughwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('minwidth', '%', '%.2f', value=wave_props, fac=100)
+    td.append('thd', '%', '%.2f', value=wave_props, fac=100)
+    td.append('dbdiff', 'dB', '%7.2f', value=wave_props)
+    td.append('phaseslope', '', '%6.2f', value=wave_props)
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-wavefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
