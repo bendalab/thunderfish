@@ -132,10 +132,10 @@ def check_pulse_args(cfg):
         Dictionary with names of arguments of the check_pulse() function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'thresh_fac': 'pulseWidthThresholdFactor',
-                 'percentile': 'pulseWidthPercentile',
-                 'sem_fac': 'pulseWidthSEMFactor',
-                 'pulse_thresh': 'pulseWidthThresholdRatio'})
+    a = cfg.map(thresh_fac='pulseWidthThresholdFactor',
+                percentile='pulseWidthPercentile',
+                sem_fac='pulseWidthSEMFactor',
+                pulse_thresh='pulseWidthThresholdRatio'})
     return a
 
     

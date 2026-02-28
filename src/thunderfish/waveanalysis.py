@@ -1673,10 +1673,10 @@ def analyze_wave_args(cfg):
         Dictionary with names of arguments of the `analyze_wave()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'n_harmonics': 'eodHarmonics',
-                 'flip_wave': 'flipWaveEOD',
-                 'thresh_frac': 'waveEODThresholdFraction',
-                 'n_phase_harmonics': 'waveEODPhaseHarmonics'})
+    a = cfg.map(n_harmonics='eodHarmonics',
+                flip_wave='flipWaveEOD',
+                thresh_frac='waveEODThresholdFraction',
+                n_phase_harmonics='waveEODPhaseHarmonics')
     a['thresh_frac'] *= 0.01
     return a
 

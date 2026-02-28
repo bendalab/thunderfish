@@ -1436,10 +1436,10 @@ def eod_waveform_args(cfg):
         Dictionary with names of arguments of the `eod_waveform()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'win_fac': 'eodSnippetFac',
-                 'min_win': 'eodMinSnippet',
-                 'max_eods': 'eodMaxEODs',
-                 'min_sem': 'eodMinSem'})
+    a = cfg.map(win_fac='eodSnippetFac',
+                min_win='eodMinSnippet',
+                max_eods='eodMaxEODs',
+                min_sem='eodMinSem'})
     return a
 
 
@@ -1514,19 +1514,19 @@ def wave_quality_args(cfg):
         Dictionary with names of arguments of the `wave_quality()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
-                 'max_rms_sem': 'maximumVariance',
-                 'max_rms_error': 'maximumRMSError',
-                 'min_power': 'minimumPower',
-                 'max_crossings': 'maximumCrossings',
-                 'min_freq': 'minimumFrequency',
-                 'max_freq': 'maximumFrequency',
-                 'max_thd': 'maximumTotalHarmonicDistortion',
-                 'max_db_diff': 'maximumPowerDifference',
-                 'max_harmonics_db': 'maximumHarmonicsPower',
-                 'max_relampl_harm1': 'maximumFirstHarmonicAmplitude',
-                 'max_relampl_harm2': 'maximumSecondHarmonicAmplitude',
-                 'max_relampl_harm3': 'maximumThirdHarmonicAmplitude'})
+    a = cfg.map(max_clipped_frac='maximumClippedFraction',
+                max_rms_sem='maximumVariance',
+                max_rms_error='maximumRMSError',
+                min_power='minimumPower',
+                max_crossings='maximumCrossings',
+                min_freq='minimumFrequency',
+                max_freq='maximumFrequency',
+                max_thd='maximumTotalHarmonicDistortion',
+                max_db_diff='maximumPowerDifference',
+                max_harmonics_db='maximumHarmonicsPower',
+                max_relampl_harm1='maximumFirstHarmonicAmplitude',
+                max_relampl_harm2='maximumSecondHarmonicAmplitude',
+                max_relampl_harm3='maximumThirdHarmonicAmplitude'})
     a['max_clipped_frac'] *= 0.01
     return a
 
@@ -1549,8 +1549,8 @@ def pulse_quality_args(cfg):
         Dictionary with names of arguments of the `pulse_quality()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
-                 'max_rms_sem': 'maximumRMSNoise'})
+    a = cfg.map(max_clipped_frac='maximumClippedFraction',
+                max_rms_sem='maximumRMSNoise'})
     a['max_clipped_frac'] *= 0.01
     return a
 

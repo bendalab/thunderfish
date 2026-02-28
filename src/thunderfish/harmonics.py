@@ -1989,11 +1989,11 @@ def psd_peak_detection_args(cfg):
         Dictionary with names of arguments of the `harmonic-group()` function
         and their values as supplied by `cfg`.
     """
-    return cfg.map({'low_threshold': 'lowThreshold',
-                    'high_threshold': 'highThreshold',
-                    'thresh_bins': 'thresholdBins',
-                    'low_thresh_factor': 'lowThresholdFactor',
-                    'high_thresh_factor': 'highThresholdFactor'})
+    return cfg.map(low_threshold='lowThreshold',
+                   high_threshold='highThreshold',
+                   thresh_bins='thresholdBins',
+                   low_thresh_factor='lowThresholdFactor',
+                   high_thresh_factor='highThresholdFactor'})
 
 
 def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
@@ -2045,18 +2045,18 @@ def harmonic_groups_args(cfg):
         Dictionary with names of arguments of the harmonic-group detection functions
         and their values as supplied by `cfg`.
     """
-    return cfg.map({'mains_freq': 'mainsFreq',
-                    'mains_freq_tol': 'mainsFreqTolerance',
-                    'freq_tol_fac': 'freqTolerance',
-                    'max_freq_tol': 'maximumFreqTolerance',
-                    'max_divisor': 'maxDivisor',
-                    'min_group_size': 'minimumGroupSize',
-                    'min_freq': 'minimumFrequency',
-                    'max_freq': 'maximumFrequency',
-                    'max_db_diff': 'maximumPowerDifference',
-                    'max_harmonics_db': 'maximumHarmonicsPower',                     
-                    'max_harmonics': 'maximumHarmonics',
-                    'max_groups': 'maximumGroups'})
+    return cfg.map(mains_freq='mainsFreq',
+                   mains_freq_tol='mainsFreqTolerance',
+                   freq_tol_fac='freqTolerance',
+                   max_freq_tol='maximumFreqTolerance',
+                   max_divisor='maxDivisor',
+                   min_group_size='minimumGroupSize',
+                   min_freq='minimumFrequency',
+                   max_freq='maximumFrequency',
+                   max_db_diff='maximumPowerDifference',
+                   max_harmonics_db='maximumHarmonicsPower',
+                   max_harmonics='maximumHarmonics',
+                   max_groups='maximumGroups'})
 
 
 def main(data_file=None):

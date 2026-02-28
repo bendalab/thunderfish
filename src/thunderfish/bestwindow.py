@@ -193,10 +193,10 @@ def clip_args(cfg, rate):
         Dictionary with names of arguments of the `clip_amplitudes()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'min_fac': 'minClipFactor',
-                 'nbins': 'clipBins',
-                 'min_clip': 'minClipAmplitude',
-                 'max_clip': 'maxClipAmplitude'})
+    a = cfg.map(min_fac='minClipFactor',
+                nbins='clipBins',
+                min_clip='minClipAmplitude',
+                max_clip='maxClipAmplitude'})
     a['win_indices'] = int(cfg.value('clipWindow')*rate)
     return a
 
@@ -659,15 +659,15 @@ def best_window_args(cfg):
         Dictionary with names of arguments of the `best_window*()` functions
         and their values as supplied by `cfg`.
     """
-    return cfg.map({'win_size': 'windowSize',
-                    'win_shift': 'bestWindowShift',
-                    'percentile': 'bestWindowThresholdPercentile',
-                    'thresh_fac': 'bestWindowThresholdFactor',
-                    'w_cv_interv': 'weightCVInterval',
-                    'w_ampl': 'weightAmplitude',
-                    'w_cv_ampl': 'weightCVAmplitude',
-                    'tolerance': 'bestWindowTolerance',
-                    'expand': 'expandBestWindow'})
+    return cfg.map(win_size='windowSize',
+                   win_shift='bestWindowShift',
+                   percentile='bestWindowThresholdPercentile',
+                   thresh_fac='bestWindowThresholdFactor',
+                   w_cv_interv='weightCVInterval',
+                   w_ampl='weightAmplitude',
+                   w_cv_ampl='weightCVAmplitude',
+                   tolerance='bestWindowTolerance',
+                   expand='expandBestWindow'})
 
         
 def analysis_window(data, rate, ampl_max, win_pos,

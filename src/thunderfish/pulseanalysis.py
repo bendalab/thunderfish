@@ -2588,18 +2588,18 @@ def analyze_pulse_args(cfg):
         Dictionary with names of arguments of the `analyze_pulse()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
-                 'start_end_thresh_fac': 'eodStartEndThresholdFactor',
-                 'peak_thresh_frac': 'eodPeakThresholdFactor',
-                 'min_dist': 'eodMinimumDistance',
-                 'width_frac': 'eodPulseWidthFraction',
-                 'fit_frac': 'eodExponentialFitFraction',
-                 'freq_resolution': 'eodPulseFrequencyResolution',
-                 'fade_frac': 'eodPulseFadeFraction',
-                 'flip_pulse': 'flipPulseEOD',
-                 'fit_gaussians': 'eodFitGaussians',
-                 'ipi_cv_thresh': 'ipiCVThresh',
-                 'ipi_percentile': 'ipiPercentile'})
+    a = cfg.map(min_pulse_win='eodMinPulseSnippet',
+                start_end_thresh_fac='eodStartEndThresholdFactor',
+                peak_thresh_frac='eodPeakThresholdFactor',
+                min_dist='eodMinimumDistance',
+                width_frac='eodPulseWidthFraction',
+                fit_frac='eodExponentialFitFraction',
+                freq_resolution='eodPulseFrequencyResolution',
+                fade_frac='eodPulseFadeFraction',
+                flip_pulse='flipPulseEOD',
+                fit_gaussians='eodFitGaussians',
+                ipi_cv_thresh='ipiCVThresh',
+                ipi_percentile='ipiPercentile'})
     a['peak_thresh_frac'] *= 0.01
     a['width_frac'] *= 0.01
     a['fit_frac'] *= 0.01
