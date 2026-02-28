@@ -54,19 +54,20 @@ from .harmonics import harmonic_groups_args, psd_peak_detection_args
 from .harmonics import harmonic_groups, closest, consistent
 from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_groups
 from .fakefish import pulsefish_spectrum
-from .pulseanalysis import analyze_pulse, plot_pulse_eodtimes
+from .pulseanalysis import analyze_pulse, pulse_quality, plot_pulse_eodtimes
 from .pulseanalysis import plot_pulse_eod, plot_pulse_spectrum
 from .pulseanalysis import add_pulse_analysis_config, analyze_pulse_args
-from .waveanalysis import extract_wave, analyze_wave
+from .pulseanalysis import pulse_quality_args
+from .waveanalysis import extract_wave, analyze_wave, wave_quality
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum
 from .waveanalysis import add_wave_analysis_config, analyze_wave_args
+from .waveanalysis import wave_quality_args 
 from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, unfilter_coeff, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_eod_snippets
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import add_species_config
-from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
-from .eodanalysis import pulse_quality, pulse_quality_args
+from .eodanalysis import add_eod_quality_config
 from .eodanalysis import save_analysis, load_analysis, load_recording
 from .eodanalysis import parse_filename, file_types
 
@@ -500,7 +501,8 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
                                         if idx not in rm_indices], dtype=int)
                 break
             # add good waveforms only:
-            remove, skips, msg = wave_quality(props, sdata[1:,3], **wave_quality_args(cfg))
+            remove, skips, msg = wave_quality(props, sdata[1:, 3],
+                                              **wave_quality_args(cfg))
             if len(skips) == 0:
                 wave_indices[idx] = props['index']
                 eod_props.append(props)

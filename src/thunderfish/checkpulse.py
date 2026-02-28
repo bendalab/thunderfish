@@ -135,7 +135,7 @@ def check_pulse_args(cfg):
     a = cfg.map(thresh_fac='pulseWidthThresholdFactor',
                 percentile='pulseWidthPercentile',
                 sem_fac='pulseWidthSEMFactor',
-                pulse_thresh='pulseWidthThresholdRatio'})
+                pulse_thresh='pulseWidthThresholdRatio')
     return a
 
     

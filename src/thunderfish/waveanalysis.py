@@ -15,6 +15,10 @@ Calls all the functions listed above:
 
 - `analyze_wave()`: full analysis the EOD waveform of a wave fish.
 
+## Quality assessment
+
+- `wave_quality()`: asses quality of EOD waveform of a wave fish.
+
 ## Visualization
 
 - `plot_wave_eod()`: plot and annotate a wave-type EOD waveform.
@@ -35,6 +39,7 @@ Calls all the functions listed above:
 
 - `add_wave_analysis_config()`: add parameters for `analyze_wave()` to configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
+- `wave_quality_args()`: retrieve parameters for `wave_quality()` from configuration.
 
 """
 
@@ -48,7 +53,6 @@ except ImportError:
     pass
 
 from pathlib import Path
-from scipy.optimize import curve_fit
 from scipy.stats import linregress
 from numba import jit
 from thunderlab.eventdetection import detect_peaks
@@ -472,7 +476,13 @@ def analyze_wave_properties(eod, ratetime, freq):
         Temporal distance between largest negative trough and positive peak
         normalized to first half of the EOD cycle.
         That is, if `distance` is larger than half an EOD cycle, then the
-        duration of an EOD cycle minus `distnace`.
+        duration of an EOD cycle minus `distance`.
+    rms_sem: None or float
+        Root-mean squared standard deviation of the extracted
+        EOD waveform relative to the p-p amplitude.
+    rms_error: float
+        Root-mean-square difference between Fourier decomposition and
+        EOD waveform relative to the p-p amplitude.
     """
     if eod.ndim == 2:
         time = eod[:, 0]
@@ -502,12 +512,12 @@ def analyze_wave_properties(eod, ratetime, freq):
         min_distance = period - distance
     
     # variance and fit error:
-    rmssem = None
+    rms_sem = None
     if eod.ndim == 2 and eod.shape[1] > 2:
-        rmssem = np.sqrt(np.mean(eod[mask, 2]**2.0))/pp_ampl
-    rmserror = np.sqrt(np.mean((eod[mask, 1] - eod[mask, -1])**2.0))/pp_ampl
+        rms_sem = np.sqrt(np.mean(eod[mask, 2]**2.0))/pp_ampl
+    rms_error = np.sqrt(np.mean((eod[mask, 1] - eod[mask, -1])**2.0))/pp_ampl
     
-    return pos_ampl, neg_ampl, distance, min_distance, rmssem, rmserror
+    return pos_ampl, neg_ampl, distance, min_distance, rms_sem, rms_error
 
     
 def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
@@ -768,21 +778,19 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     meod: 2-D array of floats
         The eod waveform. First column is time in seconds, second
         column the eod waveform.  Further columns are kept from the
-        input `eod`. And a column is added with the fit of the fourier
-        series to the waveform.
+        input `eod`. And a column is added with the Fourier series.
     props: dict
         A dictionary with properties of the analyzed EOD waveform.
 
         - type: set to 'wave'.
         - EODf: is set to the EOD fundamental frequency.
-        - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
+        - p-p-amplitude: peak-to-peak amplitude of the Fourier decomposition.
         - flipped: True if the waveform was flipped.
-        - amplitude: amplitude factor of the Fourier fit.
-        - noise: root-mean squared standard error mean of the averaged
+        - amplitude: amplitude factor of the Fourier decomposition.
+        - noise: root-mean squared standard deviation of the extracted
           EOD waveform relative to the p-p amplitude.
-        - rmserror: root-mean-square error between Fourier-fit and
-          EOD waveform relative to the p-p amplitude. If larger than
-          about 0.05 the data are bad.
+        - rmserror: root-mean-square difference between Fourier-decomposition
+          and EOD waveform relative to the p-p amplitude.
         - ncrossings: number of zero crossings per period
         - peakwidth: width of the peak at the averaged amplitude relative
           to EOD period.
@@ -930,7 +938,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     if rmssem:
         props['noise'] = rmssem
     props['rmserror'] = rmserror
-    props['nphases'] = len(phases)
+    props['nphases'] = len(phases['times'])
     props['peakwidth'] = peak_width/period
     props['troughwidth'] = trough_width/period
     props['minwidth'] = min(peak_width, trough_width)/period
@@ -943,7 +951,142 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     
     return meod, props, phases, spec
 
-        
+
+def wave_quality(props, harm_relampl=None, min_freq=0.0,
+                 max_freq=2000.0, max_clipped_frac=0.1,
+                 max_phases=4, max_rms_sem=0.0, max_rms_error=0.05,
+                 min_power=-100.0, max_thd=0.0, max_db_diff=20.0,
+                 max_relampl_harm2=0.0, max_relampl_harm3=0.0,
+                 max_relampl_harm4=0.0):
+    """Assess the quality of an EOD waveform of a wave fish.
+    
+    Parameters
+    ----------
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform
+        as returned by `analyze_wave()`.
+    harm_relampl: 1-D array of floats or None
+        Relative amplitude of at least the first 3 harmonics without
+        the fundamental.
+    min_freq: float
+        Minimum EOD frequency (`props['EODf']`).
+    max_freq: float
+        Maximum EOD frequency (`props['EODf']`).
+    max_clipped_frac: float
+        If larger than zero, maximum allowed fraction of clipped data
+        (`props['clipped']`).
+    max_phases: int
+        If larger than zero, maximum number of phases per EOD period
+        (`props['nphases']`).
+    max_rms_sem: float
+        If larger than zero, maximum allowed standard deviation of the
+        data relative to p-p amplitude (`props['noise']`).
+    max_rms_error: float
+        If larger than zero, maximum allowed root-mean-square difference
+        between EOD waveform and Fourier series relative to p-p amplitude
+        (`props['rmserror']`).
+    min_power: float
+        Minimum power of the EOD in dB (`props['power']`).
+    max_thd: float
+        If larger than zero, then maximum total harmonic distortion
+        (`props['thd']`).
+    max_db_diff: float
+        If larger than zero, maximum standard deviation of differences between
+        logarithmic powers of harmonics in decibel (`props['dbdiff']`).
+        Low values enforce smoother power spectra.
+    max_relampl_harm2: float
+        If larger than zero, maximum allowed amplitude of second harmonic
+        relative to fundamental (=first harmonics).
+    max_relampl_harm3: float
+        If larger than zero, maximum allowed amplitude of third harmonic
+        relative to fundamental (=first harmonics).
+    max_relampl_harm4: float
+        If larger than zero, maximum allowed amplitude of fourth harmonic
+        relative to fundamental (=first harmonics).
+                                       
+    Returns
+    -------
+    remove: bool
+        If True then this is most likely not an electric fish. Remove
+        it from both the waveform properties and the list of EOD
+        frequencies.  If False, keep it in the list of EOD
+        frequencies, but remove it from the waveform properties if
+        `skip_reason` is not empty.
+    skip_reason: str
+        An empty string if the waveform is good, otherwise a string
+        indicating the failure.
+    msg: str
+        A textual representation of the values tested.
+    """
+    remove = False
+    msg = []
+    skip_reason = []
+    # EOD frequency:
+    if 'EODf' in props:
+        eodf = props['EODf']
+        msg += [f'EODf={eodf:6.1f}Hz']
+        if eodf < min_freq or eodf > max_freq:
+            remove = True
+            skip_reason += [f'invalid EODf={eodf:6.1f}Hz (minimumFrequency={min_freq:6.1f}Hz, maximumFrequency={max_freq:6.1f}Hz)']
+    # clipped fraction:
+    if 'clipped' in props:
+        clipped_frac = props['clipped']
+        msg += [f'clipped={100*clipped_frac:3.0f}%']
+        if max_clipped_frac > 0 and clipped_frac >= max_clipped_frac:
+            skip_reason += [f'clipped={100*clipped_frac:3.0f}% (maximumClippedFraction={100*max_clipped_frac:3.0f}%)']
+    # too many zero crossings:
+    if 'nphases' in props:
+        nphases = props['nphases']
+        msg += [f'phases={nphases}']
+        if max_phases > 0 and nphases > max_phases:
+            skip_reason += [f'too many phases={nphases} (maximumPhases={max_phases})']
+    # noise:
+    rms_sem = None
+    if 'rmssem' in props:
+        rms_sem = props['rmssem']
+    if 'noise' in props:
+        rms_sem = props['noise']
+    if rms_sem is not None:
+        msg += [f'rms sem waveform={100*rms_sem:6.2f}%']
+        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
+            skip_reason += [f'noisy waveform s.e.m.={100*rms_sem:6.2f}% (max {100*max_rms_sem:6.2f}%)']
+    # fit error:
+    if 'rmserror' in props:
+        rms_error = props['rmserror']
+        msg += [f'rmserror={100*rms_error:6.2f}%']
+        if max_rms_error > 0.0 and rms_error >= max_rms_error:
+            skip_reason += [f'noisy rmserror={100*rms_error:6.2f}% (maximumVariance={100*max_rms_error:6.2f}%)']
+    # wave power:
+    if 'power' in props:
+        power = props['power']
+        msg += [f'power={power:6.1f}dB']
+        if power < min_power:
+            skip_reason += [f'small power={power:6.1f}dB (minimumPower={min_power:6.1f}dB)']
+    # total harmonic distortion:
+    if 'thd' in props:
+        thd = props['thd']
+        msg += [f'thd={100*thd:5.1f}%']
+        if max_thd > 0.0 and thd > max_thd:
+            skip_reason += [f'large THD={100*thd:5.1f}% (maxximumTotalHarmonicDistortion={100*max_thd:5.1f}%)']
+    # smoothness of spectrum:
+    if 'dbdiff' in props:
+        db_diff = props['dbdiff']
+        msg += [f'dBdiff={db_diff:5.1f}dB']
+        if max_db_diff > 0.0 and db_diff > max_db_diff:
+            remove = True
+            skip_reason += [f'not smooth s.d. diff={db_diff:5.1f}dB (maxximumPowerDifference={max_db_diff:5.1f}dB)']
+    # relative amplitude of harmonics:
+    if harm_relampl is not None:
+        for k, max_relampl in enumerate([max_relampl_harm2, max_relampl_harm3, max_relampl_harm4]):
+            if k >= len(harm_relampl):
+                break
+            msg += [f'ampl{k + 2}={100*harm_relampl[k]:5.1f}%']
+            if max_relampl > 0.0 and k < len(harm_relampl) and harm_relampl[k] >= max_relampl:
+                num_str = ['Second', 'Third', 'Fourth']
+                skip_reason += [f'distorted ampl{k + 2}={100*harm_relampl[k]:5.1f}% (maximum{num_str[k]}HarmonicAmplitude={100*max_relampl:5.1f}%)']
+    return remove, ', '.join(skip_reason), ', '.join(msg)
+
+
 def plot_wave_eod(ax, eod_waveform, props, phases=None,
                   unit=None, wave_periods=2, rel_width=True,
                   wave_style=dict(lw=1.5, color='tab:red'),
@@ -1656,8 +1799,7 @@ def add_wave_analysis_config(cfg, n_harmonics=20, flip_wave='none',
 
 
 def analyze_wave_args(cfg):
-    """Translates a configuration to the respective parameter names of
-    the `analyze_wave()` function.
+    """Retrieve parameters for `analyze_wave()` from configuration.
     
     The return value can then be passed as key-word arguments to this
     function.
@@ -1678,6 +1820,44 @@ def analyze_wave_args(cfg):
                 thresh_frac='waveEODThresholdFraction',
                 n_phase_harmonics='waveEODPhaseHarmonics')
     a['thresh_frac'] *= 0.01
+    return a
+
+
+def wave_quality_args(cfg):
+    """Retrieve parameters for `wave_quality()` from configuration.
+    
+    The return value can then be passed as key-word arguments to this
+    function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `wave_quality()` function
+        and their values as supplied by `cfg`.
+
+    See Also
+    --------
+    eodanalysis.add_eod_quality_config()
+    
+    """
+    a = cfg.map(min_freq='minimumFrequency',
+                max_freq='maximumFrequency',
+                max_clipped_frac='maximumClippedFraction',
+                max_phases='maximumPhases',
+                max_rms_sem='maximumVariance',
+                max_rms_error='maximumRMSError',
+                min_power='minimumPower',
+                max_thd='maximumTotalHarmonicDistortion',
+                max_db_diff='maximumPowerDifferences',
+                max_relampl_harm2='maximumSecondHarmonicAmplitude',
+                max_relampl_harm3='maximumThirdHarmonicAmplitude',
+                max_relampl_harm4='maximumFourthHarmonicAmplitude')
+    a['max_clipped_frac'] *= 0.01
     return a
 
 

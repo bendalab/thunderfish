@@ -21,6 +21,10 @@ Calls all the functions listed above:
 
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 
+## Quality assessment
+
+- `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
+
 ## Visualization
 
 - `plot_pulse_eodtimes()`: mark pulse EODs in a plot of an EOD recording.
@@ -51,6 +55,8 @@ Calls all the functions listed above:
 
 - `add_pulse_analysis_config()`: add parameters for `analyze_pulse()` to configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
+- `add_pulse_quality_config()`: add parameters for `pulse_quality()` to configuration.
+- `wave_pulse_args()`: retrieve parameters for `pulse_quality()` from configuration.
 
 """
 
@@ -1351,6 +1357,53 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     return meod, props, phases, pulse, eenergy
 
 
+def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
+    """Assess the quality of an EOD waveform of a pulse fish.
+    
+    Parameters
+    ----------
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform
+        as returned by `analyze_pulse()`.
+    max_clipped_frac: float
+        Maximum allowed fraction of clipped data.
+    max_rms_sem: float
+        If not zero, maximum allowed standard error of the data
+        relative to p-p amplitude.
+
+    Returns
+    -------
+    skip_reason: str
+        An empty string if the waveform is good, otherwise a string
+        indicating the failure.
+    msg: str
+        A textual representation of the values tested.
+    skipped_clipped: bool
+        True if waveform was skipped because of clipping.
+    """
+    msg = []
+    skip_reason = []
+    skipped_clipped = False
+    # clipped fraction:
+    if 'clipped' in props:
+        clipped_frac = props['clipped']
+        msg += [f'clipped={100*clipped_frac:3.0f}%']
+        if clipped_frac >= max_clipped_frac:
+            skip_reason += [f'clipped={100*clipped_frac:3.0f}% (maximumClippedFraction={100*max_clipped_frac:3.0f}%)']
+            skipped_clipped = True
+    # noise:
+    rms_sem = None
+    if 'rmssem' in props:
+        rms_sem = props['rmssem']
+    if 'noise' in props:
+        rms_sem = props['noise']
+    if rms_sem is not None:
+        msg += [f'rms sem waveform={100*rms_sem:6.2f}%']
+        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
+            skip_reason += [f'noisy waveform s.e.m.={100*rms_sem:6.2f}% (maximumRMSNoise={100*max_rms_sem:6.2f}%)']
+    return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
+
+
 def plot_pulse_eodtimes(ax, data, rate, zoom_window, width, eod_props,
                         toffs=0, colors=None, markers=None, marker_size=10,
                         legend_rows=8, **kwargs):
@@ -2571,8 +2624,7 @@ def add_pulse_analysis_config(cfg, min_pulse_win=0.001,
 
 
 def analyze_pulse_args(cfg):
-    """Translates a configuration to the respective parameter names of
-    the function `analyze_pulse()`.
+    """Retrieve parameters for `analyze_pulse()` from configuration.
     
     The return value can then be passed as key-word arguments to this
     function.
@@ -2599,11 +2651,38 @@ def analyze_pulse_args(cfg):
                 flip_pulse='flipPulseEOD',
                 fit_gaussians='eodFitGaussians',
                 ipi_cv_thresh='ipiCVThresh',
-                ipi_percentile='ipiPercentile'})
+                ipi_percentile='ipiPercentile')
     a['peak_thresh_frac'] *= 0.01
     a['width_frac'] *= 0.01
     a['fit_frac'] *= 0.01
     a['fade_frac'] *= 0.01
+    return a
+
+
+def pulse_quality_args(cfg):
+    """Retrieve parameters for `pulse_quality()` from configuration.
+    
+    The return value can then be passed as key-word arguments to this
+    function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `pulse_quality()` function
+        and their values as supplied by `cfg`.
+
+    See Also
+    --------
+    eodanalysis.add_eod_quality_config()
+    """
+    a = cfg.map(max_clipped_frac='maximumClippedFraction',
+                max_rms_sem='maximumVariance')
+    a['max_clipped_frac'] *= 0.01
     return a
 
 

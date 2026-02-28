@@ -196,7 +196,7 @@ def clip_args(cfg, rate):
     a = cfg.map(min_fac='minClipFactor',
                 nbins='clipBins',
                 min_clip='minClipAmplitude',
-                max_clip='maxClipAmplitude'})
+                max_clip='maxClipAmplitude')
     a['win_indices'] = int(cfg.value('clipWindow')*rate)
     return a
 
@@ -667,7 +667,7 @@ def best_window_args(cfg):
                    w_ampl='weightAmplitude',
                    w_cv_ampl='weightCVAmplitude',
                    tolerance='bestWindowTolerance',
-                   expand='expandBestWindow'})
+                   expand='expandBestWindow')
 
         
 def analysis_window(data, rate, ampl_max, win_pos,

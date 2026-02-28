@@ -20,8 +20,6 @@ Analyse EOD waveforms.
 ## Quality assessment
 
 - `clipped_fraction()`: compute fraction of clipped EOD waveform snippets.
-- `wave_quality()`: asses quality of EOD waveform of a wave fish.
-- `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
 
 ## Visualization
 
@@ -46,9 +44,7 @@ Analyse EOD waveforms.
 - `add_eod_analysis_config()`: add parameters for EOD analysis functions to configuration.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
 - `add_species_config()`: add parameters needed for assigning EOD waveforms to species.
-- `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
-- `wave_quality_args()`: retrieve parameters for `wave_quality()` from configuration.
-- `pulse_quality_args()`: retrieve parameters for `pulse_quality()` from configuration.
+- `add_eod_quality_config()`: add parameters for `wave_quality()` and `pulse_quality()` to configuration.
 """
 
 import os
@@ -603,210 +599,6 @@ def clipped_fraction(data, rate, eod_times, mean_eod,
                                      (eod_snippets < min_clip), axis=1)) \
                              / len(eod_snippets)
         return clipped_frac
-
-
-def wave_quality(props, harm_relampl=None, min_freq=0.0,
-                 max_freq=2000.0, max_clipped_frac=0.1,
-                 max_crossings=4, max_rms_sem=0.0, max_rms_error=0.05,
-                 min_power=-100.0, max_thd=0.0, max_db_diff=20.0,
-                 max_harmonics_db=-5.0, max_relampl_harm1=0.0,
-                 max_relampl_harm2=0.0, max_relampl_harm3=0.0):
-    """Assess the quality of an EOD waveform of a wave fish.
-    
-    Parameters
-    ----------
-    props: dict
-        A dictionary with properties of the analyzed EOD waveform
-        as returned by `analyze_wave()`.
-    harm_relampl: 1-D array of floats or None
-        Relative amplitude of at least the first 3 harmonics without
-        the fundamental.
-    min_freq: float
-        Minimum EOD frequency (`props['EODf']`).
-    max_freq: float
-        Maximum EOD frequency (`props['EODf']`).
-    max_clipped_frac: float
-        If larger than zero, maximum allowed fraction of clipped data
-        (`props['clipped']`).
-    max_crossings: int
-        If larger than zero, maximum number of zero crossings per EOD period
-        (`props['ncrossings']`).
-    max_rms_sem: float
-        If larger than zero, maximum allowed standard error of the
-        data relative to p-p amplitude (`props['noise']`).
-    max_rms_error: float
-        If larger than zero, maximum allowed root-mean-square error
-        between EOD waveform and Fourier fit relative to p-p amplitude
-        (`props['rmserror']`).
-    min_power: float
-        Minimum power of the EOD in dB (`props['power']`).
-    max_thd: float
-        If larger than zero, then maximum total harmonic distortion
-        (`props['thd']`).
-    max_db_diff: float
-        If larger than zero, maximum standard deviation of differences between
-        logarithmic powers of harmonics in decibel (`props['dbdiff']`).
-        Low values enforce smoother power spectra.
-    max_harmonics_db:
-        Maximum power of higher harmonics relative to peak power in
-        decibel (`props['maxdb']`).
-    max_relampl_harm1: float
-        If larger than zero, maximum allowed amplitude of first harmonic
-        relative to fundamental.
-    max_relampl_harm2: float
-        If larger than zero, maximum allowed amplitude of second harmonic
-        relative to fundamental.
-    max_relampl_harm3: float
-        If larger than zero, maximum allowed amplitude of third harmonic
-        relative to fundamental.
-                                       
-    Returns
-    -------
-    remove: bool
-        If True then this is most likely not an electric fish. Remove
-        it from both the waveform properties and the list of EOD
-        frequencies.  If False, keep it in the list of EOD
-        frequencies, but remove it from the waveform properties if
-        `skip_reason` is not empty.
-    skip_reason: str
-        An empty string if the waveform is good, otherwise a string
-        indicating the failure.
-    msg: str
-        A textual representation of the values tested.
-    """
-    remove = False
-    msg = []
-    skip_reason = []
-    # EOD frequency:
-    if 'EODf' in props:
-        eodf = props['EODf']
-        msg += ['EODf=%6.1fHz' % eodf]
-        if eodf < min_freq or eodf > max_freq:
-            remove = True
-            skip_reason += ['invalid EODf=%5.1fHz (minimumFrequency=%5.1fHz, maximumFrequency=%5.1f))' %
-                            (eodf, min_freq, max_freq)]
-    # clipped fraction:
-    if 'clipped' in props:
-        clipped_frac = props['clipped']
-        msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
-        if max_clipped_frac > 0 and clipped_frac >= max_clipped_frac:
-            skip_reason += ['clipped=%3.0f%% (maximumClippedFraction=%3.0f%%)' %
-                            (100.0*clipped_frac, 100.0*max_clipped_frac)]
-    # too many zero crossings:
-    if 'ncrossings' in props:
-        ncrossings = props['ncrossings']
-        msg += ['zero crossings=%d' % ncrossings]
-        if max_crossings > 0 and ncrossings > max_crossings:
-            skip_reason += ['too many zero crossings=%d (maximumCrossings=%d)' %
-                            (ncrossings, max_crossings)]
-    # noise:
-    rms_sem = None
-    if 'rmssem' in props:
-        rms_sem = props['rmssem']
-    if 'noise' in props:
-        rms_sem = props['noise']
-    if rms_sem is not None:
-        msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
-        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
-            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
-                            (100.0*rms_sem, 100.0*max_rms_sem)]
-    # fit error:
-    if 'rmserror' in props:
-        rms_error = props['rmserror']
-        msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
-        if max_rms_error > 0.0 and rms_error >= max_rms_error:
-            skip_reason += ['noisy rmserror=%6.2f%% (maximumVariance=%6.2f%%)' %
-                            (100.0*rms_error, 100.0*max_rms_error)]
-    # wave power:
-    if 'power' in props:
-        power = props['power']
-        msg += ['power=%6.1fdB' % power]
-        if power < min_power:
-            skip_reason += ['small power=%6.1fdB (minimumPower=%6.1fdB)' %
-                            (power, min_power)]
-    # total harmonic distortion:
-    if 'thd' in props:
-        thd = props['thd']
-        msg += ['thd=%5.1f%%' % (100.0*thd)]
-        if max_thd > 0.0 and thd > max_thd:
-            skip_reason += ['large THD=%5.1f%% (maxximumTotalHarmonicDistortion=%5.1f%%)' %
-                            (100.0*thd, 100.0*max_thd)]
-    # smoothness of spectrum:
-    if 'dbdiff' in props:
-        db_diff = props['dbdiff']
-        msg += ['dBdiff=%5.1fdB' % db_diff]
-        if max_db_diff > 0.0 and db_diff > max_db_diff:
-            remove = True
-            skip_reason += ['not smooth s.d. diff=%5.1fdB (maxximumPowerDifference=%5.1fdB)' %
-                            (db_diff, max_db_diff)]
-    # maximum power of higher harmonics:
-    if 'maxdb' in props:
-        max_harmonics = props['maxdb']
-        msg += ['max harmonics=%5.1fdB' % max_harmonics]
-        if max_harmonics > max_harmonics_db:
-            remove = True
-            skip_reason += ['maximum harmonics=%5.1fdB too strong (maximumHarmonicsPower=%5.1fdB)' %
-                            (max_harmonics, max_harmonics_db)]
-    # relative amplitude of harmonics:
-    if harm_relampl is not None:
-        for k, max_relampl in enumerate([max_relampl_harm1, max_relampl_harm2, max_relampl_harm3]):
-            if k >= len(harm_relampl):
-                break
-            msg += ['ampl%d=%5.1f%%' % (k+1, 100.0*harm_relampl[k])]
-            if max_relampl > 0.0 and k < len(harm_relampl) and harm_relampl[k] >= max_relampl:
-                num_str = ['First', 'Second', 'Third']
-                skip_reason += ['distorted ampl%d=%5.1f%% (maximum%sHarmonicAmplitude=%5.1f%%)' %
-                                (k+1, 100.0*harm_relampl[k], num_str[k], 100.0*max_relampl)]
-    return remove, ', '.join(skip_reason), ', '.join(msg)
-
-
-def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
-    """Assess the quality of an EOD waveform of a pulse fish.
-    
-    Parameters
-    ----------
-    props: dict
-        A dictionary with properties of the analyzed EOD waveform
-        as returned by `analyze_pulse()`.
-    max_clipped_frac: float
-        Maximum allowed fraction of clipped data.
-    max_rms_sem: float
-        If not zero, maximum allowed standard error of the data
-        relative to p-p amplitude.
-
-    Returns
-    -------
-    skip_reason: str
-        An empty string if the waveform is good, otherwise a string
-        indicating the failure.
-    msg: str
-        A textual representation of the values tested.
-    skipped_clipped: bool
-        True if waveform was skipped because of clipping.
-    """
-    msg = []
-    skip_reason = []
-    skipped_clipped = False
-    # clipped fraction:
-    if 'clipped' in props:
-        clipped_frac = props['clipped']
-        msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
-        if clipped_frac >= max_clipped_frac:
-            skip_reason += ['clipped=%3.0f%% (maximumClippedFraction=%3.0f%%)' %
-                            (100.0*clipped_frac, 100.0*max_clipped_frac)]
-            skipped_clipped = True
-    # noise:
-    rms_sem = None
-    if 'rmssem' in props:
-        rms_sem = props['rmssem']
-    if 'noise' in props:
-        rms_sem = props['noise']
-    if rms_sem is not None:
-        msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
-        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
-            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (maximumRMSNoise=%6.2f%%)' %
-                            (100.0*rms_sem, 100.0*max_rms_sem)]
-    return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
 
 def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
@@ -1439,7 +1231,7 @@ def eod_waveform_args(cfg):
     a = cfg.map(win_fac='eodSnippetFac',
                 min_win='eodMinSnippet',
                 max_eods='eodMaxEODs',
-                min_sem='eodMinSem'})
+                min_sem='eodMinSem')
     return a
 
 
@@ -1469,90 +1261,32 @@ def add_species_config(cfg, species_file='none', wave_max_rms=0.2,
     cfg.add('maximumWaveSpeciesRMS', wave_max_rms, '', 'Maximum allowed rms difference (relative to standard deviation of EOD waveform) to an EOD waveform template for assignment to a wave fish species.')
     cfg.add('maximumPulseSpeciesRMS', pulse_max_rms, '', 'Maximum allowed rms difference (relative to standard deviation of EOD waveform) to an EOD waveform template for assignment to a pulse fish species.')
 
-
-def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
-                           max_rms_error=0.05, min_power=-100.0, max_thd=0.0,
-                           max_crossings=4, max_relampl_harm1=0.0,
-                           max_relampl_harm2=0.0, max_relampl_harm3=0.0):
-    """Add parameters needed for assesing the quality of an EOD waveform.
+    
+def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_phases=4,
+                           max_rms_sem=0.0, max_rms_error=0.05,
+                           min_power=-100.0, max_thd=0.0, max_db_diff=20.0,
+                           max_relampl_harm2=0.0, max_relampl_harm3=0.0,
+                           max_relampl_harm4=0.0):
+    """Add parameters for `wave_quality()` and  `pulse_quality()` to configuration.
 
     Parameters
     ----------
     cfg: ConfigFile
         The configuration.
         
-    See `wave_quality()` and `pulse_quality()` for details on
-    the remaining arguments.
+    See `wave_quality()` and `pulse_quality()` for details on the remaining arguments.
     """
-    cfg.add_section('Waveform selection:')
-    cfg.add('maximumClippedFraction', 100*max_clipped_frac, '%', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
-    cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard error of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
-    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error of the fit relative to the peak-to-peak amplitude is larger than this number.')
+    cfg.add_section('EOD selection:')
+    cfg.add('maximumClippedFraction', 100*max_clipped_frac, '%', 'Take waveform of the fish with the highest power only if the fraction of clipped EODs is below this value.')
+    cfg.add('maximumVariance', max_rms_sem, '', 'Skip waveform if the root-mean-squared standard deviation of the extracted waveform relative to the peak-to-peak amplitude is larger than this number. If set to zero do not check.')
+    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared difference between waveform and Fourier decomposition relative to the peak-to-peak amplitude is larger than this number. If set to zero do not check.')
+    cfg.add('maximumPhases', max_phases, '', 'Maximum number of phases per EOD period of a wave fish.')
     cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave fish if its power is smaller than this value.')
     cfg.add('maximumTotalHarmonicDistortion', max_thd, '', 'Skip waveform of wave fish if its total harmonic distortion is larger than this value. If set to zero do not check.')
-    cfg.add('maximumCrossings', max_crossings, '', 'Maximum number of zero crossings per EOD period.')
-    cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental. If set to zero do not check.')
-    cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental. If set to zero do not check.')
-    cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental. If set to zero do not check.')
-
-
-def wave_quality_args(cfg):
-    """Translates a configuration to the respective parameter names of
-    the function `wave_quality()`.
-    
-    The return value can then be passed as key-word arguments to this
-    function.
-
-    Parameters
-    ----------
-    cfg: ConfigFile
-        The configuration.
-
-    Returns
-    -------
-    a: dict
-        Dictionary with names of arguments of the `wave_quality()` function
-        and their values as supplied by `cfg`.
-    """
-    a = cfg.map(max_clipped_frac='maximumClippedFraction',
-                max_rms_sem='maximumVariance',
-                max_rms_error='maximumRMSError',
-                min_power='minimumPower',
-                max_crossings='maximumCrossings',
-                min_freq='minimumFrequency',
-                max_freq='maximumFrequency',
-                max_thd='maximumTotalHarmonicDistortion',
-                max_db_diff='maximumPowerDifference',
-                max_harmonics_db='maximumHarmonicsPower',
-                max_relampl_harm1='maximumFirstHarmonicAmplitude',
-                max_relampl_harm2='maximumSecondHarmonicAmplitude',
-                max_relampl_harm3='maximumThirdHarmonicAmplitude'})
-    a['max_clipped_frac'] *= 0.01
-    return a
-
-
-def pulse_quality_args(cfg):
-    """Translates a configuration to the respective parameter names of
-    the function `pulse_quality()`.
-    
-    The return value can then be passed as key-word arguments to this
-    function.
-
-    Parameters
-    ----------
-    cfg: ConfigFile
-        The configuration.
-
-    Returns
-    -------
-    a: dict
-        Dictionary with names of arguments of the `pulse_quality()` function
-        and their values as supplied by `cfg`.
-    """
-    a = cfg.map(max_clipped_frac='maximumClippedFraction',
-                max_rms_sem='maximumRMSNoise'})
-    a['max_clipped_frac'] *= 0.01
-    return a
+    cfg.add('maximumPowerDifferences', max_db_diff, '', 'Skip waveform of wave fish if the standard deviation of the differences between powers of harminics is larger than this value. If set to zero do not check.')
+    cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave fish if the amplitude of the second harmonic is higher than this factor times the amplitude of the fundamental (=first harmonics). That is, the waveform appears to have twice the frequency than the fundamental. If set to zero do not check.')
+    cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental (=first harmonics). If set to zero do not check.')
+    cfg.add('maximumFourthHarmonicAmplitude', max_relampl_harm4, '', 'Skip waveform of wave fish if the ampltude of the fourth harmonic is higher than this factor times the amplitude of the fundamental (=first harmonics). If set to zero do not check.')
 
 
 def main():
