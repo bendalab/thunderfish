@@ -56,6 +56,7 @@ from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_group
 from .fakefish import pulsefish_spectrum
 from .pulseanalysis import analyze_pulse, plot_pulse_eodtimes
 from .pulseanalysis import plot_pulse_eod, plot_pulse_spectrum
+from .pulseanalysis import add_pulse_analysis_config, analyze_pulse_args
 from .waveanalysis import extract_wave, analyze_wave
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum
 from .waveanalysis import add_wave_analysis_config, analyze_wave_args
@@ -63,7 +64,6 @@ from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, unfilter_coeff, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_eod_snippets
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
-from .eodanalysis import analyze_pulse_args
 from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
@@ -164,11 +164,12 @@ def configuration():
     cfg.add('unwrapData', False, '', 'Unwrap clipped voltage traces.')
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
     add_check_pulse_config(cfg)
-    add_eod_analysis_config(cfg, min_pulse_win=0.004, fade_frac=0.05)
+    add_eod_analysis_config(cfg)
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     del cfg['eodMinSem']
     add_wave_analysis_config(cfg)
+    add_pulse_analysis_config(cfg, min_pulse_win=0.004, fade_frac=0.05)
     add_eod_quality_config(cfg)
     add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',

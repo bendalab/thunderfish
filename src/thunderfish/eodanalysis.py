@@ -45,7 +45,6 @@ Analyse EOD waveforms.
 
 - `add_eod_analysis_config()`: add parameters for EOD analysis functions to configuration.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
-- `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 - `add_species_config()`: add parameters needed for assigning EOD waveforms to species.
 - `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
 - `wave_quality_args()`: retrieve parameters for `wave_quality()` from configuration.
@@ -1399,14 +1398,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
 
         
 def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
-                            min_sem=False, unfilter_cutoff=0.0,
-                            flip_wave='none', flip_pulse='none',
-                            n_harmonics=21, min_pulse_win=0.001,
-                            start_end_thresh_fac=0.01, peak_thresh_fac=0.002,
-                            min_dist=50.0e-6, width_frac = 0.5,
-                            fit_frac = 0.5, fit_gaussians=True,
-                            freq_resolution=1.0, fade_frac=0.0,
-                            ipi_cv_thresh=0.5, ipi_percentile=30.0):
+                            min_sem=False, unfilter_cutoff=0.0):
     """Add all parameters needed for the eod analysis functions as a new
     section to a configuration.
 
@@ -1423,21 +1415,7 @@ def add_eod_analysis_config(cfg, win_fac=2.0, min_win=0.01, max_eods=None,
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
     cfg.add('eodMinSem', min_sem, '', 'Use minimum of s.e.m. to set maximum number of EODs used to compute the average EOD.')
-    cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
-    cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave fish to make largest extremum positive (flip, none, or auto).')
-    cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse fish to make the first large peak positive (flip, none, or auto).')
-    cfg.add('eodHarmonics', n_harmonics, '', 'Number of harmonics fitted to the EOD waveform.')
-    cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
-    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the p-p amplitude.')
-    cfg.add('eodStartEndThresholdFactor', start_end_thresh_fac, '', 'Threshold for for start and end time of pulse EODs as a fraction of the p-p amplitude.')
-    cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
-    cfg.add('eodPulseWidthFraction', 100*width_frac, '%', 'The width of a pulse is measured at this fraction of the pulse height.')
-    cfg.add('eodExponentialFitFraction', 100*fit_frac, '%', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
-    cfg.add('eodFitGaussians', fit_gaussians, '', 'Fit sum of Gaussians to pulse-type EOD waveform.')
-    cfg.add('eodPulseFrequencyResolution', freq_resolution, 'Hz', 'Frequency resolution of single pulse spectrum.')
-    cfg.add('eodPulseFadeFraction', 100*fade_frac, '%', 'Fraction of time of the EOD waveform snippet that is used to fade in and out to zero baseline.')
-    cfg.add('ipiCVThresh', ipi_cv_thresh, '', 'If coefficient of variation of interpulse intervals is smaller than this threshold, then use all intervals for computing EOD frequency.')
-    cfg.add('ipiPercentile', ipi_percentile, '%', 'Use only interpulse intervals shorter than this percentile to compute EOD frequency.')
+    cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect first large peak positive (flip, none, or auto).')
 
 
 def eod_waveform_args(cfg):
@@ -1462,42 +1440,6 @@ def eod_waveform_args(cfg):
                  'min_win': 'eodMinSnippet',
                  'max_eods': 'eodMaxEODs',
                  'min_sem': 'eodMinSem'})
-    return a
-
-
-def analyze_pulse_args(cfg):
-    """Translates a configuration to the respective parameter names of
-    the function `analyze_pulse()`.
-    
-    The return value can then be passed as key-word arguments to this
-    function.
-
-    Parameters
-    ----------
-    cfg: ConfigFile
-        The configuration.
-
-    Returns
-    -------
-    a: dict
-        Dictionary with names of arguments of the `analyze_pulse()` function
-        and their values as supplied by `cfg`.
-    """
-    a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
-                 'start_end_thresh_fac': 'eodStartEndThresholdFactor',
-                 'peak_thresh_fac': 'eodPeakThresholdFactor',
-                 'min_dist': 'eodMinimumDistance',
-                 'width_frac': 'eodPulseWidthFraction',
-                 'fit_frac': 'eodExponentialFitFraction',
-                 'flip_pulse': 'flipPulseEOD',
-                 'fit_gaussians': 'eodFitGaussians',
-                 'freq_resolution': 'eodPulseFrequencyResolution',
-                 'fade_frac': 'eodPulseFadeFraction',
-                 'ipi_cv_thresh': 'ipiCVThresh',
-                 'ipi_percentile': 'ipiPercentile'})
-    a['width_frac'] *= 0.01
-    a['fit_frac'] *= 0.01
-    a['fade_frac'] *= 0.01
     return a
 
 

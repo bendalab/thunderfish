@@ -3,7 +3,7 @@ Analysis of pulse-type EOD waveforms.
 
 ## Analysis of pulse-type EODs
 
-### Analysis of various pulse EOD aspects
+### Analysis
 
 - `condition_pulse()`: subtract offset, flip, shift, and cut out pulse EOD waveform.
 - `analyze_pulse_properties()`: characterize basic properties of a pulse-type EOD.
@@ -46,6 +46,11 @@ Calls all the functions listed above:
 - `gaussian_sum_spectrum()`: energy spectrum of sum of Gaussians.
 - `gaussian_sum_costs()`: cost function for fitting sum of Gaussians.
 - `exp_decay()`: exponential decay.
+
+## Configuration
+
+- `add_pulse_analysis_config()`: add parameters for `analyze_pulse()` to configuration.
+- `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 
 """
 
@@ -1042,7 +1047,7 @@ def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
             
 def analyze_pulse(eod, ratetime=None, eod_times=None,
                   min_pulse_win=0.001,
-                  start_end_thresh_fac=0.01, peak_thresh_fac=0.002,
+                  start_end_thresh_fac=0.01, peak_thresh_frac=0.002,
                   min_dist=50.0e-6, width_frac=0.5, fit_frac=0.5,
                   freq_resolution=1.0, fade_frac=0.0,
                   flip_pulse='none', fit_gaussians=True, ipi_cv_thresh=0.5,
@@ -1069,9 +1074,9 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     start_end_thresh_fac: float
         Set the threshold for the start and end time to the p-p amplitude
         times this factor.
-    peak_thresh_fac: float
-        Set the threshold for peak and trough  detection to the p-p amplitude
-        times this factor.
+    peak_thresh_frac: float
+        Set the threshold for peak and trough detection as a fraction
+        of the p-p amplitude.
     min_dist: float
         Minimum distance between peak and troughs of the pulse.
     width_frac: float
@@ -1244,10 +1249,10 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         start_end_thresh_fac = start_end_thresh/pp_ampl if pp_ampl > 0 else 1
 
     # threshold for peak detection:
-    peak_thresh = pp_ampl*peak_thresh_fac
+    peak_thresh = pp_ampl*peak_thresh_frac
     if peak_thresh < noise_thresh:
         peak_thresh = noise_thresh
-        peak_thresh_fac = peak_thresh/pp_ampl if pp_ampl > 0 else 1
+        peak_thresh_frac = peak_thresh/pp_ampl if pp_ampl > 0 else 1
             
     # characterize EOD phases:
     tstart, tend, phases = analyze_pulse_phases(peak_thresh,
@@ -1317,7 +1322,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     if meod.shape[1] > 2:
         props['noise'] = np.mean(meod[:, 2])/pp_ampl if pp_ampl > 0 else 1
     props['rmserror'] = rmserror
-    props['peakthresh'] = peak_thresh_fac
+    props['peakthresh'] = peak_thresh_frac
     props['startendthresh'] = start_end_thresh_fac
     props['tstart'] = tstart
     props['tend'] = tend
@@ -2532,6 +2537,74 @@ def load_pulse_times(file_path):
     data = TableData(file_path)
     pulse_times = data.array()[:, 0]
     return pulse_times
+
+        
+def add_pulse_analysis_config(cfg, min_pulse_win=0.001,
+                              start_end_thresh_fac=0.01, peak_thresh_frac=0.002,
+                              min_dist=50.0e-6, width_frac=0.5, fit_frac=0.5,
+                              freq_resolution=1.0, fade_frac=0.0,
+                              flip_pulse='none', fit_gaussians=True,
+                              ipi_cv_thresh=0.5, ipi_percentile=30.0):
+    """Add all parameters needed for the eod analysis functions as a new
+    section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+        
+    See `analyze_pulse()` for details on the remaining arguments.
+    """
+    cfg.add_section('Pulse-type EOD analysis:')
+    cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
+    cfg.add('eodStartEndThresholdFactor', start_end_thresh_fac, '', 'Threshold for for start and end time of pulse EODs as a fraction of the p-p amplitude.')
+    cfg.add('eodPeakThresholdFactor', 100*peak_thresh_frac, '%', 'Threshold for detection of peaks and troughs in pulse EODs as a fraction of the p-p amplitude.')
+    cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
+    cfg.add('eodPulseWidthFraction', 100*width_frac, '%', 'The width of a pulse is measured at this fraction of the pulse height.')
+    cfg.add('eodExponentialFitFraction', 100*fit_frac, '%', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
+    cfg.add('eodPulseFrequencyResolution', freq_resolution, 'Hz', 'Frequency resolution of single pulse spectrum.')
+    cfg.add('eodPulseFadeFraction', 100*fade_frac, '%', 'Fraction of time of the EOD waveform snippet that is used to fade in and out to zero baseline.')
+    cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse fish to make the first large peak positive (flip, none, or auto).')
+    cfg.add('eodFitGaussians', fit_gaussians, '', 'Fit sum of Gaussians to pulse-type EOD waveform.')
+    cfg.add('ipiCVThresh', ipi_cv_thresh, '', 'If coefficient of variation of interpulse intervals is smaller than this threshold, then use all intervals for computing EOD frequency.')
+    cfg.add('ipiPercentile', ipi_percentile, '%', 'Use only interpulse intervals shorter than this percentile to compute EOD frequency.')
+
+
+def analyze_pulse_args(cfg):
+    """Translates a configuration to the respective parameter names of
+    the function `analyze_pulse()`.
+    
+    The return value can then be passed as key-word arguments to this
+    function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `analyze_pulse()` function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
+                 'start_end_thresh_fac': 'eodStartEndThresholdFactor',
+                 'peak_thresh_frac': 'eodPeakThresholdFactor',
+                 'min_dist': 'eodMinimumDistance',
+                 'width_frac': 'eodPulseWidthFraction',
+                 'fit_frac': 'eodExponentialFitFraction',
+                 'freq_resolution': 'eodPulseFrequencyResolution',
+                 'fade_frac': 'eodPulseFadeFraction',
+                 'flip_pulse': 'flipPulseEOD',
+                 'fit_gaussians': 'eodFitGaussians',
+                 'ipi_cv_thresh': 'ipiCVThresh',
+                 'ipi_percentile': 'ipiPercentile'})
+    a['peak_thresh_frac'] *= 0.01
+    a['width_frac'] *= 0.01
+    a['fit_frac'] *= 0.01
+    a['fade_frac'] *= 0.01
+    return a
 
 
 def main():

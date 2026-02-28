@@ -8,6 +8,11 @@ Analysis of wave-type EODs.
 - `analyze_wave_properties()`: characterize basic properties of a wave-type EOD.
 - `analyze_wave_phases()`: characterize all phases of a wave-type EOD.
 - `analyse_wave_spectrum()`: analyze the spectrum of a wave-type EOD.
+
+### Complete analysis
+
+Calls all the functions listed above:
+
 - `analyze_wave()`: full analysis the EOD waveform of a wave fish.
 
 ## Visualization
@@ -321,7 +326,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     return mean_coeffs, mean_eod, eod_freq, times, n_eods, ''
 
 
-def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
+def condition_wave(eod, ratetime, freq, coeffs=None, flip_wave='none'):
     """Subtract offset, flip, and shift wave-type EOD waveform.
     
     Parameters
@@ -341,7 +346,7 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
         The frequency of the EOD.
     coeffs: None or 1-D array of complex
         The Fourier coefficients of an EOD waveform.
-    flip: 'auto', 'none', 'flip'
+    flip_wave: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
         - 'none' do not flip waveform.
@@ -391,9 +396,9 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip='none'):
 
     # flip:
     flipped = False
-    if flip.lower() in ['flip', 'true', 'yes']:
+    if flip_wave.lower() in ['flip', 'true', 'yes']:
         flipped = True
-    elif flip.lower() == 'auto':
+    elif flip_wave.lower() == 'auto':
         if -np.min(eodw) > np.max(eodw):
             flipped = True
     if flipped:
@@ -721,7 +726,7 @@ def analyse_wave_spectrum(freq, coeffs, n_phase_harmonics=8):
 
     
 def analyze_wave(eod, ratetime, freq, coeffs=None,
-                 n_harmonics=20, flip='none', thresh_frac=0.05,
+                 n_harmonics=20, flip_wave='none', thresh_frac=0.05,
                  n_phase_harmonics=8):
     """Full analysis of the EOD waveform of a wave fish.
     
@@ -748,7 +753,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         is updated from them.
     n_harmonics: int
         Number of harmonics used for the Fourier decomposition.
-    flip: 'auto', 'none', 'flip'
+    flip_wave: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
         - 'none' do not flip waveform.
@@ -886,7 +891,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     meod[:, -1] = eodw
 
     # subtract mean and flip:
-    meod, coeffs, flipped = condition_wave(meod, None, freq1, coeffs, flip)
+    meod, coeffs, flipped = condition_wave(meod, None, freq1, coeffs, flip_wave)
     if has_spec:
         meod[:, 1] = meod[:, -1]
 
@@ -1127,7 +1132,7 @@ def plot_wave_eod(ax, eod_waveform, props, phases=None,
             if len(label) > 0:
                 label += '\n'
             label += 'flipped'
-        ax.text(0.03, 1.05, label, transform=ax.transAxes,
+        ax.text(0.03, 1.03, label, transform=ax.transAxes,
                 va='top', ha='left', zorder=100)
 
 
@@ -1641,8 +1646,7 @@ def add_wave_analysis_config(cfg, n_harmonics=20, flip_wave='none',
     cfg: ConfigFile
         The configuration.
         
-    See `eod_waveform()`, `analyze_wave()`, and `analyze_pulse()` for
-    details on the remaining arguments.
+    See `analyze_wave()` for details on the remaining arguments.
     """
     cfg.add_section('Wave-type EOD analysis:')
     cfg.add('eodHarmonics', n_harmonics, '', 'Number of harmonics fitted to the EOD waveform.')
@@ -1670,7 +1674,7 @@ def analyze_wave_args(cfg):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'n_harmonics': 'eodHarmonics',
-                 'flip': 'flipWaveEOD',
+                 'flip_wave': 'flipWaveEOD',
                  'thresh_frac': 'waveEODThresholdFraction',
                  'n_phase_harmonics': 'waveEODPhaseHarmonics'})
     a['thresh_frac'] *= 0.01
