@@ -53,7 +53,7 @@ Calls all the functions listed above:
 
 ## Configuration
 
-- `add_pulse_analysis_config()`: add parameters for `analyze_pulse()` to configuration.
+- `add_analyze_pulse_config()`: add parameters for `analyze_pulse()` to configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 - `add_pulse_quality_config()`: add parameters for `pulse_quality()` to configuration.
 - `wave_pulse_args()`: retrieve parameters for `pulse_quality()` from configuration.
@@ -2617,12 +2617,12 @@ def load_pulse_times(file_path):
     return pulse_times
 
         
-def add_pulse_analysis_config(cfg, min_pulse_win=0.001,
-                              start_end_thresh_fac=0.01, peak_thresh_frac=0.002,
-                              min_dist=50.0e-6, width_frac=0.5, fit_frac=0.5,
-                              freq_resolution=1.0, fade_frac=0.0,
-                              flip_pulse='none', fit_gaussians=True,
-                              ipi_cv_thresh=0.5, ipi_percentile=30.0):
+def add_analyze_pulse_config(cfg, min_pulse_win=0.001,
+                             start_end_thresh_fac=0.01, peak_thresh_frac=0.002,
+                             min_dist=50.0e-6, width_frac=0.5, fit_frac=0.5,
+                             freq_resolution=1.0, fade_frac=0.0,
+                             flip_pulse='none', fit_gaussians=True,
+                             ipi_cv_thresh=0.5, ipi_percentile=30.0):
     """Add all parameters needed for the eod analysis functions as a new
     section to a configuration.
 

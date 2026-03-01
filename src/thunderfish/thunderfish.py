@@ -56,11 +56,12 @@ from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_group
 from .fakefish import pulsefish_spectrum
 from .pulseanalysis import analyze_pulse, pulse_quality, plot_pulse_eodtimes
 from .pulseanalysis import plot_pulse_eod, plot_pulse_spectrum
-from .pulseanalysis import add_pulse_analysis_config, analyze_pulse_args
+from .pulseanalysis import add_analyze_pulse_config, analyze_pulse_args
 from .pulseanalysis import pulse_quality_args
 from .waveanalysis import extract_wave, analyze_wave, wave_quality
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum
-from .waveanalysis import add_wave_analysis_config, analyze_wave_args
+from .waveanalysis import add_extract_wave_config, extract_wave_args
+from .waveanalysis import add_analyze_wave_config, analyze_wave_args
 from .waveanalysis import wave_quality_args 
 from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, unfilter_coeff, clipped_fraction
@@ -169,8 +170,9 @@ def configuration():
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     del cfg['eodMinSem']
-    add_wave_analysis_config(cfg)
-    add_pulse_analysis_config(cfg, min_pulse_win=0.004, fade_frac=0.05)
+    add_extract_wave_config(cfg)
+    add_analyze_wave_config(cfg)
+    add_analyze_pulse_config(cfg, min_pulse_win=0.004, fade_frac=0.05)
     add_eod_quality_config(cfg)
     add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
@@ -448,9 +450,10 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             i0 = int(power_times[window[0]]*rate) - iw
             i1 = int(power_times[window[1]]*rate) + iw
             coeffs, mean_eod, eod_freq, times, n_eods, skips = \
-                extract_wave(data[i0:i1], rate, fish[0, 0], power_freqs[1],
-                             n_harmonics=cfg.value('eodHarmonics'),
-                             verbose=verbose - 1, plot_level=plot_level)
+                extract_wave(data[i0:i1], rate, fish[0, 0],
+                             power_freqs[1], verbose=verbose - 1,
+                             plot_level=plot_level,
+                             **extract_wave_args(cfg))
             if len(mean_eod) == 0 or len(skips) > 0:
                 if verbose > 0:
                     print(f'skip    {fish[0, 0]:7.2f}Hz wave  fish:', skips)

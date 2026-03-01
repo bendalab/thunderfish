@@ -37,7 +37,9 @@ Calls all the functions listed above:
 
 ## Configuration
 
-- `add_wave_analysis_config()`: add parameters for `analyze_wave()` to configuration.
+- `add_extract_wave_config()`: add parameters for `extract_wave()` to configuration.
+- `extract_wave_args()`: retrieve parameters for `extract_wave()` from configuration.
+- `add_analyze_wave_config()`: add parameters for `analyze_wave()` to configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `wave_quality_args()`: retrieve parameters for `wave_quality()` from configuration.
 
@@ -65,14 +67,27 @@ from thunderlab.tabledata import TableData
 from .harmonics import fundamental_freqs_and_power
 
 
-def extract_wave(data, rate, freq, freq_resolution, periods=5,
+def extract_wave(data, rate, freq, deltaf,
+                 win_fac='auto', min_segments=6, periods=5,
                  frate=1e6, n_harmonics=20,
                  min_corr=0.99, min_ampl_frac=0.5,
                  verbose=0, plot_level=0):
-    """Retrieve average EOD waveform via Fourier transform.
+    """Retrieve average EOD waveform via Fourier decomposition.
 
-    Fourier series are extracted for frequencies from `freq` \\(\\pm\\)
-    `freq_resolution`.
+    Fourier series are extracted for \\(n\\) frequencies
+    from `freq` \\(\\pm\\) `deltaf` with `n = 1 + 4*win_fac`
+    in multiple data segments of `1/(deltaf*win_fac)` duration.
+
+    For each data segment, the frequency for which the corresponding
+    Fourier decomposition results in the largest peak-peak amplitude
+    is taken.
+
+    Then a correlation matrix between the waveform estimates of each
+    data segments is computed and the segments that are most similar
+    to each other are selected. From these the ones whose standard
+    deviation is smaller than `min_ampl_fac` of the maximum one are
+    also discarded. The returned waveform and Fourier series is the
+    average of the remaining data segments.
 
     Parameters
     ----------
@@ -82,20 +97,33 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         Sampling rate of the data in Hertz.
     freq: float
         Estimated EOD frequency.
-    freq_resolution: float
+    deltaf: float
         Frequency resolution in Hertz. Ususally the resolution of the power spectrum
         from which `freq` was deduced.
+    win_fac: int or 'auto'
+        Integer factor by which the time window and
+        thus the frequency resolution is reduced.
+        Reducing the time window increases the chance for
+        stable waveforms, but might miss the right frequency.
+        If 'auto' then it is set to `max(1, int(np.round(freq/400)))`,
+        i.e. for higher EOD frequencies thisfactor gets larger.
+    min_segments: int
+        Minimum required data segments that fit into the data with
+        an overlap of three quarters. If necessary, the segment sizes
+        and thus also the frequency resolution is reduced by
+        powers of two.
     periods: float
-        The snippet size is the EOD period (`1/freq`)  times `periods`.
+        The duration of the returned waveform estimate is the
+        EOD period (`1/freq`) times `periods`.
     frate: float
-        Sampling rate used for the waveform estimates.
+        Sampling rate used for the returned waveform estimates.
     n_harmonics: int
         Number of harmonics used for the Fourier decomposition.
     min_corr: float
         Minimum required correlation between two waveform estimates.
     min_ampl_fac: float
-        Minimum required standard deviation of waveform estimate relative
-        to the largest one.
+        Minimum required standard deviation of waveform estimate
+        relative to the largest one.
     verbose: int
         Verbosity level.
     plot_level: int
@@ -141,21 +169,23 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
         return wave, freq
 
     # reduce frequency resolution and time window for high frequency fish:
-    ffac = max(1, int(np.round(freq/400)))
-    freq_resolution *= ffac
-    t_segment = min(len(data)/rate, 2/freq_resolution) # twice as long window is essential!
-    nfreqs = 1 + 2*2*ffac         # twice the frequency resolution is necessary and sufficient!
+    if win_fac == 'auto':
+        win_fac = max(1, int(np.round(freq/400)))
+    deltaf *= win_fac
+    t_segment = min(len(data)/rate, 1/deltaf)
+    nfreqs = 1 + 2*2*win_fac # twice the frequency resolution is necessary and sufficient!
     step = max(16, int(t_segment*rate))
-    # extract Fourier series from data segements:
+    # extract Fourier series from data segments:
     n = int(periods/freq*rate)
     freqs = []
-    indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//8))
-    if len(indices) < 4:
+    indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//4))
+    while len(indices) < min_segments:
+        print(freq, 'half', t_segment)
         t_segment /= 2
         step = max(8, int(t_segment*rate))
-        indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//8))
+        indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//4))
     times = indices/rate
-    frange = np.linspace(freq - freq_resolution, freq + freq_resolution, nfreqs)
+    frange = np.linspace(freq - deltaf, freq + deltaf, nfreqs)
     for i in indices:
         w, f = fourier_freq_range(data[i:i + step], rate, frange, 6, n)
         freqs.append(f)
@@ -165,16 +195,6 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
     if len(freqs) == 0:
         # TODO: Why??? How can indices be empty?
         return mean_coeffs, mean_eod, freq, np.array([]), 0, f'no frequencies detected ({len(indicies)} indices, freqs={freqs})'
-    """
-    # just take the frequencies from the spectrum and keep the segment size:
-    # this does not perform well in mutli-fish settings!
-    # the improved frequency resolution seems to be essential!
-    t_segment = min(len(data)/rate, 1/freq_resolution)
-    step = max(16, int(t_segment*rate))
-    indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//8))
-    times = indices/rate
-    freqs = np.ones(len(indices))*freq
-    """
     # refined Fourier series and waveforms:
     n = int(periods/np.mean(freqs)*frate)
     coeffs = np.zeros((len(indices), n_harmonics), dtype=complex)
@@ -224,7 +244,7 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
             i_max_corr = np.nanargmax(sub_corr)
             max_corr_a = i_max_corr//len(corr)
             max_corr_b = i_max_corr%len(corr)
-            if corr[max_corr_a, max_corr_b] < max(min_c, 1- 0.25*(1 - min_corr)):
+            if corr[max_corr_a, max_corr_b] < max(min_c, 1 - 0.25*(1 - min_corr)):
                 break
             sub_corr[:, max_corr_a] = np.nan
             sub_corr[max_corr_a, :] = np.nan
@@ -278,8 +298,10 @@ def extract_wave(data, rate, freq, freq_resolution, periods=5,
             axs[1, 1].set_ylim(bottom=0)
             axs[1, 1].set_xlabel('segment')
             axs[1, 1].set_ylabel('num_c')
-            axs[1, 1].xaxis.set_major_locator(MultipleLocator(1))
-            axs[1, 1].yaxis.set_major_locator(MultipleLocator(1))
+            if len(num_c) < 10:
+                axs[1, 1].xaxis.set_major_locator(MultipleLocator(1))
+            if np.max(num_c) < 10:
+                axs[1, 1].yaxis.set_major_locator(MultipleLocator(1))
             axs[1, 1].legend()
         if verbose > 0:
             eodf = np.mean(freqs) if len(freqs) > 0 else np.nan
@@ -1789,9 +1811,63 @@ def load_wave_spectrum(file_path):
     spec[:, 3] *= 0.01
     return spec, data.unit('amplitude')
 
+
+def add_extract_wave_config(cfg, win_fac='auto', min_segments=6,
+                            periods=5, frate=1e6, n_harmonics=20,
+                            min_corr=0.99, min_ampl_frac=0.5):
+    """Add all parameters needed for `extract_wave()` as a new
+    section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
         
-def add_wave_analysis_config(cfg, n_harmonics=20, flip_wave='none',
-                             thresh_frac=0.05, n_phase_harmonics=8):
+    See `extract_wave()` for details on the remaining arguments.
+    """
+    cfg.add_section('Wave-type EOD extraction:')
+    cfg.add('dataSegmentDivider', win_fac, '', 'Reduce duration of data segments for EOD waveform estimation by this factor.')
+    cfg.add('minimumDataSegments', min_segments, '', 'Minimum number of data segments required for EOD waveform estimation.')
+    cfg.add('periodsWaveEOD', periods, '', 'Number of periods computed for an EOD estimate.')
+    cfg.add('samplingRateWaveEOD', 0.001*frate, 'kHz', 'Sampling rate of EOD waveform estimates.')
+    cfg.add('eodHarmonics', n_harmonics, '', 'Number of harmonics of the Fourier decomposition.')
+    cfg.add('minimumEODCorrelations', min_corr, '', 'Minimum correlation between good EOD waveform estimates.')
+    cfg.add('minimumEODAmplitude', 100*min_ampl_frac, '%', 'Minimum amplitude of an EOD estimate relative to the largest one.')
+
+
+def extract_wave_args(cfg):
+    """Retrieve parameters for `extract_wave()` from configuration.
+    
+    The return value can then be passed as key-word arguments to this
+    function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `extract_wave()` function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map(win_fac='dataSegmentDivider',
+                min_segments='minimumDataSegments',
+                periods='periodsWaveEOD',
+                frate='samplingRateWaveEOD',
+                n_harmonics='eodHarmonics',
+                min_corr='minimumEODCorrelations',
+                min_ampl_frac='minimumEODAmplitude')
+    if a['win_fac'] != 'auto':
+        a['win_fac'] = int(a['win_fac'])
+    a['frate'] *= 1000
+    a['min_ampl_frac'] *= 0.01
+    return a
+
+        
+def add_analyze_wave_config(cfg, n_harmonics=20, flip_wave='none',
+                            thresh_frac=0.05, n_phase_harmonics=8):
     """Add all parameters needed for `analyse_wave()` as a new
     section to a configuration.
 
