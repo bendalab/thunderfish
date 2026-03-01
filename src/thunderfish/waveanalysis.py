@@ -689,11 +689,11 @@ def analyse_wave_spectrum(freq, coeffs, n_phase_harmonics=8):
         spec[:, :] = np.nan
         k = 0
         for i in range(len(coeffs) - 1):
-            while k < len(freq) and freq[k, 0] < (i - 0.5)*freq1:
+            while k < len(freq) and freq[k, 0] < (i + 0.5)*freq1:
                 k += 1
             if k >= len(freq):
                 break
-            if freq[k, 0] < (i + 0.5)*freq1:
+            if freq[k, 0] < (i + 1.5)*freq1:
                 spec[i, 6] = freq[k, 1]
                 k += 1
         for i in range(len(coeffs) - 1, n):
@@ -788,40 +788,39 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         A dictionary with properties of the analyzed EOD waveform.
 
         - type: set to 'wave'.
-        - EODf: is set to the EOD fundamental frequency.
-        - p-p-amplitude: peak-to-peak amplitude of the Fourier decomposition.
-        - flipped: True if the waveform was flipped.
-        - amplitude: amplitude factor of the Fourier decomposition.
+        - flipped: true if the waveform was flipped.
+        - EODf: EOD fundamental frequency.
+        - period: period of the EOD, i.e. 1/EODf.
+        - ppampl: peak-to-peak amplitude of the Fourier decomposed EOD waveform.
+        - posampl: maximum amplitude of EOD waveform.
+        - negampl: minimum amplitude of EOD waveform.
+        - relmaxampl: amplitude of peak or trough, whichever is larger,
+          relative to p-p amplitude.
+        - power: summed power of all harmonics of the extracted
+          EOD waveform in decibel relative to one.
+        - datapower: summed power of all harmonics of the original
+          data in decibel relative to one.
+          Only if `freq` is a list of harmonics.
         - noise: root-mean squared standard deviation of the extracted
           EOD waveform relative to the p-p amplitude.
-        - rmserror: root-mean-square difference between Fourier-decomposition
-          and EOD waveform relative to the p-p amplitude.
-        - ncrossings: number of zero crossings per period
-        - peakwidth: width of the peak at the averaged amplitude relative
-          to EOD period.
-        - troughwidth: width of the trough at the averaged amplitude
-          relative to EOD period.
-        - minwidth: peakwidth or troughwidth, whichever is smaller.
-        - leftpeak: time from positive zero crossing to peak relative
-          to EOD period.
-        - rightpeak: time from peak to negative zero crossing relative to
-          EOD period.
-        - lefttrough: time from negative zero crossing to trough relative to
-          EOD period.
-        - righttrough: time from trough to positive zero crossing relative to
-          EOD period.
-        - p-p-distance: time between peak and trough relative to EOD period.
-        - min-p-p-distance: p-p-distance or EOD period minus p-p-distance,
+        - rmserror: root-mean-square difference between
+          Fourier-decomposition and EOD waveform relative
+          to the p-p amplitude.
+        - ppdist: time between peak and trough relative to EOD period.
+        - minppdist: p-p-distance or EOD period minus p-p-distance,
           whichever is smaller, relative to EOD period.
-        - relpeakampl: amplitude of peak or trough, whichever is larger,
-          relative to p-p amplitude.
-        - power: summed power of all harmonics of the extracted EOD waveform
-          in decibel relative to one.
-        - datapower: summed power of all harmonics of the original data in
-          decibel relative to one. Only if `freq` is a list of harmonics.
-        - thd: total harmonic distortion, i.e. square root of sum of
-          amplitudes squared of harmonics relative to amplitude
-          of fundamental.  
+        - peakwidth: width of the maximum peak phase relative
+          to EOD period.
+        - troughwidth: width of minimum trough phase relative
+          to EOD period.
+        - minwidth: peakwidth or troughwidth, whichever is smaller.
+        - phasethresh: threshold used for detecting phases as a
+          factor of the p-p-amplitude.
+        - nphases: number of phases of one EOD cycle.
+        - thd: total harmonic distortion, i.e. square root of sum
+          of squared relative amplitudes of higher harmonics.
+        - maxharmonics: harmonics with maximum amplitude.
+        - power2: power of the second harmonics.
         - dbdiff: smoothness of power spectrum as standard deviation of
           differences in decibel power.
         - phaseslope: slope of a linear regression between phases and
@@ -904,7 +903,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         meod[:, 1] = meod[:, -1]
 
     # waveform properties:
-    pos_ampl, neg_ampl, distance, min_distance, rmssem, rmserror = \
+    pos_ampl, neg_ampl, distance, min_distance, rms_sem, rms_error = \
         analyze_wave_properties(meod, None, freq1)
     pp_ampl = pos_ampl + neg_ampl
     max_ampl = max(pos_ampl, neg_ampl)
@@ -928,23 +927,23 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     props['flipped'] = flipped
     props['EODf'] = freq1
     props['period'] = period
-    props['pos-ampl'] = pos_ampl
-    props['neg-ampl'] = neg_ampl
-    props['max-ampl'] = max_ampl
-    props['p-p-amplitude'] = pp_ampl
-    props['rel-max-amplitude'] = rel_max_ampl
-    props['p-p-distance'] = distance/period
-    props['min-p-p-distance'] = min_distance/period
-    if rmssem:
-        props['noise'] = rmssem
-    props['rmserror'] = rmserror
-    props['nphases'] = len(phases['times'])
-    props['peakwidth'] = peak_width/period
-    props['troughwidth'] = trough_width/period
-    props['minwidth'] = min(peak_width, trough_width)/period
+    props['ppampl'] = pp_ampl
+    props['posampl'] = pos_ampl
+    props['negampl'] = neg_ampl
+    props['relmaxampl'] = rel_max_ampl
     props['power'] = power
     if data_power is not None:
         props['datapower'] = data_power
+    if rms_sem:
+        props['noise'] = rms_sem
+    props['rmserror'] = rms_error
+    props['ppdist'] = distance/period
+    props['minppdist'] = min_distance/period
+    props['peakwidth'] = peak_width/period
+    props['troughwidth'] = trough_width/period
+    props['minwidth'] = min(peak_width, trough_width)/period
+    props['phasethresh'] = thresh_frac
+    props['nphases'] = len(phases['times'])
     props['thd'] = thd
     props['maxharmonics'] = max_harmonics
     props['power2'] = spec[1, 4]
@@ -1141,7 +1140,7 @@ def plot_wave_eod(ax, eod_waveform, props, phases=None,
     time = 1000*eod_waveform[:, 0]
     eod = eod_waveform[:, 1]
     # time axis:                
-    period = 1000.0/props['EODf']
+    period = 1000/props['EODf']
     xlim_l = -0.5*wave_periods*period
     xlim_r = +0.5*wave_periods*period + period
     xlim = xlim_r - xlim_l
@@ -1269,8 +1268,8 @@ def plot_wave_eod(ax, eod_waveform, props, phases=None,
         if 'n' in props:
             eods = 'EODs' if props['n'] > 1 else 'EOD'
             segs = ''
-            if 'n_segments' in props:
-                n_segs = props['n_segments']
+            if 'nsegments' in props:
+                n_segs = props['nsegments']
                 segs = f' (in {n_segs} segment{"s" if n_segs > 1 else ""})'
             label += f'n = {props["n"]} {eods}{segs}'
         if 'flipped' in props and props['flipped']:
@@ -1495,14 +1494,17 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     if len(wave_props) == 0:
         return None
     td = TableData()
-    if 'twin' in wave_props[0] or 'rate' in wave_props[0] or \
+    if 'twin' in wave_props[0] or 'samplerate' in wave_props[0] or \
        'nfft' in wave_props[0]:
         td.append_section('recording')
     if 'twin' in wave_props[0]:
         td.append('twin', 's', '%7.2f', value=wave_props)
         td.append('window', 's', '%7.2f', value=wave_props)
+        td.append('channel', '', '%d', value=wave_props)
         td.append('winclipped', '%', '%.2f',
                   value=wave_props, fac=100.0)
+    if 'nsegments' in wave_props[0]:
+        td.append('nsegments', '', '%d', value=wave_props)
     if 'samplerate' in wave_props[0]:
         td.append('samplerate', 'kHz', '%.3f',
                   value=wave_props, fac=0.001)
@@ -1515,14 +1517,10 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('flipped', '', '%d', value=wave_props)
     td.append('EODf', 'Hz', '%7.2f', value=wave_props)
     td.append('period', 'ms', '%7.3f', value=wave_props, fac=1000)
-    td.append('pos-ampl', unit, '%.5g', value=wave_props)
-    td.append('neg-ampl', unit, '%.5g', value=wave_props)
-    td.append('max-ampl', unit, '%.5g', value=wave_props)
-    td.append('p-p-amplitude', unit, '%.5g', value=wave_props)
-    td.append('rel-max-amplitude', '%', '%.2f', value=wave_props, fac=100)
-    td.append('p-p-distance', '%', '%.2f', value=wave_props, fac=100)
-    td.append('min-p-p-distance', '%', '%.2f',
-              value=wave_props, fac=100)
+    td.append('ppampl', unit, '%.5g', value=wave_props)
+    td.append('posampl', unit, '%.5g', value=wave_props)
+    td.append('negampl', unit, '%.5g', value=wave_props)
+    td.append('relmaxampl', '%', '%.2f', value=wave_props, fac=100)
     td.append('power', 'dB', '%7.2f', value=wave_props)
     if 'datapower' in wave_props[0]:
         td.append('datapower', 'dB', '%7.2f', value=wave_props)
@@ -1532,15 +1530,20 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     if 'clipped' in wave_props[0]:
         td.append('clipped', '%', '%.1f', value=wave_props, fac=100)
     td.append_section('timing')
-    td.append('nphases', '', '%d', value=wave_props)
+    td.append('ppdist', '%', '%.2f', value=wave_props, fac=100)
+    td.append('minppdist', '%', '%.2f', value=wave_props, fac=100)
     td.append('peakwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('troughwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('minwidth', '%', '%.2f', value=wave_props, fac=100)
+    td.append_section('phases')
+    td.append('phasethresh', '%', '%.1f', value=wave_props, fac=100)
+    td.append('nphases', '', '%d', value=wave_props)
+    td.append_section('spectrum')
     td.append('thd', '%', '%.2f', value=wave_props, fac=100)
     td.append('maxharmonics', '', '%d', value=wave_props)
     td.append('power2', 'dB', '%7.2f', value=wave_props)
     td.append('dbdiff', 'dB', '%7.2f', value=wave_props)
-    td.append('phaseslope', '', '%6.2f', value=wave_props)
+    td.append('phaseslope', '', '%.3f', value=wave_props)
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
     fp = '-wavefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
@@ -1577,23 +1580,27 @@ def load_wave_fish(file_path):
     for props in eod_props:
         if 'winclipped' in props:
             props['winclipped'] /= 100
+        if 'nsegments' in props:
+            props['nsegments'] = int(props['nsegments'])
         if 'samplerate' in props:
             props['samplerate'] *= 1000
         if 'nfft' in props:
             props['nfft'] = int(props['nfft'])
         props['type'] = 'wave'
+        props['channel'] = int(props['channel'])
         props['index'] = int(props['index'])
         props['n'] = int(props['n'])
         props['period'] /= 1000
-        props['rel-max-amplitude'] /= 100
-        props['p-p-distance'] /= 100
-        props['min-p-p-distance'] /= 100
+        props['relmaxampl'] /= 100
+        props['ppdist'] /= 100
+        props['minppdist'] /= 100
+        props['phasethresh'] /= 100
+        props['nphases'] = int(props['nphases'])
         props['thd'] /= 100
         props['noise'] /= 100
         props['rmserror'] /= 100
         if 'clipped' in props:
             props['clipped'] /= 100
-        props['nphases'] = int(props['nphases'])
         props['peakwidth'] /= 100
         props['troughwidth'] /= 100
         props['minwidth'] /= 100
@@ -1640,7 +1647,7 @@ def save_wave_phases(phases, unit, idx, basename, **kwargs):
     --------
     load_wave_phases()
     """
-    if len(phases) == 0:
+    if not phases or len(phases['times']) == 0:
         return None
     td = TableData()
     td.append('index', '', '%.0f', value=phases['indices'])
@@ -1733,13 +1740,13 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     load_wave_spectrum()
 
     """
-    td = TableData(spec_data[:, :6]*[1.0, 1.0, 1.0, 100.0, 1.0, 1.0],
+    td = TableData(spec_data[:, :6]*[1, 1, 1, 100, 1, 1],
                    ['harmonics', 'frequency', 'amplitude',
                     'relampl', 'relpower', 'phase'],
                    ['', 'Hz', unit, '%', 'dB', 'rad'],
                    ['%.0f', '%.2f', '%.6f', '%10.2f', '%6.2f', '%8.4f'])
     if spec_data.shape[1] > 6:
-        td.append('datapower', '%s^2/Hz' % unit, '%11.4e',
+        td.append('datapower', f'{unit}^2/Hz', '%11.4e',
                   value=spec_data[:, 6])
     fp = ''
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''

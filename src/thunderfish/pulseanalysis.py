@@ -1129,10 +1129,11 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         A dictionary with properties of the analyzed EOD waveform.
 
         - type: set to 'pulse'.
-        - flipped: True if the waveform was flipped.
-        - n: number of pulses analyzed  (i.e. `len(eod_times)`), if provided.
-        - times: the times of the detected EOD pulses (i.e. `eod_times`),
+        - flipped: true if the waveform was flipped.
+        - n: number of pulses analyzed  (i.e. `len(eod_times)`),
           if provided.
+        - times: the times of the detected EOD pulses
+          (i.e. `eod_times`), if provided.
         - EODf: the inverse of the median interval between `eod_times`,
           if provided.
         - period: median interval between `eod_times`, if provided.
@@ -1141,50 +1142,63 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
           `eod_times`, if provided.
         - IPI-CV: coefficient of variation of the intervals between
           `eod_times`, if provided.
-        - aoffs: Offset that was subtracted from the average EOD waveform.
-        - pos-ampl: amplitude of the largest positive peak.
-        - neg-ampl: amplitude of the largest negative trough.
-        - max-ampl: maximum of largest peak or trough amplitude in the units of the input data.
-        - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
-        - p-p-dist: distance between minimum and maximum phase in seconds.
+        - aoffs: Offset that was subtracted from the average
+          EOD waveform.
+        - ppampl: peak-to-peak amplitude of the EOD waveform.
+        - posampl: amplitude of the largest positive peak.
+        - negampl: amplitude of the largest negative trough.
+        - relmaxampl: amplitude of largest peak or trough,
+          whichever is larger, relative to p-p amplitude.
         - noise: average standard error mean of the averaged
           EOD waveform relative to the p-p amplitude.
-        - noise: average standard error of the averaged EOD waveform relative to the peak-to_peak amplitude in percent.
-        - rmserror: root-mean-square error between fit with sum of Gaussians and
-          EOD waveform relative to the p-p amplitude. Infinity if fit failed.
-        - peakthresh: Threshold for detecting peaks and troughs is at this factor times p-p-ampl.
-        - startendthresh: Threshold for start and end time is at this factor times p-p-ampl.
+        - rmserror: root-mean-square error between fit with
+          sum of Gaussians and EOD waveform relative to the
+          p-p amplitude. Infinity if fit failed.
+        - ppdist: distance between minimum and maximum phase
+          in seconds.
+        - startendthresh: threshold for start and end time is
+          this factor times p-p-amplitude.
         - tstart: time in seconds where the pulse starts,
           i.e. crosses the threshold for the first time.
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
         - totalarea: sum of areas under positive and negative peaks.
-        - pos-area: area under positive phases relative to total area.
-        - neg-area: area under negative phases relative to total area.
+        - posarea: area under positive phases relative to total area.
+        - negarea: area under negative phases relative to total area.
         - polaritybalance: contrast between areas under positive and
           negative phases.
-        - median: median of the distribution of the absolute EOD waveform.
-        - quartile1: first quartile of the distribution of the absolute EOD waveform.
-        - quartile3: third quartile of the distribution of the absolute EOD waveform.
-        - iq-range: inter-quartile range of the distribution of the absolute EOD waveform.
-        - tau: time constant of exponential decay of pulse tail in seconds.
-        - firstphase: index of the first phase in the pulse (i.e. -1 for P-1)
-        - lastphase: index of the last phase in the pulse (i.e. 3 for P3)
-        - peakfreq: frequency at peak energy of the single pulse spectrum
-          in Hertz.
+        - median: median of the distribution of the absolute
+          EOD waveform.
+        - quartile1: first quartile of the distribution of the
+          absolute EOD waveform.
+        - quartile3: third quartile of the distribution of the
+          absolute EOD waveform.
+        - iq-range: inter-quartile range of the distribution of
+          the absolute EOD waveform.
+        - phasethresh: threshold for detecting peaks and troughs
+          is this factor times p-p-amplitude.
+        - nphases: number of phases of the single pulse.
+        - firstphase: index of the first phase in the pulse
+          (i.e. -1 for P-1)
+        - lastphase: index of the last phase in the pulse
+          (i.e. 3 for P3)
+        - tau: time constant of exponential decay of pulse tail
+          in seconds.
+        - taustart: time where exponential fit started in seconds.
+        - peakfreq: frequency at peak energy of the single pulse
+          spectrum in Hertz.
         - peakenergy: peak energy of the single pulse spectrum.
         - troughfreq: frequency at trough before peak in Hertz.
         - troughenergy: energy of trough before peak in x^2 s/Hz.
-        - energyatt5: attenuation of average energy below 5 Hz relative to
-          peak energy in decibel.
-        - energyatt50: attenuation of average energy below 50 Hz relative to
-          peak energy in decibel.
+        - energyatt5: attenuation of average energy below 5 Hz
+          relative to peak energy in decibel.
+        - energyatt50: attenuation of average energy below 50 Hz
+          relative to peak energy in decibel.
         - lowcutoff: frequency at which the energy reached half of the
           peak energy relative to the DC energy in Hertz.
         - highcutoff: 3dB roll-off frequency of spectrum in Hertz.
-
-        Empty if waveform is not a pulse EOD.
+    
     phases: dict
         Dictionary with
     
@@ -1246,6 +1260,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         analyze_pulse_properties(noise_thresh, meod)
     pp_ampl = pos_ampl + neg_ampl
     max_ampl = max(pos_ampl, neg_ampl)
+    rel_max_ampl = max_ampl/pp_ampl
     total_area = pos_area + neg_area
 
     # threshold for start and end time:
@@ -1268,13 +1283,13 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         
     # fit exponential to last phase:
     tau = np.nan
-    taustart = np.nan
+    tau_start = np.nan
     if len(phases) > 0 and len(phases['times']) > 1:
         pi = np.argmin(np.abs(meod[:, 0] - phases['times'][-1]))
-        tau, taustart, fit = analyze_pulse_tail(pi, meod, None,
-                                                threshold=noise_thresh,
-                                                fit_frac=fit_frac,
-                                                verbose=verbose)
+        tau, tau_start, fit = analyze_pulse_tail(pi, meod, None,
+                                                 threshold=noise_thresh,
+                                                 fit_frac=fit_frac,
+                                                 verbose=verbose)
         if fit is not None:
             meod[:, -1] = fit
 
@@ -1320,31 +1335,32 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         props['IPI-std'] = ipi_std
         props['IPI-CV'] = ipi_std/ipi_mean
     props['aoffs'] = aoffs
-    props['pos-ampl'] = pos_ampl
-    props['neg-ampl'] = neg_ampl
-    props['max-ampl'] = max_ampl
-    props['p-p-amplitude'] = pp_ampl
-    props['p-p-dist'] = dist
+    props['ppampl'] = pp_ampl
+    props['posampl'] = pos_ampl
+    props['negampl'] = neg_ampl
+    props['relmaxampl'] = rel_max_ampl
     if meod.shape[1] > 2:
         props['noise'] = np.mean(meod[:, 2])/pp_ampl if pp_ampl > 0 else 1
     props['rmserror'] = rmserror
-    props['peakthresh'] = peak_thresh_frac
+    props['ppdist'] = dist
     props['startendthresh'] = start_end_thresh_fac
     props['tstart'] = tstart
     props['tend'] = tend
-    props['width'] = tstart - tend
+    props['width'] = tend - tstart
     props['totalarea'] = total_area
-    props['pos-area'] = pos_area/total_area
-    props['neg-area'] = neg_area/total_area
+    props['posarea'] = pos_area/total_area
+    props['negarea'] = neg_area/total_area
     props['polaritybalance'] = polarity_balance
     props['median'] = median
     props['quartile1'] = quartile1
     props['quartile3'] = quartile3
-    props['iq-range'] = quartile3 - quartile1
-    props['tau'] = tau
-    props['taustart'] = taustart
+    props['iqrange'] = quartile3 - quartile1
+    props['phasethresh'] = peak_thresh_frac
+    props['nphases'] = len(phases['times'])
     props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
     props['lastphase'] = phases['indices'][-1] if len(phases) > 0 else 1
+    props['tau'] = tau
+    props['taustart'] = tau_start
     props['peakfreq'] = peakfreq
     props['peakenergy'] = peakenergy
     props['troughfreq'] = troughfreq
@@ -1944,8 +1960,8 @@ def plot_pulse_eod(ax, eod_waveform, props, phases=None,
         if 'n' in props:
             eods = 'EODs' if props['n'] > 1 else 'EOD'
             segs = ''
-            if 'n_segments' in props:
-                n_segs = props['n_segments']
+            if 'nsegments' in props:
+                n_segs = props['nsegments']
                 segs = f' (in {n_segs} segment{"s" if n_segs > 1 else ""})'
             label += f'n = {props["n"]} {eods}{segs}\n'
         if 'flipped' in props and props['flipped']:
@@ -2123,6 +2139,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     if 'twin' in pulse_props[0]:
         td.append('twin', 's', '%7.2f', value=pulse_props)
         td.append('window', 's', '%7.2f', value=pulse_props)
+        td.append('channel', '', '%d', value=pulse_props)
         td.append('winclipped', '%', '%.2f',
                   value=pulse_props, fac=100)
     if 'samplerate' in pulse_props[0]:
@@ -2138,33 +2155,38 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('EODf', 'Hz', '%7.2f', value=pulse_props)
     td.append('period', 'ms', '%7.2f', value=pulse_props, fac=1000)
     td.append('aoffs', unit, '%.5g', value=pulse_props)
-    td.append('pos-ampl', unit, '%.5g', value=pulse_props)
-    td.append('neg-ampl', unit, '%.5g', value=pulse_props)
-    td.append('max-ampl', unit, '%.5g', value=pulse_props)
-    td.append('p-p-amplitude', unit, '%.5g', value=pulse_props)
-    td.append('p-p-dist', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('ppampl', unit, '%.5g', value=pulse_props)
+    td.append('posampl', unit, '%.5g', value=pulse_props)
+    td.append('negampl', unit, '%.5g', value=pulse_props)
+    td.append('relmaxampl', '%', '%.2f', value=pulse_props, fac=100)
     if 'noise' in pulse_props[0]:
         td.append('noise', '%', '%.2f', value=pulse_props, fac=100)
     td.append('rmserror', '%', '%.2f', value=pulse_props, fac=100)
     if 'clipped' in pulse_props[0]:
         td.append('clipped', '%', '%.2f', value=pulse_props, fac=100)
+    td.append_section('timing')
+    td.append('ppdist', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('startendthresh', '%', '%.2f', value=pulse_props, fac=100)
-    td.append('peakthresh', '%', '%.2f', value=pulse_props, fac=100)
     td.append('tstart', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('tend', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append_section('areas')
     td.append('totalarea', f'{unit}*ms', '%.4f', value=pulse_props, fac=1000)
-    td.append('pos-area', '%', '%.2f', value=pulse_props, fac=100)
-    td.append('neg-area', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('posarea', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('negarea', '%', '%.2f', value=pulse_props, fac=100)
     td.append('polaritybalance', '%', '%.2f', value=pulse_props, fac=100)
     td.append('median', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('quartile1', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('quartile3', 'ms', '%.3f', value=pulse_props, fac=1000)
-    td.append('iq-range', 'ms', '%.3f', value=pulse_props, fac=1000)
-    td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
-    td.append('taustart', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('iqrange', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append_section('phases')
+    td.append('phasethresh', '%', '%.2f', value=pulse_props, fac=100)
+    td.append('nphases', '', '%d', value=pulse_props)
     td.append('firstphase', '', '%d', value=pulse_props)
     td.append('lastphase', '', '%d', value=pulse_props)
+    td.append_section('tail')
+    td.append('tau', 'ms', '%.3f', value=pulse_props, fac=1000)
+    td.append('taustart', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append_section('spectrum')
     td.append('peakfreq', 'Hz', '%.2f', value=pulse_props)
     td.append('peakenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
@@ -2214,32 +2236,35 @@ def load_pulse_fish(file_path):
             props['samplerate'] *= 1000
         if 'nfft' in props:
             props['nfft'] = int(props['nfft'])
-        if 'clipped' in props:
-            props['clipped'] /= 100
         props['type'] = 'pulse'
         props['index'] = int(props['index'])
+        props['channel'] = int(props['channel'])
         props['n'] = int(props['n'])
+        props['period'] /= 1000
+        props['relmaxampl'] /= 100
+        props['ppdist'] /= 1000
+        props['rmserror'] /= 100
+        props['noise'] /= 100
+        if 'clipped' in props:
+            props['clipped'] /= 100
+        props['startendthresh'] /= 100
+        props['phasethresh'] /= 100
+        props['nphases'] = int(props['nphases'])
+        props['tstart'] /= 1000
+        props['tend'] /= 1000
+        props['width'] /= 1000
         props['totalarea'] /= 1000
-        props['pos-area'] /= 100
-        props['neg-area'] /= 100
+        props['posarea'] /= 100
+        props['negarea'] /= 100
         props['polaritybalance'] /= 100
         props['median'] /= 1000
         props['quartile1'] /= 1000
         props['quartile3'] /= 1000
-        props['iq-range'] /= 1000
-        props['firstphase'] = int(props['firstphase'])
-        props['lastphase'] = int(props['lastphase'])
-        props['period'] /= 1000
-        props['noise'] /= 100
-        props['startendthresh'] /= 100
-        props['peakthresh'] /= 100
-        props['tstart'] /= 1000
-        props['tend'] /= 1000
-        props['p-p-dist'] /= 1000
-        props['width'] /= 1000
+        props['iqrange'] /= 1000
         props['tau'] /= 1000
         props['taustart'] /= 1000
-        props['rmserror'] /= 100
+        props['firstphase'] = int(props['firstphase'])
+        props['lastphase'] = int(props['lastphase'])
     return eod_props
 
                         
@@ -2355,7 +2380,7 @@ def save_pulse_phases(phases, unit, idx, basename, **kwargs):
     --------
     load_pulse_phases()
     """
-    if len(phases) == 0:
+    if not phases or len(phases['times']) == 0:
         return None
     td = TableData()
     td.append('type', '', '%s', value=['P']*len(phases['indices']))

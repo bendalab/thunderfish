@@ -943,7 +943,7 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
                     write_file_zip(zf, save_wave_spectrum, output_basename,
                                    sdata, unit, i, **kwargs)
             # phases:
-            if 'area' in pdata:
+            if 'areas' in pdata:
                 write_file_zip(zf, save_pulse_phases, output_basename,
                                pdata, unit, i, **kwargs)
             else:
@@ -1052,7 +1052,7 @@ def load_analysis(file_pathes):
             mean_eods[idx], unit = load_eod_waveform(f)
         elif ftype == 'wavespectrum':
             spec_data[idx], unit = load_wave_spectrum(f)
-        elif ftype == 'pulsephases':
+        elif ftype == 'wavephases':
             phase_data[idx], unit = load_wave_phases(f)
         elif ftype == 'pulsephases':
             phase_data[idx], unit = load_pulse_phases(f)

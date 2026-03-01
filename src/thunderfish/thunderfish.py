@@ -397,8 +397,8 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
 
             # threshold for wave fish peaks based on single pulse spectra:
             if len(skips) == 0 or skipped_clipped:
-                if max_pulse_amplitude < props['p-p-amplitude']:
-                    max_pulse_amplitude = props['p-p-amplitude']
+                if max_pulse_amplitude < props['ppampl']:
+                    max_pulse_amplitude = props['ppampl']
                 i0 = np.argmin(np.abs(mean_eod[:,0]))
                 i1 = len(mean_eod) - i0
                 pulse_data = np.zeros(len(data))
@@ -480,17 +480,17 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             clipped_frac = clipped_fraction(data[i0:i1], rate, eod_times,
                                             mean_eod, min_clip, max_clip)
             props['n'] = n_eods
-            props['n_segments'] = len(times)
+            props['nsegments'] = len(times)
             props['index'] = len(eod_props)
             props['clipped'] = clipped_frac
             props['samplerate'] = rate
             props['nfft'] = nfft
             props['dfreq'] = dfreq
             # remove wave fish that are smaller than the largest pulse fish:
-            if props['p-p-amplitude'] < 0.01*max_pulse_amplitude:
+            if props['ppampl'] < 0.01*max_pulse_amplitude:
                 rm_indices = power_indices[k:]
                 if verbose > 0:
-                    print(f'skip    {props['EODf']:7.2f}Hz wave  fish: power={decibel(fish_powers[idx]):5.1f}dB, p-p amplitude={decibel(props['p-p-amplitude']):5.1f}dB smaller than pulse fish={decibel(max_pulse_amplitude):5.1f}dB - 20dB')
+                    print(f'skip    {props['EODf']:7.2f}Hz wave  fish: power={decibel(fish_powers[idx]):5.1f}dB, p-p amplitude={decibel(props['ppampl']):5.1f}dB smaller than pulse fish={decibel(max_pulse_amplitude):5.1f}dB - 20dB')
                     for idx in rm_indices[1:]:
                         print(f'skip    {wave_eodfs[idx][0,0]:7.2f}Hz wave  fish: power={decibel(fish_powers[idx]):5.1f}dB even smaller')
                 if verbose > 1:
@@ -883,7 +883,7 @@ def plot_eods(title, message_filename, raw_data, rate, channel, idx0,
     posy -= pstep
             
     # sort indices by p-p amplitude:
-    pp_ampls = [eod_props[idx]['p-p-amplitude'] for idx in indices]
+    pp_ampls = [eod_props[idx]['ppampl'] for idx in indices]
     pp_indices = np.argsort(pp_ampls)[::-1]
         
     # plot EOD waveform and spectra:
@@ -1172,7 +1172,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
             elif mpdf is not None:
                 mpdf.savefig(fig)
             elif save:
-                fig.savefig(base_name + '-waveform-%d.pdf' % props['index'])
+                fig.savefig(base_name + f'-waveform-{props["index"]}.pdf')
         if mpdf is not None:
             mpdf.close()
     if 's' in subplots or 'S' in subplots:
@@ -1206,7 +1206,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
             elif mpdf is not None:
                 mpdf.savefig(fig)
             elif save:
-                fig.savefig(base_name + '-spectrum-%d.pdf' % props['index'])
+                fig.savefig(base_name + f'-spectrum-{props["index"]}.pdf')
         if mpdf is not None:
             mpdf.close()
     if 'e' in subplots or 'E' in subplots:
@@ -1256,7 +1256,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
             elif mpdf is not None:
                 mpdf.savefig(fig)
             elif save:
-                fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
+                fig.savefig(base_name + f'-eod-{props["index"]}.pdf')
         if mpdf is not None:
             mpdf.close()
     if not save:
@@ -1525,7 +1525,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
     channels = all_data.shape[1]
     chan_list = [channel]
     if channel < 0:
-        chan_list = range(channels)
+        chan_list = np.arange(channels)
     elif channel >= channels:
         return f'{filename}: invalid channel {channel} ({channels} channels)'
     # process all channels:
@@ -1561,6 +1561,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         for props in eod_props:
             props['twin'] = idx0/rate
             props['window'] = (idx1 - idx0)/rate
+            props['channel'] = chan
             props['winclipped'] = clipped
 
         # warning message in case no fish has been found:
