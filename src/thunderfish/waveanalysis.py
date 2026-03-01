@@ -672,6 +672,8 @@ def analyse_wave_spectrum(freq, coeffs, n_phase_harmonics=8):
         Total harmonic distortion of the amplitudes \\(a_i\\) of the harmonics
         is power in the higher harmonics relative to the fundamental:
         \\[ \\text{thd} = \\sqrt{\\sum_{i=2}^n \\left(\\frac{a_i}{a_1}\\right)^2} \\]
+    max_harmonics: int
+        Harmonics with the largest power. Fundamental is one.
     db_diff: float
         Standard deviation of the differences of the decibel powers.
         A measure of smoothness of the spectrum.
@@ -721,9 +723,12 @@ def analyse_wave_spectrum(freq, coeffs, n_phase_harmonics=8):
         
     # total harmonic distortion:
     thd = np.sqrt(np.nansum(spec[1:, 3])**2)
+
+    # harmonic with maximum power:
+    db_powers = spec[:len(coeffs) - 1, 4]
+    max_harmonics = np.argmax(db_powers) + 1
         
     # smoothness of power spectrum:
-    db_powers = spec[:len(coeffs) - 1, 4]
     db_diff = np.std(np.diff(db_powers))
 
     # slope of unwraped phases:
@@ -732,7 +737,7 @@ def analyse_wave_spectrum(freq, coeffs, n_phase_harmonics=8):
     r = linregress(np.arange(len(phases)), phases)
     phase_slope = r.slope
 
-    return spec, power, data_power, thd, db_diff, phase_slope
+    return spec, power, data_power, thd, max_harmonics, db_diff, phase_slope
 
     
 def analyze_wave(eod, ratetime, freq, coeffs=None,
@@ -851,11 +856,6 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         - column 5: phase shift relative to the fundamental
         - column 6: if `freq` is a list of harmonics, the powers of
           the harmonics from the power spectrum of the raw data.
-
-    Raises
-    ------
-    IndexError:
-        EOD data is less than one period long.
     """
     if eod.ndim == 2:
         if eod.shape[1] > 2:
@@ -918,7 +918,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     trough_width = phases['widths'][t_inx]
     
     # spectral analysis:
-    spec, power, data_power, thd, db_diff, phase_slope = \
+    spec, power, data_power, thd, max_harmonics, db_diff, phase_slope = \
         analyse_wave_spectrum(freq, coeffs,
                               n_phase_harmonics=n_phase_harmonics)
 
@@ -946,6 +946,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     if data_power is not None:
         props['datapower'] = data_power
     props['thd'] = thd
+    props['maxharmonics'] = max_harmonics
+    props['power2'] = spec[1, 4]
     props['dbdiff'] = db_diff
     props['phaseslope'] = phase_slope
     
@@ -1535,6 +1537,8 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('troughwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('minwidth', '%', '%.2f', value=wave_props, fac=100)
     td.append('thd', '%', '%.2f', value=wave_props, fac=100)
+    td.append('maxharmonics', '', '%d', value=wave_props)
+    td.append('power2', 'dB', '%7.2f', value=wave_props)
     td.append('dbdiff', 'dB', '%7.2f', value=wave_props)
     td.append('phaseslope', '', '%6.2f', value=wave_props)
     ext = Path(basename).suffix if not hasattr(basename, 'write') else ''
