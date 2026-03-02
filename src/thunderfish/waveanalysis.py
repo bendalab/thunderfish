@@ -179,8 +179,7 @@ def extract_wave(data, rate, freq, deltaf,
     n = int(periods/freq*rate)
     freqs = []
     indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//4))
-    while len(indices) < min_segments:
-        print(freq, 'half', t_segment)
+    while len(indices) < min_segments or t_segment > 0.1:
         t_segment /= 2
         step = max(8, int(t_segment*rate))
         indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//4))
@@ -488,10 +487,10 @@ def analyze_wave_properties(eod, ratetime, freq):
 
     Returns
     -------
-    pos_ampl: float
-        Amplitude of largest positive peak.
-    neg_ampl: float
-        Amplitude of largest negative trough (absolute value).
+    pp_ampl: float
+        Peak-to-peak amplitude.
+    rel_max_ampl: float
+        Amplitude of minimum or maximum, whichever is larger, relative to p-p amplitude.
     distance: float
         Temporal distance between largest negative trough and positive peak.
     min_distance: float
@@ -528,6 +527,10 @@ def analyze_wave_properties(eod, ratetime, freq):
     neg_idx = np.argmin(eodp)
     neg_ampl = abs(eodp[neg_idx])
     pp_ampl = pos_ampl + neg_ampl
+    max_ampl = max(pos_ampl, neg_ampl)
+    rel_max_ampl = max_ampl/pp_ampl
+
+    # timing:
     distance = abs(timep[neg_idx] - timep[pos_idx])
     min_distance = distance
     if distance > period/2:
@@ -539,7 +542,7 @@ def analyze_wave_properties(eod, ratetime, freq):
         rms_sem = np.sqrt(np.mean(eod[mask, 2]**2.0))/pp_ampl
     rms_error = np.sqrt(np.mean((eod[mask, 1] - eod[mask, -1])**2.0))/pp_ampl
     
-    return pos_ampl, neg_ampl, distance, min_distance, rms_sem, rms_error
+    return pp_ampl, rel_max_ampl, distance, min_distance, rms_sem, rms_error
 
     
 def analyze_wave_phases(eod, ratetime, freq, thresh_frac=0.05):
@@ -814,8 +817,6 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         - EODf: EOD fundamental frequency.
         - period: period of the EOD, i.e. 1/EODf.
         - ppampl: peak-to-peak amplitude of the Fourier decomposed EOD waveform.
-        - posampl: maximum amplitude of EOD waveform.
-        - negampl: minimum amplitude of EOD waveform.
         - relmaxampl: amplitude of peak or trough, whichever is larger,
           relative to p-p amplitude.
         - power: summed power of all harmonics of the extracted
@@ -925,11 +926,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         meod[:, 1] = meod[:, -1]
 
     # waveform properties:
-    pos_ampl, neg_ampl, distance, min_distance, rms_sem, rms_error = \
+    pp_ampl, rel_max_ampl, distance, min_distance, rms_sem, rms_error = \
         analyze_wave_properties(meod, None, freq1)
-    pp_ampl = pos_ampl + neg_ampl
-    max_ampl = max(pos_ampl, neg_ampl)
-    rel_max_ampl = max_ampl/pp_ampl
 
     # phases:
     phases = analyze_wave_phases(meod, None, freq1, thresh_frac=thresh_frac)
@@ -950,8 +948,6 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     props['EODf'] = freq1
     props['period'] = period
     props['ppampl'] = pp_ampl
-    props['posampl'] = pos_ampl
-    props['negampl'] = neg_ampl
     props['relmaxampl'] = rel_max_ampl
     props['power'] = power
     if data_power is not None:
@@ -1540,8 +1536,6 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('EODf', 'Hz', '%7.2f', value=wave_props)
     td.append('period', 'ms', '%7.3f', value=wave_props, fac=1000)
     td.append('ppampl', unit, '%.5g', value=wave_props)
-    td.append('posampl', unit, '%.5g', value=wave_props)
-    td.append('negampl', unit, '%.5g', value=wave_props)
     td.append('relmaxampl', '%', '%.2f', value=wave_props, fac=100)
     td.append('power', 'dB', '%7.2f', value=wave_props)
     if 'datapower' in wave_props[0]:

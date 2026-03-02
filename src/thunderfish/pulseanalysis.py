@@ -253,16 +253,15 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
 
     Returns
     -------
-    pos_ampl: float
-        Amplitude of largest positive peak.
-    neg_ampl: float
-        Amplitude of largest negative trough (absolute value).
+    pp_ampl: float
+        Peak-to-peak amplitude.
+    rel_max_ampl: float
+        Amplitude of minimum or maximum, whichever is larger, relative to p-p amplitude.
     dist: float
         Temporal distance between largest negative trough and positive peak.
-    pos_area: float
-        Integral under all positive values of EOD waveform.
-    neg_area: float
-        Integral under all negative values of EOD waveform (absolute value).
+    total_area: float
+        Integral under absolute values of EOD waveform, i.e. sum of areas
+        under positive and negative phases.
     polarity_balance: float
         Contrast between positive and negative areas of EOD waveform, i.e.
         (pos_area - neg_area)/(pos_area + neg_area).
@@ -297,6 +296,11 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     neg_ampl = abs(eod[neg_idx])
     if neg_ampl < noise_thresh:
         neg_ampl = 0
+    pp_ampl = pos_ampl + neg_ampl
+    max_ampl = max(pos_ampl, neg_ampl)
+    rel_max_ampl = max_ampl/pp_ampl if pp_ampl > 0 else 0
+
+    # timing:
     dist = time[neg_idx] - time[pos_idx]
     if pos_ampl < noise_thresh or neg_ampl < noise_thresh:
         dist = np.inf
@@ -319,8 +323,8 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     quartile1 = time[np.argmax(cumul > 0.25)]
     quartile3 = time[np.argmax(cumul > 0.75)]
     
-    return pos_ampl, neg_ampl, dist, \
-        pos_area, neg_area, polarity_balance, \
+    return pp_ampl, rel_max_ampl, dist, \
+        total_area, polarity_balance, \
         median, quartile1, quartile3
 
     
@@ -1145,8 +1149,6 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         - aoffs: Offset that was subtracted from the average
           EOD waveform.
         - ppampl: peak-to-peak amplitude of the EOD waveform.
-        - posampl: amplitude of the largest positive peak.
-        - negampl: amplitude of the largest negative trough.
         - relmaxampl: amplitude of largest peak or trough,
           whichever is larger, relative to p-p amplitude.
         - noise: average standard error mean of the averaged
@@ -1164,8 +1166,6 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
         - totalarea: sum of areas under positive and negative peaks.
-        - posarea: area under positive phases relative to total area.
-        - negarea: area under negative phases relative to total area.
         - polaritybalance: contrast between areas under positive and
           negative phases.
         - median: median of the distribution of the absolute
@@ -1255,13 +1255,9 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
                         min_pulse_win=min_pulse_win)
 
     # analysis of pulse waveform:
-    pos_ampl, neg_ampl, dist, pos_area, neg_area, \
+    pp_ampl, rel_max_ampl, dist, total_area, \
         polarity_balance, median, quartile1, quartile3 = \
         analyze_pulse_properties(noise_thresh, meod)
-    pp_ampl = pos_ampl + neg_ampl
-    max_ampl = max(pos_ampl, neg_ampl)
-    rel_max_ampl = max_ampl/pp_ampl
-    total_area = pos_area + neg_area
 
     # threshold for start and end time:
     start_end_thresh = pp_ampl*start_end_thresh_fac
@@ -1336,8 +1332,6 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         props['IPI-CV'] = ipi_std/ipi_mean
     props['aoffs'] = aoffs
     props['ppampl'] = pp_ampl
-    props['posampl'] = pos_ampl
-    props['negampl'] = neg_ampl
     props['relmaxampl'] = rel_max_ampl
     if meod.shape[1] > 2:
         props['noise'] = np.mean(meod[:, 2])/pp_ampl if pp_ampl > 0 else 1
@@ -1348,8 +1342,6 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['tend'] = tend
     props['width'] = tend - tstart
     props['totalarea'] = total_area
-    props['posarea'] = pos_area/total_area
-    props['negarea'] = neg_area/total_area
     props['polaritybalance'] = polarity_balance
     props['median'] = median
     props['quartile1'] = quartile1
@@ -2156,8 +2148,6 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('period', 'ms', '%7.2f', value=pulse_props, fac=1000)
     td.append('aoffs', unit, '%.5g', value=pulse_props)
     td.append('ppampl', unit, '%.5g', value=pulse_props)
-    td.append('posampl', unit, '%.5g', value=pulse_props)
-    td.append('negampl', unit, '%.5g', value=pulse_props)
     td.append('relmaxampl', '%', '%.2f', value=pulse_props, fac=100)
     if 'noise' in pulse_props[0]:
         td.append('noise', '%', '%.2f', value=pulse_props, fac=100)
@@ -2172,8 +2162,6 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('width', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append_section('areas')
     td.append('totalarea', f'{unit}*ms', '%.4f', value=pulse_props, fac=1000)
-    td.append('posarea', '%', '%.2f', value=pulse_props, fac=100)
-    td.append('negarea', '%', '%.2f', value=pulse_props, fac=100)
     td.append('polaritybalance', '%', '%.2f', value=pulse_props, fac=100)
     td.append('median', 'ms', '%.3f', value=pulse_props, fac=1000)
     td.append('quartile1', 'ms', '%.3f', value=pulse_props, fac=1000)
@@ -2254,8 +2242,6 @@ def load_pulse_fish(file_path):
         props['tend'] /= 1000
         props['width'] /= 1000
         props['totalarea'] /= 1000
-        props['posarea'] /= 100
-        props['negarea'] /= 100
         props['polaritybalance'] /= 100
         props['median'] /= 1000
         props['quartile1'] /= 1000
