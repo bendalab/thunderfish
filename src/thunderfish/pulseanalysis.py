@@ -892,11 +892,11 @@ def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
     return freqs, energy
 
 
-def pulsetrain_spectrum(eod_times, eod, ratetime=None,
-                        freq_resolution=1.0, fade_frac=0.0):
+def pulsetrain_spectrum(eod_times, eod, ratetime=None, drate=None,
+                        fade_frac=0.0, freq_resolution=1.0, **kwargs):
     """Power spectrum of train of pulse-type EODs.
 
-    Places mean eod waveform at `eod_times` and computes from that the
+    Place mean EOD waveform at `eod_times` and compute from that the
     power spectrum.
     
     Parameters
@@ -904,19 +904,24 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None,
     eod_times: 1-D array or None
         List of times of detected EODs.
     eod: 1-D or 2-D array
-        The eod waveform of which the spectrum is computed.
+        The EOD waveform of which the spectrum is computed.
         If an 1-D array, then this is the waveform and you
         need to also pass a sampling rate in `rate`.
         If a 2-D array, then first column is time in seconds and second
-        column is the eod waveform. Further columns are ignored.
+        column is the EOD waveform. Further columns are ignored.
     ratetime: None or float or array of float
         If a 1-D array is passed on to `eod` then either the sampling
         rate in Hertz or the time array corresponding to `eod`.
-    freq_resolution: float
-        The frequency resolution of the spectrum.
+    drate: float or None
+        Sampling rate of the generated data. If None set to sampling rate
+        of EOD waveform.
     fade_frac: float
         Fraction of time of the EOD waveform that is used to fade in
         and out to zero baseline.
+    freq_resolution: float
+        The frequency resolution of the spectrum.
+    kwargs: dict
+        Further key-word arguments for `thunderlab.powerspectrum.psd()`.
     
     Returns
     -------
@@ -936,17 +941,25 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None,
     else:
         time = np.arange(len(eod))/ratetime
 
+    # interpolate:
+    if drate is None:
+        drate = rate
+        dtime = time
+    else:
+        dtime = np.arange(time[0], time[-1] + 0.5/drate, 1/drate)
+        eod = np.interp(dtime, time, eod)
+
     ipi = np.median(np.diff(eod_times))
-    n_ipi = int(ipi*rate)
-    n = int(eod_times[-1]*rate) + n_ipi//2
+    n_ipi = int(ipi*drate)
+    n = int(eod_times[-1]*drate) + n_ipi//2
     data = np.zeros(n)
-    i0 = np.argmin(np.abs(time))
+    i0 = np.argmin(np.abs(dtime))
     i1 = len(eod) - i0
     fn = int(fade_frac*len(eod))
     # place eod waveforms at eod_times:
     prev_idx = -n_ipi
     for t in eod_times:
-        idx = int(np.round(t*rate))
+        idx = int(np.round(t*drate))
         ii0 = i0 if idx - i0 >= 0 else idx
         if idx - ii0 < prev_idx + n_ipi//2:
             ii0 = idx - prev_idx - n_ipi//2
@@ -959,8 +972,8 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None,
             data[idx - ii0:idx - ii0 + fn] *= np.arange(fn)/fn
             data[idx + ii1 - fn:idx + ii1] *= np.arange(fn)[::-1]/fn
         prev_idx = idx
-    freq, power = psd(data - np.mean(data), rate, freq_resolution)
-    #power *= n/rate/ipi/len(eod_times)
+    freq, power = psd(data - np.mean(data), drate, freq_resolution, **kwargs)
+    #power *= n/drate/ipi/len(eod_times)
     return freq, power
 
 

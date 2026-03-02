@@ -54,7 +54,8 @@ from .harmonics import harmonic_groups_args, psd_peak_detection_args
 from .harmonics import harmonic_groups, closest, consistent
 from .harmonics import colors_markers, plot_harmonic_groups, plot_selected_groups
 from .fakefish import pulsefish_spectrum
-from .pulseanalysis import analyze_pulse, pulse_quality, plot_pulse_eodtimes
+from .pulseanalysis import analyze_pulse, pulsetrain_spectrum
+from .pulseanalysis import pulse_quality, plot_pulse_eodtimes
 from .pulseanalysis import plot_pulse_eod, plot_pulse_spectrum
 from .pulseanalysis import add_analyze_pulse_config, analyze_pulse_args
 from .pulseanalysis import pulse_quality_args
@@ -343,36 +344,37 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
 
     if 'p' in mode:
         # detect pulse fish:
-        _, eod_times, eod_peaktimes, zoom_window, _ = \
-            extract_pulsefish(data, rate, max_clip, verbose=verbose-1,
+        frate = 0.5e6  # TODO: make parameter
+        eods, eod_times, eod_peaktimes, zoom_window, _ = \
+            extract_pulsefish(data, rate, max_clip, frate,
+                              verbose=verbose - 1,
                               plot_level=plot_level,
                               save_path=os.path.splitext(os.path.basename(name))[0])
-
-        #eod_times = []
-        #eod_peaktimes = []
         if verbose > 0:
             if len(eod_times) > 0:
-                print('found %2d pulsefish EODs' % len(eod_times))
+                print(f'found {len(eod_times):2d} pulsefish EODs')
             else:
                 print('no pulsefish EODs found')
 
         # analyse eod waveform of pulse-fish:
-        for k, (eod_ts, eod_pts) in enumerate(zip(eod_times, eod_peaktimes)):
+        for mean_eod, eod_ts, eod_pts in zip(eods, eod_times, eod_peaktimes):
+            """
             mean_eod, eod_times0 = \
                 eod_waveform(data, rate, eod_ts, win_fac=0.8,
                              min_win=cfg.value('eodMinPulseSnippet'),
                              min_sem=False, **eod_waveform_args(cfg))
+            """
             unfilter_cutoff = cfg.value('unfilterCutoff')
             if unfilter_cutoff and unfilter_cutoff > 0:
-                unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
+                unfilter(mean_eod[:, 1], frate, unfilter_cutoff)
             mean_eod, props, phases, pulse, power = \
-                analyze_pulse(mean_eod, None, eod_times0, verbose=verbose-1,
+                analyze_pulse(mean_eod, None, eod_ts, verbose=verbose-1,
                               **analyze_pulse_args(cfg))
             if len(phases) == 0:
                 if verbose > 0:
                     print('no phases in pulse EOD detected')
                 continue
-            clipped_frac = clipped_fraction(data, rate, eod_times0,
+            clipped_frac = clipped_fraction(data, rate, eod_ts,
                                             mean_eod, min_clip, max_clip)
             props['peaktimes'] = eod_pts  # XXX that should go into analyze pulse
             props['index'] = len(eod_props)
@@ -401,17 +403,10 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
             if len(skips) == 0 or skipped_clipped:
                 if max_pulse_amplitude < props['ppampl']:
                     max_pulse_amplitude = props['ppampl']
-                i0 = np.argmin(np.abs(mean_eod[:,0]))
-                i1 = len(mean_eod) - i0
-                pulse_data = np.zeros(len(data))
-                for t in props['peaktimes']:
-                    idx = int(t*rate)
-                    ii0 = i0 if idx-i0 >= 0 else idx
-                    ii1 = i1 if idx+i1 < len(pulse_data) else len(pulse_data)-1-idx
-                    pulse_data[idx-ii0:idx+ii1] = mean_eod[i0-ii0:i0+ii1,1]
-                pulse_freqs, _, pulse_power = spectrogram(pulse_data, rate,
-                                                          **spectrum_args(cfg))
-                pulse_power = np.mean(pulse_power, 1)
+                    
+                pulse_freqs, pulse_power = \
+                    pulsetrain_spectrum(eod_pts, mean_eod, None, rate,
+                                        fade_frac=0.05, **spectrum_args(cfg))
                 pulse_power *= len(data)/rate/props['period']/len(props['peaktimes'])
                 pulse_power *= 5
                 if power_thresh is None:
