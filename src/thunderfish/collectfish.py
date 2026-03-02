@@ -15,10 +15,11 @@ from thunderlab.tabledata import TableData, add_write_table_config, write_table_
 
 from .version import __version__, __year__
 from .harmonics import add_harmonic_groups_config
+from .pulseanalysis import pulse_quality, pulse_quality_args
+from .waveanalysis import wave_quality, wave_quality_args
 from .eodanalysis import wave_similarity, pulse_similarity
 from .eodanalysis import load_species_waveforms, add_species_config
-from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
-from .eodanalysis import pulse_quality, pulse_quality_args
+from .eodanalysis import add_eod_quality_config
 from .eodanalysis import adjust_eodf
 from .eodanalysis import parse_filename
 
@@ -222,7 +223,7 @@ def collect_fish(files, simplify_file=False,
                 df.insert(1, 'channel', '', '%d')
             if fish_type == 'wave':
                 if harmonics is not None:
-                    fn = base_path + '-wavespectrum-0' + file_ext
+                    fn = base_path.with_name(base_path.stem + '-wavespectrum-0' + file_ext)
                     if zf is not None:
                         fn = io.TextIOWrapper(zf.open(fn, 'r'))
                     wave_spec = TableData(fn)
@@ -293,11 +294,11 @@ def collect_fish(files, simplify_file=False,
             # fish index:
             idx = r
             if 'index' in data:
-                idx = data[r,'index']
+                idx = int(data[r, 'index'])
             # check quality:
             skips = ''
             if fish_type == 'wave':
-                fn = base_path + '-wavespectrum-%d'%idx + file_ext
+                fn = base_path.with_name(base_path.stem + f'-wavespectrum-{idx}' + file_ext)
                 if zf is not None:
                     fn = io.TextIOWrapper(zf.open(fn, 'r'))
                 wave_spec = TableData(fn)
@@ -328,46 +329,46 @@ def collect_fish(files, simplify_file=False,
                 continue
             # fill in data:
             data_col = 0
-            table.append_data(recording, data_col)
-            all_table.append_data(recording, data_col)
+            table.add(recording, data_col)
+            all_table.add(recording, data_col)
             data_col += 1
             if channel >= 0:
-                table.append_data(channel, data_col)
-                all_table.append_data(channel, data_col)
+                table.add(channel, data_col)
+                all_table.add(channel, data_col)
                 data_col += 1
             if start_time is not None:
-                table.append_data(start_time, data_col)
-                all_table.append_data(start_time, data_col)
+                table.add(start_time, data_col)
+                all_table.add(start_time, data_col)
                 data_col += 1
             if window_time is not None:
-                table.append_data(window_time, data_col)
-                all_table.append_data(window_time, data_col)
+                table.add(window_time, data_col)
+                all_table.add(window_time, data_col)
                 data_col += 1
             # meta data:
             if mr >= 0:
                 for c in range(meta_data.columns()):
-                    table.append_data(meta_data[mr,c], data_col)
-                    all_table.append_data(meta_data[mr,c], data_col)
+                    table.add(meta_data[mr,c], data_col)
+                    all_table.add(meta_data[mr,c], data_col)
                     data_col += 1
             elif meta_data is not None:
                 data_col += meta_data.columns()
-            table.append_data(data[r,:].array(), data_col)
+            table.add(data[r,:].array(), data_col)
             eodf = data[r,'EODf']
-            all_table.append_data(data[r,'index'], data_col)
-            all_table.append_data(eodf)
-            all_table.append_data(fish_type)
+            all_table.add(data[r,'index'], data_col)
+            all_table.add(eodf)
+            all_table.add(fish_type)
             species_name = 'unknown'
             species_rms = 1.0e12
             if fish_type == 'wave':
                 if harmonics is not None:
                     for h in range(min(harmonics, wave_spec.rows())+1):
-                        table.append_data(wave_spec[h,'amplitude'])
+                        table.add(wave_spec[h,'amplitude'])
                         if h > 0:
-                            table.append_data(wave_spec[h,'relampl'])
-                            table.append_data(wave_spec[h,'relpower'])
-                        table.append_data(wave_spec[h,'phase'])
+                            table.add(wave_spec[h,'relampl'])
+                            table.add(wave_spec[h,'relpower'])
+                        table.add(wave_spec[h,'phase'])
                 if len(wave_names) > 0:
-                    fn = base_path + '-eodwaveform-%d'%idx + file_ext
+                    fn = base_path.with_name(base_path.stem + f'-eodwaveform-{idx}' + file_ext)
                     if zf is not None:
                         fn = io.TextIOWrapper(zf.open(fn, 'r'))
                     wave_eod = TableData(fn).array()
@@ -377,11 +378,11 @@ def collect_fish(files, simplify_file=False,
                         if rms < species_rms and rms < wave_max_rms:
                             species_name = species
                             species_rms = rms
-                        table.append_data(100.0*rms)
-                    table.append_data(species_name)
+                        table.add(100.0*rms)
+                    table.add(species_name)
             else:
                 if phases0 is not None:
-                    fn = base_path + '-pulsephases-%d'%idx + file_ext
+                    fn = base_path.with_name(base_path.stem + f'-pulsephases-{idx}' + file_ext)
                     if zf is not None:
                         fn = io.TextIOWrapper(zf.open(fn, 'r'))
                     pulse_phases = TableData(fn)
@@ -392,13 +393,13 @@ def collect_fish(files, simplify_file=False,
                         else:
                             continue
                         if p != 1:
-                            table.append_data(pulse_phases[pr,'time'], 'P%dtime' % p)
-                        table.append_data(pulse_phases[pr,'amplitude'], 'P%dampl' % p)
+                            table.add(pulse_phases[pr,'time'], 'P%dtime' % p)
+                        table.add(pulse_phases[pr,'amplitude'], 'P%dampl' % p)
                         if p != 1:
-                            table.append_data(pulse_phases[pr,'relampl'], 'P%drelampl' % p)
-                        table.append_data(pulse_phases[pr,'width'], 'P%dwidth' % p)
+                            table.add(pulse_phases[pr,'relampl'], 'P%drelampl' % p)
+                        table.add(pulse_phases[pr,'width'], 'P%dwidth' % p)
                 if len(pulse_names) > 0:
-                    fn = base_path + '-eodwaveform-%d'%idx + file_ext
+                    fn = base_path.with_name(base_path.stem + f'-eodwaveform-{idx}' + file_ext)
                     if zf is not None:
                         fn = io.TextIOWrapper(zf.open(fn, 'r'))
                     pulse_eod = TableData(fn).array()
@@ -408,10 +409,10 @@ def collect_fish(files, simplify_file=False,
                         if rms < species_rms and rms < pulse_max_rms:
                             species_name = species
                             species_rms = rms
-                        table.append_data(100.0*rms)
-                    table.append_data(species_name)
+                        table.add(100.0*rms)
+                    table.add(species_name)
             #if len(wave_names) + len(pulse_names) > 0:
-            #    all_table.append_data(species_name)
+            #    all_table.add(species_name)
             table.fill_data()
             all_table.fill_data()
     # check coverage of meta data:
@@ -428,12 +429,12 @@ def collect_fish(files, simplify_file=False,
                     if verbose > 0:
                         print(recording)
                     all_table.set_column(0)
-                    all_table.append_data(recording)
+                    all_table.add(recording)
                     for c in range(meta_data.columns()):
-                        all_table.append_data(meta_data[mr,c])
-                    all_table.append_data(np.nan) # index
-                    all_table.append_data(np.nan) # EODf
-                    all_table.append_data('none') # type
+                        all_table.add(meta_data[mr,c])
+                    all_table.add(np.nan) # index
+                    all_table.add(np.nan) # EODf
+                    all_table.add('none') # type
     # adjust EODf to mean temperature:
     for table in [wave_table, pulse_table, all_table]:
         if table is not None and temp_col is not None:

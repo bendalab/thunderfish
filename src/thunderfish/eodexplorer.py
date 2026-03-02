@@ -23,8 +23,9 @@ from thunderlab.powerspectrum import decibel
 from .version import __version__, __year__
 from .harmonics import add_harmonic_groups_config
 from .eodanalysis import add_species_config
-from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
-from .eodanalysis import pulse_quality, pulse_quality_args
+from .eodanalysis import add_eod_quality_config
+from .pulseanalysis import pulse_quality, pulse_quality_args
+from .waveanalysis import wave_quality, wave_quality_args
 from .bestwindow import analysis_window
 from .thunderfish import configuration, detect_eods, plot_eods
 
@@ -444,14 +445,14 @@ class EODExplorer(MultivariateExplorer):
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
                                        'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
                 elif group == 'wave':
-                    group_cols.extend(['thd', 'minwidth', 'min-p-p-distance',
-                                       'relpeakampl'])
+                    group_cols.extend(['thd', 'minwidth', 'minppdist',
+                                       'relmaxampl'])
                 elif group == 'ampl':
                     for k in range(0, max_n):
                         group_cols.append('ampl%d' % k)
                 elif group == 'relampl':
                     group_cols.append('thd')
-                    group_cols.append('relpeakampl')
+                    group_cols.append('relmaxampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                 elif group == 'relpower' or group == 'power':
@@ -461,8 +462,8 @@ class EODExplorer(MultivariateExplorer):
                     for k in range(0, max_n):
                         group_cols.append('phase%d' % k)
                 elif group == 'all':
-                    group_cols.extend(['thd', 'minwidth', 'min-p-p-distance',
-                                       'relpeakampl'])
+                    group_cols.extend(['thd', 'minwidth', 'minppdist',
+                                       'relmaxampl'])
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                         group_cols.append('phase%d' % k)
@@ -526,9 +527,10 @@ def load_waveform(idx):
             return None, None
         else:
             return None
-    file_name = data[idx,'file'] if 'file' in data else '-'.join(basename.split('-')[:-1])
-    file_index = data[idx,'index'] if 'index' in data else 0
-    eod_filename = os.path.join(data_path, '%s-eodwaveform-%d.csv' % (file_name, file_index))
+    file_name = data[idx, 'file'] if 'file' in data else '-'.join(basename.split('-')[:-1])
+    file_index = int(data[idx, 'index']) if 'index' in data else 0
+    file_channel = int(data[idx, 'channel']) if 'channel' in data else 0
+    eod_filename = os.path.join(data_path, f'{file_name}-c{file_channel}-eodwaveform-{file_index}.csv')
     eod_table = TableData(eod_filename)
     eod = eod_table[:,'mean']
     norm = np.max(eod)
@@ -539,7 +541,7 @@ def load_waveform(idx):
     if not load_spec:
         return eod
     fish_type = 'wave' if wave_fish else 'pulse'
-    spec_table = TableData(os.path.join(data_path, '%s-%sspectrum-%d.csv' % (file_name, fish_type, file_index)))
+    spec_table = TableData(os.path.join(data_path, f'{file_name}-c{file_channel}-{fish_type}spectrum-{file_index}.csv'))
     spec_data = spec_table.array()
     if not wave_fish:
         spec_data = spec_data[spec_data[:,0]<2000.0,:]
