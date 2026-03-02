@@ -148,11 +148,15 @@ class PowerPlot():
             pmin, pmax = self.ax.get_ylim()
             fmin, fmax = self.ax.get_xlim()
             fwidth = fmax - fmin
-            if abs(self.harmonics_freq - event.xdata) <= 0.5:
+            df = 0.01*fwidth
+            if abs(self.harmonics_freq - event.xdata) <= df:
                 self.harmonics_div += 1
             else:
-                self.harmonics_div = 1                
-            self.harmonics_freq = event.xdata
+                self.harmonics_div = 1
+            f = event.xdata
+            mask = (self.power_freqs >= f - df) & (self.power_freqs <= f + df)
+            i = np.argmax(self.powers[mask])
+            self.harmonics_freq = self.power_freqs[mask][i]
             f1 = self.harmonics_freq/self.harmonics_div
             for h in range(1, 1000*self.harmonics_div):
                 if h*f1 > self.power_freqs[-1]:
