@@ -9,6 +9,11 @@ Extract and cluster EOD waverforms of pulse-type electric fish.
 
 import numpy as np
 
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
+
 from pathlib import Path
 from scipy import stats
 from scipy.interpolate import interp1d
@@ -1061,7 +1066,9 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
     bgm_dict = {}
 
     if len(np.unique(x)) > n_gaus:
-        BGM_model = BayesianGaussianMixture(n_components=n_gaus, max_iter=max_iter, n_init=n_init)
+        BGM_model = BayesianGaussianMixture(n_components=n_gaus,
+                                            max_iter=max_iter,
+                                            n_init=n_init)
         if use_log:
             labels = BGM_model.fit_predict(stats.zscore(np.log(x)).reshape(-1, 1))
         else:
@@ -1071,32 +1078,55 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
     
     if verbose > 0:
         if not BGM_model.converged_:
-            print('!!! Gaussian mixture did not converge !!!')
-    
-    cur_labels = np.unique(labels)
-    
-    # map labels to be increasing for increasing values for x
-    maxlab = len(cur_labels)
-    aso = np.argsort([np.median(x[labels == l]) for l in cur_labels]) + 100
-    for i, a in zip(cur_labels, aso):
-        labels[labels==i] = a
-    labels = labels - 100
-    
-    # separate gaussian clusters that can be split by other clusters
-    splits = np.sort(np.copy(x))[1:][np.diff(labels[np.argsort(x)])!=0]
+            print('  !!! Bayesian Gaussian mixture did not converge !!!')
 
+    labels_bgm = np.copy(labels)
+    
+    # sort and map labels to be increasing for increasing values for x:
+    cur_labels = np.unique(labels)
+    max_label = np.max(labels) + 100
+    x_medians = [np.median(x[labels == l]) for l in cur_labels]
+    sidx = np.argsort(x_medians) + max_label
+    for i, s in zip(cur_labels, sidx):
+        labels[labels == i] = s
+    labels -= max_label
+    
+    # separate gaussian clusters that can be split by other clusters:
+    sidx_x = np.argsort(x)
+    splits = x[sidx_x][1:][np.diff(labels[sidx_x]) != 0]
     labels[:] = 0
     for i, split in enumerate(splits):
-        labels[x>=split] = i+1
+        labels[x >= split] = i + 1
 
-    labels_before_merge = np.copy(labels)
+    labels_split = np.copy(labels)
 
-    # merge gaussian clusters that are closer than merge_threshold
+    # merge gaussian clusters that are closer than merge_threshold:
     labels = merge_gaussians(x, labels, merge_threshold)
 
-    if 'BGM_'+save_name.split('_')[0] in return_data or plot_level > 0:
+    if plot_level > 0:
+        all_labels = [labels_bgm, labels_split, labels]
+        all_titles = ['BGM', 'split','merge']
+        bins = np.geomspace(np.min(x), np.max(x), 100)
+        fig, axs = plt.subplots(3, 1, layout='constrained')
+        for k in range(len(all_labels)):
+            ax = axs[k]
+            labs = all_labels[k]
+            ax.set_title(all_titles[k])
+            for l in np.unique(labs):
+                xl = x[labs == l]
+                ax.hist(xl, bins, label=f'{l}')
+            if k == len(all_labels) - 1:
+                ax.set_xlabel(xlabel)
+            ax.set_ylabel('counts')
+            ax.set_ylim(bottom=0.3)
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.legend(title='labels')
+        plt.show()
 
-        #sort model attributes by model_means_
+    if 'BGM_' + save_name.split('_')[0] in return_data or plot_level > 0:
+
+        # sort model attributes by model_means_:
         means = [m[0] for m in BGM_model.means_]
         sidx = np.argsort(means)
         means = [means[i] for i in sidx]
@@ -1106,17 +1136,17 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
         variances =  [variances[i] for i in sidx]
         
         if plot_level > 0:
-            plot_bgm(x, means, variances, weights, use_log, labels_before_merge,
+            plot_bgm(x, means, variances, weights, use_log, labels_split,
                      labels, xlabel)
             if save_plot:
                 plt.savefig('%sBGM_%s.%s' % (save_path, save_name, ftype))
     
-        if 'BGM_'+save_name.split('_')[0] in return_data:
-            bgm_dict['BGM_'+save_name] = {'x':x,
-                                'use_log':use_log,
-                                'BGM':[weights, means, variances],
-                                'labels':labels_before_merge,
-                                'xlab':xlabel}
+        if 'BGM_' + save_name.split('_')[0] in return_data:
+            bgm_dict['BGM_' + save_name] = {'x':x,
+                                            'use_log':use_log,
+                                            'BGM':[weights, means, variances],
+                                            'labels':labels_split,
+                                            'xlab':xlabel}
 
     return labels, bgm_dict
 

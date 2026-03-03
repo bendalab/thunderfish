@@ -989,7 +989,7 @@ def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
 		ax2.spines['bottom'].set_visible(False)
 		ax2.axes.xaxis.set_visible(False)
 
-		yplot = np.copy(y)
+		yplot = np.array(y, dtype=float)
 		ax2.plot(x+dt/2, yplot, linestyle='-', marker='.', c=cmap(i), alpha=0.25)
 		yplot[ignore_steps.astype(bool)] = np.nan
 		ax2.plot(x+dt/2, yplot, linestyle='-', marker='.', c=cmap(i))
