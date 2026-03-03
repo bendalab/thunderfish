@@ -772,7 +772,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, max_freq_tol,
         group_list = [group_list[pi] for pi in powers_inx[-max_groups:]]
         fzero_harmonics_list = [fzero_harmonics_list[pi] for pi in powers_inx[-max_groups:]]
         if verbose > 0:
-            print('Selected from %d groups the %d most powerful groups.' % (n, max_groups))
+            print(f'selected from {n} groups the {max_groups} most powerful groups.')
         
     # sort groups by fundamental frequency:
     freqs = [group[0,0] for group in group_list]

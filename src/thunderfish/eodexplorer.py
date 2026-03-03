@@ -3,14 +3,18 @@
 
 import os
 import glob
+import io
 import sys
 import argparse
+
 import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 
+from pathlib import Path
+from zipfile import ZipFile
 from multiprocessing import Pool, freeze_support, cpu_count
+
 from thunderlab.configfile import ConfigFile
 from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
 from thunderlab.dataloader import load_data
@@ -236,11 +240,11 @@ class EODExplorer(MultivariateExplorer):
         for ax, xl in zip(axs, self.wave_ylabels):
             if 'Voltage' in xl:
                 ax.set_ylim(top=1.1)
-                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+                ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4))
             if 'dV/dt' in xl:
-                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+                ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4))
             if 'd^2V/dt^2' in xl:
-                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+                ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4))
         if self.wave_fish:
             for ax, xl in zip(axs, self.wave_ylabels):
                 if 'Voltage' in xl:
@@ -255,10 +259,10 @@ class EODExplorer(MultivariateExplorer):
                         l.set_markerfacecolor(l.get_color())
                 if 'Ampl' in xl:
                     ax.set_ylim(0.0, 100.0)
-                    ax.yaxis.set_major_locator(ticker.MultipleLocator(25.0))
+                    ax.yaxis.set_major_locator(plt.MultipleLocator(25.0))
                 if 'Power' in xl:
                     ax.set_ylim(-60.0, 2.0)
-                    ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+                    ax.yaxis.set_major_locator(plt.MultipleLocator(20.0))
                 if 'Phase' in xl:
                     ax.set_ylim(0.0, 2.0*np.pi)
                     ax.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
@@ -271,7 +275,7 @@ class EODExplorer(MultivariateExplorer):
                     ax.set_xlim(1.0, 2000.0)
                     ax.set_xscale('log')
                     ax.set_ylim(-60.0, 2.0)
-                    ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+                    ax.yaxis.set_major_locator(plt.MultipleLocator(20.0))
         if len(indices) > 0:
             for ax in axs:
                 ax.axhline(c='k', lw=1)
@@ -518,7 +522,8 @@ class EODExplorer(MultivariateExplorer):
 wave_fish = True
 load_spec = False
 data = None
-data_path = None
+data_path = Path()
+
 
 def load_waveform(idx):
     eodf = data[idx,'EODf']
@@ -530,22 +535,31 @@ def load_waveform(idx):
     file_name = data[idx, 'file'] if 'file' in data else '-'.join(basename.split('-')[:-1])
     file_index = int(data[idx, 'index']) if 'index' in data else 0
     file_channel = int(data[idx, 'channel']) if 'channel' in data else 0
-    eod_filename = os.path.join(data_path, f'{file_name}-c{file_channel}-eodwaveform-{file_index}.csv')
-    eod_table = TableData(eod_filename)
-    eod = eod_table[:,'mean']
+    eod_filename = data_path / f'{file_name}-c{file_channel}-eodwaveform-{file_index}.csv'
+    if eod_filename.exists():
+        eod_table = TableData(eod_filename)
+    else:
+        zip_filename = data_path / f'{file_name}-c{file_channel}.zip'
+        if zip_filename.exists():
+            with ZipFile(zip_filename, 'r') as zf:
+                if eod_filename.name in zf.namelist():
+                    file_buffer = io.TextIOWrapper(zf.open(eod_filename.name, 'r'))
+                    eod_table = TableData(file_buffer)
+    eod = eod_table[:, 'mean']
     norm = np.max(eod)
     if wave_fish:
-        eod = np.column_stack((eod_table[:,'time']*0.001*eodf, eod/norm))
+        eod = np.column_stack((eod_table[:, 'time']*0.001*eodf, eod/norm))
     else:
-        eod = np.column_stack((eod_table[:,'time'], eod/norm))
+        eod = np.column_stack((eod_table[:, 'time'], eod/norm))
     if not load_spec:
         return eod
     fish_type = 'wave' if wave_fish else 'pulse'
-    spec_table = TableData(os.path.join(data_path, f'{file_name}-c{file_channel}-{fish_type}spectrum-{file_index}.csv'))
+    spec_filename = data_path / f'{file_name}-c{file_channel}-{fish_type}spectrum-{file_index}.csv'
+    spec_table = TableData(spec_filename)
     spec_data = spec_table.array()
     if not wave_fish:
-        spec_data = spec_data[spec_data[:,0]<2000.0,:]
-        spec_data = spec_data[::5,:]
+        spec_data = spec_data[spec_data[:, 0] < 2000.0, :]
+        spec_data = spec_data[::5, :]
     return (eod, spec_data)
         
 
@@ -610,7 +624,7 @@ def main(cargs=None):
     save_pca = args.save_pca
     color_col = args.color_col
     color_map = args.color_map
-    data_path = args.data_path
+    data_path = Path(args.data_path)
     rawdata_path = args.rawdata_path
     data_format = args.format
     
@@ -636,7 +650,7 @@ def main(cargs=None):
 
     # check color map:
     if not color_map in plt.colormaps():
-        parser.error('"%s" is not a valid color map' % color_map)
+        parser.error(f'"{color_map}" is not a valid color map')
         
     # load summary data:
     wave_fish = 'wave' in file_name
@@ -653,8 +667,8 @@ def main(cargs=None):
             idx = data[r,'index']
         skips = ''
         if wave_fish:
-            harm_rampl = np.array([0.01*data[r,'relampl%d'%(k+1)] for k in range(3)
-                                   if 'relampl%d'%(k+1) in data])
+            harm_rampl = np.array([0.01*data[r, f'relampl{k + 1}'] for k in range(3)
+                                   if f'relampl{k + 1}' in data])
             props = data.row_dict(r)
             if 'clipped' in props:
                 props['clipped'] *= 0.01 
@@ -674,8 +688,8 @@ def main(cargs=None):
             skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
             if verbose:
-                print('skip fish %2d from %s: %s' % (idx, data[r,'file'] if 'file' in data else basename, skips))
-            del data[r,:]
+                print(f'skip fish {idx:2d} from {data[r,"file"] if "file" in data else basename}:', skips)
+            del data[r, :]
             skipped += 1
     if verbose and skipped > 0:
         print('')

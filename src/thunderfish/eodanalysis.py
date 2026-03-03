@@ -45,10 +45,10 @@ Analyse EOD waveforms.
 
 import os
 import io
-import zipfile
 import numpy as np
 
 from pathlib import Path
+from zipfile import ZipFile
 from audioio import get_str
 from thunderlab.eventdetection import detect_peaks, snippets
 from thunderlab.fourier import normalize_fourier_coeffs
@@ -924,7 +924,7 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
     else:
         zf = None
         if zip_file:
-            zf = zipfile.ZipFile(output_basename.with_suffix('.zip'), 'w')
+            zf = ZipFile(output_basename.with_suffix('.zip'), 'w')
         # all wave fish in wave_eodfs:
         if len(wave_eodfs) > 0:
             write_file_zip(zf, save_wave_eodfs, output_basename,
@@ -961,6 +961,8 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods, spec_data,
         # pulse fish properties:
         write_file_zip(zf, save_pulse_fish, output_basename,
                        eod_props, unit, **kwargs)
+        if zf is not None:
+            zf.close()
 
 
 def load_analysis(file_pathes):
@@ -1009,7 +1011,7 @@ def load_analysis(file_pathes):
     eod_props = []
     zf = None
     if len(file_pathes) == 1 and Path(file_pathes[0]).suffix[1:] == 'zip':
-        zf = zipfile.ZipFile(file_pathes[0])
+        zf = ZipFile(file_pathes[0], 'r')
         file_pathes = sorted(zf.namelist())
     # read wave- and pulse-fish summaries:
     pulse_fish = False
@@ -1064,6 +1066,8 @@ def load_analysis(file_pathes):
             eod_props[idx]['peaktimes'] = pulse_times
         elif ftype == 'pulsespectrum':
             spec_data[idx] = load_pulse_spectrum(f)
+    if zf is not None:
+        zf.close()
     # fix wave spectra:
     wave_eodfs = [fish.reshape(1, 2) if len(fish)>0 else fish
                   for fish in wave_eodfs]
