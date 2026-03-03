@@ -411,15 +411,15 @@ class EODExplorer(MultivariateExplorer):
             else:
                 max_n += 1
             for k in range(1, max_n):
-                if not ('phase%d' % k) in data:
+                if not f'phase{k}' in data:
                     max_n = k
                     break
         else:
             # minimum number of peaks:
             min_peaks = -10
             for k in range(1, min_peaks, -1):
-                if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
-                    min_peaks = k+1
+                if not f'P{k}ampl' in data or not np.all(np.isfinite(data[:, f'P{k}ampl'])):
+                    min_peaks = k + 1
                     break
             # maximum number of peaks:
             if max_n == 0:
@@ -427,7 +427,7 @@ class EODExplorer(MultivariateExplorer):
             else:
                 max_peaks = max_n + 1
             for k in range(1, max_peaks):
-                if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
+                if not f'P{k}ampl' in data or not np.all(np.isfinite(data[:, f'P{k}ampl'])):
                     max_peaks = k
                     break
 
@@ -443,75 +443,76 @@ class EODExplorer(MultivariateExplorer):
             elif wave_fish:
                 if group == 'noise':
                     group_cols.extend(['noise', 'rmserror', 'power', 'thd',
-                                       'dbdiff', 'maxdb', 'p-p-amplitude',
-                                       'relampl1', 'relampl2', 'relampl3'])
+                                       'dbdiff', 'ppampl', 'relampl1', 'relampl2', 'relampl3'])
                 elif group == 'timing' or group == 'time':
-                    group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
-                                       'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
+                    group_cols.extend(['peakwidth', 'troughwidth', 'ppdist', 'phaseslope'])
                 elif group == 'wave':
-                    group_cols.extend(['thd', 'minwidth', 'minppdist',
-                                       'relmaxampl'])
+                    group_cols.extend(['thd', 'minwidth', 'minppdist', 'relmaxampl', 'power2', 'phaseslope'])
                 elif group == 'ampl':
                     for k in range(0, max_n):
-                        group_cols.append('ampl%d' % k)
+                        group_cols.append(f'ampl{k}')
                 elif group == 'relampl':
-                    group_cols.append('thd')
-                    group_cols.append('relmaxampl')
                     for k in range(1, max_n):
-                        group_cols.append('relampl%d' % k)
+                        group_cols.append(f'relampl{k}')
                 elif group == 'relpower' or group == 'power':
                     for k in range(1, max_n):
-                        group_cols.append('relpower%d' % k)
+                        group_cols.append(f'relpower{k}')
                 elif group == 'phase':
                     for k in range(0, max_n):
-                        group_cols.append('phase%d' % k)
+                        group_cols.append(f'phase{k}')
                 elif group == 'all':
-                    group_cols.extend(['thd', 'minwidth', 'minppdist',
-                                       'relmaxampl'])
+                    group_cols.extend(['thd', 'minwidth', 'minppdist', 'relmaxampl', 'power2', 'phaseslope'])
                     for k in range(1, max_n):
-                        group_cols.append('relampl%d' % k)
-                        group_cols.append('phase%d' % k)
+                        group_cols.append(f'relampl{k}')
+                        group_cols.append(f'phase{k}')
                 elif group == 'allpower':
-                    group_cols.append('thd')
+                    group_cols.extend(['power', 'thd', 'power2'])
                     for k in range(1, max_n):
-                        group_cols.append('relpower%d' % k)
-                        group_cols.append('phase%d' % k)
+                        group_cols.append(f'relpower{k}')
+                        group_cols.append(f'phase{k}')
                 else:
-                    return None, '"%s" is not a valid data group for wavefish' % group
+                    return None, f'"{group}" is not a valid data group for wave-type fish'
             else:  # pulse fish
                 if group == 'noise':
-                    group_cols.extend(['noise', 'p-p-amplitude', 'min-ampl', 'max-ampl'])
+                    group_cols.extend(['noise', 'rmserror', 'ppampl'])
                 elif group == 'timing':
-                    group_cols.extend(['tstart', 'tend', 'width', 'tau', 'P2-P1-dist', 'firstpeak', 'lastpeak'])
+                    group_cols.extend(['tstart', 'tend', 'width', 'tau', 'ppdist',
+                                       'nphases', 'firstphase', 'lastphase', 'iqrange'])
                 elif group == 'power':
-                    group_cols.extend(['peakfreq', 'peakpower', 'poweratt5', 'poweratt50', 'lowcutoff'])
+                    group_cols.extend(['peakfreq', 'peakenergy', 'troughfreq', 'troughenergy',
+                                       'energyatt5', 'energyatt50', 'lowcutoff', 'highcutoff'])
                 elif group == 'time':
                     for k in range(min_peaks, max_peaks):
                         if k != 1:
-                            group_cols.append('P%dtime' % k)
+                            group_cols.append(f'P{k}time')
                 elif group == 'ampl':
                     for k in range(min_peaks, max_peaks):
-                        group_cols.append('P%dampl' % k)
+                        group_cols.append(f'P{k}ampl')
                 elif group == 'relampl':
                     for k in range(min_peaks, max_peaks):
                         if k != 1:
-                            group_cols.append('P%drelampl' % k)
+                            group_cols.append(f'P{k}relampl')
                 elif group == 'width':
                     for k in range(min_peaks, max_peaks):
-                        group_cols.append('P%dwidth' % k)
-                elif group == 'peaks':
-                    group_cols.append('firstpeak')
-                    group_cols.append('lastpeak')
+                        group_cols.append(f'P{k}width')
+                elif group == 'area':
+                    group_cols.appen('polaritybalance')
+                    for k in range(min_peaks, max_peaks):
+                        group_cols.append(f'P{k}area')
+                elif group == 'phases':
+                    group_cols.extend(['nphases', 'firstphase', 'lastpeak'])
                 elif group == 'all':
-                    group_cols.extend(['firstpeak', 'lastpeak'])
+                    group_cols.extend(['nphases', 'firstphase', 'lastpeak'])
                     for k in range(min_peaks, max_peaks):
                         if k != 1:
-                            group_cols.append('P%drelampl' % k)
-                            group_cols.append('P%dtime' % k)
-                        group_cols.append('P%dwidth' % k)
-                    group_cols.extend(['tau', 'P2-P1-dist', 'peakfreq', 'poweratt5'])
+                            group_cols.append(f'P{k}relampl')
+                            group_cols.append(f'P{k}time')
+                        group_cols.append(f'P{k}width')
+                    group_cols.extend(['tau', 'ppdist'])
+                    group_cols.extend(['peakfreq', 'peakenergy', 'troughfreq', 'troughenergy',
+                                       'energyatt5', 'energyatt50', 'lowcutoff', 'highcutoff'])
                 else:
-                    return None, '"%s" is not a valid data group for pulsefish' % group
+                    return None, f'"{group}" is not a valid data group for pulse-type fish'
         # additional data columns:
         group_cols.extend(add_columns)
         # translate to indices:
@@ -664,7 +665,7 @@ def main(cargs=None):
     for r in reversed(range(data.rows())):
         idx = 0
         if 'index' in data:
-            idx = data[r,'index']
+            idx = data[r, 'index']
         skips = ''
         if wave_fish:
             harm_rampl = np.array([0.01*data[r, f'relampl{k + 1}'] for k in range(3)
