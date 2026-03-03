@@ -749,12 +749,12 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         all_heights = []
         all_unique_heightlabels = []
 
-    all_p_clusters = -1*np.ones(len(eod_xp))
-    all_t_clusters = -1*np.ones(len(eod_xp))
+    all_p_clusters = -1*np.ones(len(eod_xp), dtype=int)
+    all_t_clusters = -1*np.ones(len(eod_xp), dtype=int)
     artefact_masks_p = np.ones(len(eod_xp), dtype=bool)
     artefact_masks_t = np.ones(len(eod_xp), dtype=bool)
 
-    x_merge = -1*np.ones(len(eod_xp))
+    x_merge = -1*np.ones(len(eod_xp), dtype=int)
 
     # keep track of the labels so that no labels are overwritten:
     max_label_p = 0
@@ -774,7 +774,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
     saved_data.update(bgm_log_dict)
 
     if verbose > 0:
-        print('Clusters generated based on EOD width:')
+        print('clusters generated based on EOD width:')
         for l in np.unique(width_labels):
             print(f'  {l:2d}: num={len(width_labels[width_labels == l]):5d}, width={np.mean(eod_widths[width_labels == l]):.4g}')
 
@@ -798,9 +798,9 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         if width > len(data) - w_eod_xt[-1]:
             width = len(data) - w_eod_xt[-1]
         
-        wp_clusters = -1*np.ones(len(w_eod_xp))
-        wt_clusters = -1*np.ones(len(w_eod_xp))
-        wartefact_mask = np.ones(len(w_eod_xp))
+        wp_clusters = -1*np.ones(len(w_eod_xp), dtype=int)
+        wt_clusters = -1*np.ones(len(w_eod_xp), dtype=int)
+        wartefact_mask = np.ones(len(w_eod_xp), dtype=int)
 
         # determine height labels
         raw_p_snippets, p_snippets, p_features, p_bg_ratio = \
@@ -819,7 +819,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         saved_data.update(bgm_log_dict)
 
         if verbose > 0:
-            print('Clusters generated based on EOD height:')
+            print('clusters generated based on EOD height:')
             for l in np.unique(height_labels):
                 print(f'  {l:2d}: num={len(height_labels[height_labels==l]):5d}, height={np.mean(w_eod_heights[height_labels==l]):.4g}')
 
@@ -938,7 +938,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
     all_p_clusters[(artefact_masks_p | unreliable_fish_mask_p | wave_mask_p | sidepeak_mask_p)] = -1
     all_t_clusters[(artefact_masks_t | unreliable_fish_mask_t | wave_mask_t | sidepeak_mask_t)] = -1
 
-    # merge here.
+    # merge here:
     all_clusters, x_merge, mask = merge_clusters(np.copy(all_p_clusters),
                                                  np.copy(all_t_clusters),
                                                  eod_xp, eod_xt,
@@ -997,7 +997,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
                                            (all_p_clusters+all_t_clusters)))}
 
     if verbose > 0:
-        print('Clusters generated based on height, width and shape: ')
+        print('clusters generated based on height, width and shape: ')
         for l in np.unique(all_clusters[all_clusters != -1]):
             print(f'  {l:2d}: num={len(all_clusters[all_clusters == l]):5d}')
              
@@ -1067,7 +1067,7 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
         else:
             labels = BGM_model.fit_predict(stats.zscore(x).reshape(-1, 1))
     else:
-        return np.zeros(len(x)), bgm_dict
+        return np.zeros(len(x), dtype=int), bgm_dict
     
     if verbose > 0:
         if not BGM_model.converged_:
@@ -1507,11 +1507,11 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
         from clusters_2 (mask[:,1]).
     """
     if verbose > 0:
-        print('\nMerge cluster:')
+        print('\nmerge cluster:')
 
     # these arrays become 1 for each EOD that is chosen from that array
-    c1_keep = np.zeros(len(clusters_1))
-    c2_keep = np.zeros(len(clusters_2))
+    c1_keep = np.zeros(len(clusters_1), dtype=int)
+    c2_keep = np.zeros(len(clusters_2), dtype=int)
 
     # add n to one of the cluster lists to avoid overlap
     ovl = np.max(clusters_1) + 1
@@ -1548,7 +1548,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
             keep_clusters.append(c1_labels[np.argmax(c1_size)])
 
             if verbose > 0:
-                print('Keep cluster %i of group 1, delete clusters %s of group 2' % (c1_labels[np.argmax(c1_size)], str(cluster_mappings[cluster_mappings!=-1] - ovl)))
+                print(f'  group 1: keep cluster {c1_labels[np.argmax(c1_size)]:2d}, group 2: delete clusters {cluster_mappings[cluster_mappings != -1] - ovl}')
 
         # if the biggest cluster is in c_t, keep this one and discard all mappings in c_p
         elif np.argmax([np.max(np.append(c1_size, 0)), np.max(np.append(c2_size, 0))]) == 1:
@@ -1564,7 +1564,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
             keep_clusters.append(c2_labels[np.argmax(c2_size)])
 
             if verbose > 0:
-                print('Keep cluster %i of group 2, delete clusters %s of group 1' % (c2_labels[np.argmax(c2_size)] - ovl, str(cluster_mappings[cluster_mappings!=-1])))
+                print(f'  group 2: keep cluster {c2_labels[np.argmax(c2_size)] - ovl:2d}, group 1: delete clusters {cluster_mappings[cluster_mappings!=-1]}')
     
     # combine results    
     clusters = (clusters_1 + 1)*c1_keep + (clusters_2 + 1)*c2_keep - 1
@@ -1794,22 +1794,21 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
 
         if verbose > 0:
             print('sliding window dt = %f'%dt)
+        
+        x = np.arange(0, T - dt + stepsize, stepsize)
+        y = np.ones(len(x), dtype=int)
 
         # make W dependent on width??
-        ignore_steps = np.zeros(len(np.arange(0, T-dt+stepsize, stepsize)))
+        ignore_steps = np.zeros(len(x), dtype=int)
 
-        for i, t in enumerate(np.arange(0, T-dt+stepsize, stepsize)):
+        for i, t in enumerate(x):
             current_clusters = wclusters[(weod_t>=t)&(weod_t<t+dt)&(wclusters!=-1)]
             if len(np.unique(current_clusters))==0:
                 ignore_steps[i-int(dt/stepsize):i+int(dt/stepsize)] = 1
                 if verbose > 0:
                     print('No pulsefish in recording at T=%.2f:%.2f' % (t, t+dt))
 
-        
-        x = np.arange(0, T-dt+stepsize, stepsize)
-        y = np.ones(len(x))
-
-        running_sum = np.ones(len(np.arange(0, T+stepsize, stepsize)))
+        running_sum = np.ones(len(x), dtype=int)
         ulabs = np.unique(wclusters[wclusters>=0])
 
         # sliding window
