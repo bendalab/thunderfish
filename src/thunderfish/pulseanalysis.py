@@ -1361,7 +1361,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['quartile3'] = quartile3
     props['iqrange'] = quartile3 - quartile1
     props['phasethresh'] = peak_thresh_frac
-    props['nphases'] = len(phases['times'])
+    props['nphases'] = len(phases['times']) if len(phases) > 0 else 0
     props['firstphase'] = phases['indices'][0] if len(phases) > 0 else 1
     props['lastphase'] = phases['indices'][-1] if len(phases) > 0 else 1
     props['tau'] = tau
