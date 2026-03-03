@@ -1283,7 +1283,7 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_phases=4,
     cfg.add('maximumPhases', max_phases, '', 'Maximum number of phases per EOD period of a wave fish.')
     cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave fish if its power is smaller than this value.')
     cfg.add('maximumTotalHarmonicDistortion', max_thd, '', 'Skip waveform of wave fish if its total harmonic distortion is larger than this value. If set to zero do not check.')
-    cfg.add('maximumPowerDifferences', max_db_diff, '', 'Skip waveform of wave fish if the standard deviation of the differences between powers of harminics is larger than this value. If set to zero do not check.')
+    cfg.add('maximumPowerDifferences', max_db_diff, '', 'Skip waveform of wave fish if the standard deviation of the differences between powers of harmonics is larger than this value. If set to zero do not check.')
     cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave fish if the amplitude of the second harmonic is higher than this factor times the amplitude of the fundamental (=first harmonics). That is, the waveform appears to have twice the frequency than the fundamental. If set to zero do not check.')
     cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental (=first harmonics). If set to zero do not check.')
     cfg.add('maximumFourthHarmonicAmplitude', max_relampl_harm4, '', 'Skip waveform of wave fish if the ampltude of the fourth harmonic is higher than this factor times the amplitude of the fundamental (=first harmonics). If set to zero do not check.')

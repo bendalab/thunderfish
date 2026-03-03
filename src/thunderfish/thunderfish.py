@@ -405,7 +405,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
                     max_pulse_amplitude = props['ppampl']
                     
                 pulse_freqs, pulse_power = \
-                    pulsetrain_spectrum(eod_pts, mean_eod, None, rate,
+                    pulsetrain_spectrum(eod_pts, mean_eod, None, len(data)/rate, rate,
                                         fade_frac=0.05, **spectrum_args(cfg))
                 pulse_power *= len(data)/rate/props['period']/len(props['peaktimes'])
                 pulse_power *= 5

@@ -290,15 +290,13 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     # amplitudes:
     pos_idx = np.argmax(eod)
     pos_ampl = abs(eod[pos_idx])
-    if pos_ampl < noise_thresh:
-        pos_ampl = 0
     neg_idx = np.argmin(eod)
     neg_ampl = abs(eod[neg_idx])
     if neg_ampl < noise_thresh:
         neg_ampl = 0
     pp_ampl = pos_ampl + neg_ampl
     max_ampl = max(pos_ampl, neg_ampl)
-    rel_max_ampl = max_ampl/pp_ampl if pp_ampl > 0 else 0
+    rel_max_ampl = max_ampl/pp_ampl if pp_ampl > 0 else 1
 
     # timing:
     dist = time[neg_idx] - time[pos_idx]
@@ -311,11 +309,6 @@ def analyze_pulse_properties(noise_thresh, eod, ratetime=None):
     total_area = np.sum(np.abs(eod))*dt
     integral_area = np.sum(eod)*dt   # = pos_area - neg_area
     polarity_balance = integral_area/total_area
-
-    # moments (EOD waveforms are not Gaussian!):
-    #center = np.sum(time*np.abs(eod))/np.sum(np.abs(eod))
-    #var = np.sum((time - center)**2*np.abs(eod))/np.sum(np.abs(eod))
-    #stdev = np.sqrt(var)
 
     # cumulative:
     cumul = np.cumsum(np.abs(eod))/np.sum(np.abs(eod))
@@ -892,7 +885,8 @@ def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
     return freqs, energy
 
 
-def pulsetrain_spectrum(eod_times, eod, ratetime=None, drate=None,
+def pulsetrain_spectrum(eod_times, eod, ratetime=None,
+                        dwin=None, drate=None,
                         fade_frac=0.0, freq_resolution=1.0, **kwargs):
     """Power spectrum of train of pulse-type EODs.
 
@@ -912,6 +906,9 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None, drate=None,
     ratetime: None or float or array of float
         If a 1-D array is passed on to `eod` then either the sampling
         rate in Hertz or the time array corresponding to `eod`.
+    dwin: float or None
+        Duration of data window from which `eod_times` where extracted.
+        If None estimate from `eod_times`.
     drate: float or None
         Sampling rate of the generated data. If None set to sampling rate
         of EOD waveform.
@@ -951,7 +948,10 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None, drate=None,
 
     ipi = np.median(np.diff(eod_times))
     n_ipi = int(ipi*drate)
-    n = int(eod_times[-1]*drate) + n_ipi//2
+    if dwin is None:
+        n = int(eod_times[-1]*drate) + n_ipi//2
+    else:
+        n = int(dwin*drate)
     data = np.zeros(n)
     i0 = np.argmin(np.abs(dtime))
     i1 = len(eod) - i0
@@ -961,8 +961,8 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None, drate=None,
     for t in eod_times:
         idx = int(np.round(t*drate))
         ii0 = i0 if idx - i0 >= 0 else idx
-        if idx - ii0 < prev_idx + n_ipi//2:
-            ii0 = idx - prev_idx - n_ipi//2
+        if idx - ii0 < (idx + prev_idx)//2:
+            ii0 = idx - (idx + prev_idx)//2
             if ii0 < 0:
                 ii0 = 0
         ii1 = i1 if idx + i1 < len(data) else len(data) - 1 - idx
