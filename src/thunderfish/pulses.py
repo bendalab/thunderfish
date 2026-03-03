@@ -363,12 +363,14 @@ def extract_pulsefish(data, rate, amax, frate=0.5e6, width_factor_shape=3,
     
     if len(x_peak) > 0:
         # cluster
+        min_samples = 5  # TODO make parameter
         clusters, x_merge, c_log_dict = cluster(x_peak, x_trough,
                                                 eod_heights,
                                                 eod_widths, i_data,
                                                 i_rate,
                                                 width_factor_shape,
                                                 width_factor_wave,
+                                                min_samples=min_samples,
                                                 merge_threshold_height=0.1*amax,
                                                 verbose=verbose,
                                                 plot_level=plot_level-1,
@@ -673,8 +675,8 @@ def assign_side_peaks(data, peak_indices, trough_indices,
 
 def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             width_factor_shape, width_factor_wave, n_gaus_height=10,
-            merge_threshold_height=0.1, n_gaus_width=3,
-            merge_threshold_width=0.5, minp=10, verbose=0,
+            min_samples=5, merge_threshold_height=0.1, n_gaus_width=3,
+            merge_threshold_width=0.6, minp=10, verbose=0,
             plot_level=0, save_plots=False, save_path='', ftype='pdf',
             return_data=[]):
     """Cluster EODs.
@@ -707,6 +709,8 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         single EOD.
     width_factor_wave : float
         Multiplier for wavefish extraction width.
+    min_samples: int
+        Minimum number of samples required for a valid cluster.
     n_gaus_height : int
         Number of gaussians to use for the clustering based on EOD height.
     merge_threshold_height : float
@@ -767,32 +771,32 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
     # first cluster on width:
     width_labels, bgm_log_dict = BGM(1000*eod_widths/rate,
-                                     merge_threshold_width,
-                                     n_gaus_width, use_log=False,
+                                     min_samples=min_samples,
+                                     merge_thresh=merge_threshold_width,
+                                     n_gaus=n_gaus_width, use_log=False,
+                                     xlabel='width [ms]',
                                      verbose=verbose-1,
                                      plot_level=plot_level-1,
-                                     xlabel='width [ms]',
                                      save_plot=save_plots,
                                      save_path=save_path,
                                      save_name='width', ftype=ftype,
-                                     return_data=return_data)
-    saved_data.update(bgm_log_dict)
+                                     return_data='BGM_width' in return_data)
+    if len(bgm_log_dict) > 0:
+        saved_data['BGM_width'] = bgm_log_dict
 
     if verbose > 0:
         print('clusters generated based on EOD width:')
         for l in np.unique(width_labels):
-            print(f'  {l:2d}: num={len(width_labels[width_labels == l]):5d}, width={np.mean(eod_widths[width_labels == l]):.4g}')
+            print(f'  {l:2d}: num={len(width_labels[width_labels == l]):5d}, width={np.mean(1000*eod_widths[width_labels == l]/rate):6.3f} +- {np.std(1000*eod_widths[width_labels == l]/rate):6.3f}ms')
 
-    # loop only over height clusters that are bigger than minp:
-    w_labels, w_counts = unique_counts(width_labels)
-    unique_width_labels = w_labels[w_counts > minp]
-
+    # loop over height clusters:
+    unique_width_labels = np.unique(width_labels[width_labels != -1])
     for wi, width_label in enumerate(unique_width_labels):
         # select only features in one width cluster at a time:
-        w_eod_widths = eod_widths[width_labels==width_label]
-        w_eod_heights = eod_heights[width_labels==width_label]
-        w_eod_xp = eod_xp[width_labels==width_label]
-        w_eod_xt = eod_xt[width_labels==width_label]
+        w_eod_widths = eod_widths[width_labels == width_label]
+        w_eod_heights = eod_heights[width_labels == width_label]
+        w_eod_xp = eod_xp[width_labels == width_label]
+        w_eod_xt = eod_xt[width_labels == width_label]
         width = int(width_factor_shape*np.median(w_eod_widths))
         if width > w_eod_xp[0]:
             width = w_eod_xp[0]
@@ -807,21 +811,26 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         wt_clusters = -1*np.ones(len(w_eod_xp), dtype=int)
         wartefact_mask = np.ones(len(w_eod_xp), dtype=int)
 
-        # determine height labels
+        # determine height labels:
         raw_p_snippets, p_snippets, p_features, p_bg_ratio = \
           extract_snippet_features(data, w_eod_xp, w_eod_heights, width)
         raw_t_snippets, t_snippets, t_features, t_bg_ratio = \
           extract_snippet_features(data, w_eod_xt, w_eod_heights, width)
 
+        median_heights = np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
+                                          axis=0))
+        merge_thresh_height = min(merge_threshold_height, median_heights)
+
         height_labels, bgm_log_dict = \
-          BGM(w_eod_heights, min(merge_threshold_height,
-                                 np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
-                                                  axis=0))), n_gaus_height, use_log=True,
-              verbose=verbose-1, plot_level=plot_level-1, xlabel =
-              'height [a.u.]', save_plot=save_plots,
-              save_path=save_path, save_name = 'height_%d' % wi,
-              ftype=ftype, return_data=return_data)
-        saved_data.update(bgm_log_dict)
+          BGM(w_eod_heights, merge_thresh=merge_thresh_height,
+              min_samples=min_samples,
+              n_gaus=n_gaus_height, use_log=True, xlabel='height [a.u.]', 
+              verbose=verbose - 1, plot_level=plot_level - 1,
+              save_plot=save_plots, save_path=save_path,
+              save_name = f'height_{wi}',
+              ftype=ftype, return_data='BGM_height' in return_data)
+        if len(bgm_log_dict) > 0:
+            saved_data[f'BGM_height_{wi}'] = bgm_log_dict
 
         if verbose > 0:
             print('clusters generated based on EOD height:')
@@ -1009,58 +1018,59 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
     return all_clusters, x_merge, saved_data
 
 
-def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
-        use_log=False, verbose=0, plot_level=0, xlabel='x [a.u.]',
+def BGM(x, min_samples=5, merge_thresh=0.1,
+        n_gaus=5, max_iter=200, n_init=5,
+        use_log=False, xlabel='x [a.u.]', verbose=0, plot_level=0,
         save_plot=False, save_path='', save_name='', ftype='pdf',
         return_data=[]):
     """ Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data.
 
     Additional steps are used to merge clusters that are closer than
-    `merge_threshold`.  Broad gaussian fits that cover one or more other
+    `merge_thresh`.  Broad gaussian fits that cover one or more other
     gaussian fits are split by their intersections with the other
     gaussians.
 
     Parameters
     ----------
-    x : 1D numpy array
+    x: 1D numpy array
         Features to compute clustering on. 
-
-    merge_threshold : float
+    min_samples: int
+        Minimum number of samples required for a valid cluster.
+    merge_thresh: float
         Ratio for merging nearby gaussians.
     n_gaus: int
         Maximum number of gaussians to fit on data.
-    max_iter : int
+    max_iter: int
         Maximum number of iterations for gaussian fit.
-    n_init : int
+    n_init: int
         Number of initializations for the gaussian fit.
     use_log: boolean
         Set to True to compute the gaussian fit on the logarithm of x.
         Can improve clustering on features with nonlinear relationships such as peak height.
-    verbose : int
+    xlabel: str
+        Xlabel for displaying BGM plot.
+    verbose: int
         Verbosity level.
-    plot_level : int
+    plot_level: int
         Similar to verbosity levels, but with plots. 
         Only set to > 0 for debugging purposes.
-    xlabel : str
-        Xlabel for displaying BGM plot.
-    save_plot : bool
+    save_plot: bool
         Set to True to save created plot.
-    save_path : str
+    save_path: str
         Path to location where data should be saved. Only used if save_plot==True.
-    save_name : str
+    save_name: str
         Filename of the saved plot. Usefull as usually multiple BGM models are generated.
-    ftype : str
+    ftype: str
         Filetype of plot image if save_plots==True.
-    return_data : list of str
-        Keys that specify data to be logged. Keys that can be used to log data
-        in this function are: 'BGM_width' and/or 'BGM_height' (see extract_pulsefish()).
+    return_data: bool
+        True if additional data shouldbe returned in bgm_dict.
 
     Returns
     -------
     labels : 1D numpy array
         Cluster labels for each sample in x.
     bgm_dict : dictionary
-        Key value pairs of logged data. Data to be logged is specified by return_data.
+        Key value pairs of logged data if `return_data` is True.
     """
 
     bgm_dict = {}
@@ -1070,27 +1080,18 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
                                             max_iter=max_iter,
                                             n_init=n_init)
         if use_log:
-            labels = BGM_model.fit_predict(stats.zscore(np.log(x)).reshape(-1, 1))
+            z = stats.zscore(np.log(x)).reshape(-1, 1)
         else:
-            labels = BGM_model.fit_predict(stats.zscore(x).reshape(-1, 1))
+            z = stats.zscore(x).reshape(-1, 1)
+        labels = BGM_model.fit_predict(z)
     else:
         return np.zeros(len(x), dtype=int), bgm_dict
     
-    if verbose > 0:
-        if not BGM_model.converged_:
-            print('  !!! Bayesian Gaussian mixture did not converge !!!')
+    if not BGM_model.converged_ and verbose > 0:
+        print('  !!! Bayesian Gaussian mixture did not converge !!!')
 
     labels_bgm = np.copy(labels)
-    
-    # sort and map labels to be increasing for increasing values for x:
-    cur_labels = np.unique(labels)
-    max_label = np.max(labels) + 100
-    x_medians = [np.median(x[labels == l]) for l in cur_labels]
-    sidx = np.argsort(x_medians) + max_label
-    for i, s in zip(cur_labels, sidx):
-        labels[labels == i] = s
-    labels -= max_label
-    
+
     # separate gaussian clusters that can be split by other clusters:
     sidx_x = np.argsort(x)
     splits = x[sidx_x][1:][np.diff(labels[sidx_x]) != 0]
@@ -1100,13 +1101,24 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
 
     labels_split = np.copy(labels)
 
-    # merge gaussian clusters that are closer than merge_threshold:
-    labels = merge_gaussians(x, labels, merge_threshold)
+    # merge gaussian clusters that are closer than merge_thresh:
+    labels = merge_gaussians(x, labels, min_samples, merge_thresh)
+
+    # sort model attributes by model.means_:
+    sidx = np.argsort(BGM_model.means_[:, 0])
+    means = BGM_model.means_[sidx, 0]
+    variances = BGM_model.covariances_[sidx, 0, 0]
+    weights = BGM_model.weights_[sidx]
 
     if plot_level > 0:
         all_labels = [labels_bgm, labels_split, labels]
         all_titles = ['BGM', 'split','merge']
-        bins = np.geomspace(np.min(x), np.max(x), 100)
+        if use_log:
+            bins = np.geomspace(np.min(x), np.max(x), 100)
+            xx = np.geomspace(np.min(x), np.max(x), 500)
+        else:
+            bins = np.linspace(np.min(x), np.max(x), 100)
+            xx = np.linspace(np.min(x), np.max(x), 500)
         fig, axs = plt.subplots(3, 1, layout='constrained')
         for k in range(len(all_labels)):
             ax = axs[k]
@@ -1119,48 +1131,54 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
                 ax.set_xlabel(xlabel)
             ax.set_ylabel('counts')
             ax.set_ylim(bottom=0.3)
-            ax.set_xscale('log')
+            if use_log:
+                ax.set_xscale('log')
             ax.set_yscale('log')
             ax.legend(title='labels')
+        ax = axs[0].twinx()
+        if use_log:
+            means_logx = means*np.std(np.log(x)) + np.mean(np.log(x))
+            stds_logx = np.sqrt(variances)*np.std(np.log(x))
+            for m, s, w in zip(means_logx, stds_logx, weights):
+                gg = np.exp(-0.5*((np.log(xx) - m)/s)**2)
+                ax.plot(xx, w*gg, 'k')
+        else:
+            means_x = means*np.std(x) + np.mean(x)
+            stds_x = np.sqrt(variances)*np.std(x)
+            for m, s, w in zip(means_x, stds_x, weights):
+                ax.plot(xx, w*np.exp(-0.5*((xx - m)/s)**2), 'k')
+        ax.set_ylim(bottom=0)
+
+        plot_bgm(x, means, variances, weights, use_log, labels_split,
+                 labels, xlabel)
+        if save_plot:
+            plt.savefig('%sBGM_%s.%s' % (save_path, save_name, ftype))
         plt.show()
-
-    if 'BGM_' + save_name.split('_')[0] in return_data or plot_level > 0:
-
-        # sort model attributes by model_means_:
-        means = [m[0] for m in BGM_model.means_]
-        sidx = np.argsort(means)
-        means = [means[i] for i in sidx]
-        weights = [BGM_model.weights_[i] for i in sidx]
-        variances = [BGM_model.covariances_[i][0][0] for i in sidx]
-        weights = [weights[i] for i in sidx]
-        variances =  [variances[i] for i in sidx]
         
-        if plot_level > 0:
-            plot_bgm(x, means, variances, weights, use_log, labels_split,
-                     labels, xlabel)
-            if save_plot:
-                plt.savefig('%sBGM_%s.%s' % (save_path, save_name, ftype))
-    
-        if 'BGM_' + save_name.split('_')[0] in return_data:
-            bgm_dict['BGM_' + save_name] = {'x':x,
-                                            'use_log':use_log,
-                                            'BGM':[weights, means, variances],
-                                            'labels':labels_split,
-                                            'xlab':xlabel}
+    if return_data:
+        bgm_dict = dict(x=x,
+                        use_log=use_log,
+                        BGM=[weights, means, variances],
+                        labels=labels_split,
+                        xlab=xlabel)
 
     return labels, bgm_dict
 
 
-def merge_gaussians(x, labels, merge_threshold=0.1):
-    """ Merge all clusters which have medians which are near. Only works in 1D.
+def merge_gaussians(x, labels, min_samples=5, merge_thresh=0.1):
+    """ Merge all clusters which have medians which are near.
+
+    Only works in 1D.
 
     Parameters
     ----------
-    x : 1D array of int or floats
+    x : 1D array of int or float
         Features used for clustering.
     labels : 1D array of int
         Labels for each sample in x.
-    merge_threshold : float
+    min_samples: int
+        Minimum number of samples required for a valid cluster.
+    merge_thresh : float
         Similarity threshold to merge clusters.
 
     Returns
@@ -1168,22 +1186,35 @@ def merge_gaussians(x, labels, merge_threshold=0.1):
     labels : 1D array of int
         Merged labels for each sample in x.
     """
-
-    # compare all the means of the gaussians. If they are too close, merge them.
-    unique_labels = np.unique(labels[labels!=-1])
-    x_medians = [np.median(x[labels==l]) for l in unique_labels]
-
-    # fill a dict with the label mappings
+    # remove small clusters:
+    u_labels, u_counts = unique_counts(labels[labels != -1])
+    for l in u_labels[u_counts < min_samples]:
+        labels[labels == l] = -1
+    u_labels = u_labels[u_counts >= min_samples]
+    if len(u_labels) == 0:
+        return labels
+    # medians for each label:
+    x_medians = np.array([np.median(x[labels == l]) for l in u_labels])
+    x_means = np.array([np.mean(x[labels == l]) for l in u_labels])
+    x_vars = np.array([np.var(x[labels == l]) for l in u_labels])
+    # fill a dict with label mappings:
+    # TODO: decide on metrics (dprime versus median over max) and clean up!
     mapping = {}
-    for label_1, x_m1 in zip(unique_labels, x_medians):
-        for label_2, x_m2 in zip(unique_labels, x_medians):
-            if label_1!=label_2:
-                if np.abs(np.diff([x_m1, x_m2]))/np.max([x_m1, x_m2]) < merge_threshold:
-                    mapping[label_1] = label_2
-    # apply mapping
-    for map_key, map_value in mapping.items():
-        labels[labels==map_key] = map_value
-
+    for label_1, x_m1 in zip(u_labels, x_medians):
+        mask = u_labels > label_1
+        for label_2, x_m2 in zip(u_labels[mask], x_medians[mask]):
+            m1 = x_means[u_labels == label_1]
+            m2 = x_means[u_labels == label_2]
+            v1 = x_vars[u_labels == label_1]
+            v2 = x_vars[u_labels == label_2]
+            dprime = abs(m2 - m1)/np.sqrt(0.5*(v1 + v2))
+            if dprime < 3:  # TODO make merge_threshold
+                #print(label_1, label_2, x_m1, x_m2, np.abs(x_m2 - x_m1)/max(x_m1, x_m2), merge_thresh)
+                #if np.abs(x_m2 - x_m1)/max(x_m1, x_m2) < merge_thresh:
+                mapping[label_2] = label_1
+    # apply mapping:
+    for key in mapping:
+        labels[labels == key] = mapping[key]
     return labels
 
 
