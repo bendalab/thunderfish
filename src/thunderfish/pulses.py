@@ -768,6 +768,9 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
     # keep track of the labels so that no labels are overwritten:
     max_label_p = 0
     max_label_t = 0
+    
+    if verbose > 0:
+        print('clusters generated based on EOD width:')
 
     # first cluster on width:
     width_labels, bgm_log_dict = BGM(1000*eod_widths/rate,
@@ -785,11 +788,11 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         saved_data['BGM_width'] = bgm_log_dict
 
     if verbose > 0:
-        print('clusters generated based on EOD width:')
+        # report width clusters:
         for l in np.unique(width_labels):
             print(f'  {l:2d}: num={len(width_labels[width_labels == l]):5d}, width={np.mean(1000*eod_widths[width_labels == l]/rate):6.3f} +- {np.std(1000*eod_widths[width_labels == l]/rate):6.3f}ms')
 
-    # loop over height clusters:
+    # loop over width clusters:
     unique_width_labels = np.unique(width_labels[width_labels != -1])
     for wi, width_label in enumerate(unique_width_labels):
         # select only features in one width cluster at a time:
@@ -821,6 +824,9 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
                                           axis=0))
         merge_thresh_height = min(merge_threshold_height, median_heights)
 
+        if verbose > 0:
+            print(f'  clusters generated based on EOD height in width cluster {width_label}:')
+            
         height_labels, bgm_log_dict = \
           BGM(w_eod_heights, merge_thresh=merge_thresh_height,
               min_samples=min_samples,
@@ -833,9 +839,9 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             saved_data[f'BGM_height_{wi}'] = bgm_log_dict
 
         if verbose > 0:
-            print('clusters generated based on EOD height:')
+            # report height clusters:
             for l in np.unique(height_labels):
-                print(f'  {l:2d}: num={len(height_labels[height_labels==l]):5d}, height={np.mean(w_eod_heights[height_labels==l]):.4g}')
+                print(f'    {l:2d}: num={len(height_labels[height_labels==l]):5d}, height={np.mean(w_eod_heights[height_labels==l]):.4g}')
 
         h_labels, h_counts = unique_counts(height_labels)
         unique_height_labels = h_labels[h_counts>minp]
@@ -854,11 +860,14 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             h_eod_heights = w_eod_heights[height_labels==height_label]
             h_eod_xp = w_eod_xp[height_labels==height_label]
             h_eod_xt = w_eod_xt[height_labels==height_label]
+            
+            if verbose > 0:
+                print(f'    clusters generated based on EOD shape in height cluster {height_label}:')
 
             p_clusters = cluster_on_shape(p_features[height_labels==height_label],
-                                          p_bg_ratio, minp, verbose=0)
+                                          p_bg_ratio, minp, verbose=verbose-1)
             t_clusters = cluster_on_shape(t_features[height_labels==height_label],
-                                          t_bg_ratio, minp, verbose=0)
+                                          t_bg_ratio, minp, verbose=verbose-1)
             
             if plot_level > 1:
                 plot_feature_extraction(raw_p_snippets[height_labels==height_label],
@@ -907,7 +916,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             else:
                 unique_clusters = np.unique(wp_clusters[wp_clusters != -1])
                 if len(unique_clusters) > 1:
-                    print(f'   {len(unique_clusters)} different EOD shapes in width cluster {width_label}')
+                    print(f'    {len(unique_clusters):2d} different EOD shapes in width cluster {width_label}')
         
         if plot_level > 0 or 'all_cluster_steps' in return_data:
             all_shapelabels.append(shape_labels)
@@ -1088,7 +1097,7 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
         return np.zeros(len(x), dtype=int), bgm_dict
     
     if not BGM_model.converged_ and verbose > 0:
-        print('  !!! Bayesian Gaussian mixture did not converge !!!')
+        print('    !!! Bayesian Gaussian mixture did not converge !!!')
 
     labels_bgm = np.copy(labels)
 
@@ -1124,7 +1133,7 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
             ax = axs[k]
             labs = all_labels[k]
             ax.set_title(all_titles[k])
-            for l in np.unique(labs):
+            for l in np.unique(labs[labs != -1]):
                 xl = x[labs == l]
                 ax.hist(xl, bins, label=f'{l}')
             if k == len(all_labels) - 1:
@@ -1295,18 +1304,15 @@ def cluster_on_shape(features, bg_ratio, minp, percentile=80,
     labels : 1D array of int
         Merged labels for each sample in x.
     """
-
-    # determine clustering threshold from data
+    # determine clustering threshold from data:
     minpc = max(minp, int(len(features)*min_cluster_fraction))  
     knn = np.sort(pairwise_distances(features, features), axis=0)[minpc]
     eps = min(max(1, slope_ratio_factor*np.median(bg_ratio))*max_epsilon,
               np.percentile(knn, percentile))
 
     if verbose > 1:
-        print('epsilon = %f'%eps)
-        print('Slope to EOD ratio = %f'%np.median(bg_ratio))
+        print(f'      parameters: epsilon = {eps:f}, slope to EOD ratio = {np.median(bg_ratio)}')
 
-    # cluster on EOD shape
     return DBSCAN(eps=eps, min_samples=minpc).fit(features).labels_
 
 
