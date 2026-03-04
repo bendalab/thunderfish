@@ -778,8 +778,8 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
                                      merge_thresh=merge_threshold_width,
                                      n_gaus=n_gaus_width, use_log=False,
                                      xlabel='width [ms]',
-                                     verbose=verbose-1,
-                                     plot_level=plot_level-1,
+                                     verbose=verbose - 1,
+                                     plot_level=plot_level - 1,
                                      save_plot=save_plots,
                                      save_path=save_path,
                                      save_name='width', ftype=ftype,
@@ -791,6 +791,9 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         # report width clusters:
         for l in np.unique(width_labels):
             print(f'  {l:2d}: num={len(width_labels[width_labels == l]):5d}, width={np.mean(1000*eod_widths[width_labels == l]/rate):6.3f} +- {np.std(1000*eod_widths[width_labels == l]/rate):6.3f}ms')
+
+    if plot_level > 1:
+        plt.show()
 
     # loop over width clusters:
     unique_width_labels = np.unique(width_labels[width_labels != -1])
@@ -819,7 +822,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
           extract_snippet_features(data, w_eod_xp, w_eod_heights, width)
         raw_t_snippets, t_snippets, t_features, t_bg_ratio = \
           extract_snippet_features(data, w_eod_xt, w_eod_heights, width)
-
+            
         median_heights = np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
                                           axis=0))
         merge_thresh_height = min(merge_threshold_height, median_heights)
@@ -841,7 +844,33 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         if verbose > 0:
             # report height clusters:
             for l in np.unique(height_labels):
-                print(f'    {l:2d}: num={len(height_labels[height_labels==l]):5d}, height={np.mean(w_eod_heights[height_labels==l]):.4g}')
+                print(f'    {l:2d}: num={len(height_labels[height_labels==l]):5d}, height={np.mean(w_eod_heights[height_labels==l]):6.4g} +- {np.std(w_eod_heights[height_labels==l]):6.4g}')
+
+        if plot_level > 0:
+            prop_cycle = plt.rcParams['axes.prop_cycle']
+            colors = prop_cycle.by_key()['color']
+            fig, axs = plt.subplots(2, 2, layout='constrained', sharex=True, sharey='col')
+            axs[0, 0].set_title(f'Width cluster {width_label}: raw peak snippets')
+            for l, c in zip(np.unique(height_labels), colors):
+                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                axs[0, 0].plot(raw_p_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
+            axs[0, 1].set_title('Peak snippets')
+            for l, c in zip(np.unique(height_labels), colors):
+                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                axs[0, 1].plot(p_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
+            axs[0, 1].legend(title='height label')
+            axs[1, 0].set_title(f'Width cluster {width_label}: raw trough snippets')
+            for l, c in zip(np.unique(height_labels), colors):
+                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                axs[1, 0].plot(raw_t_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
+            axs[1, 1].set_title('Trough snippets')
+            for l, c in zip(np.unique(height_labels), colors):
+                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                axs[1, 1].plot(t_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
+            axs[1, 1].legend(title='height label')
+            axs[1, 0].set_xlabel('index')
+            axs[1, 1].set_xlabel('index')
+            plt.show()
 
         h_labels, h_counts = unique_counts(height_labels)
         unique_height_labels = h_labels[h_counts>minp]
@@ -862,14 +891,14 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             h_eod_xt = w_eod_xt[height_labels==height_label]
             
             if verbose > 0:
-                print(f'    clusters generated based on EOD shape in height cluster {height_label}:')
+                print(f'    clusters generated based on EOD shape in width cluster {width_label}, height cluster {height_label}:')
 
             p_clusters = cluster_on_shape(p_features[height_labels==height_label],
                                           p_bg_ratio, minp, verbose=verbose-1)
             t_clusters = cluster_on_shape(t_features[height_labels==height_label],
                                           t_bg_ratio, minp, verbose=verbose-1)
             
-            if plot_level > 1:
+            if False: #plot_level > 1:
                 plot_feature_extraction(raw_p_snippets[height_labels==height_label],
                                         p_snippets[height_labels==height_label],
                                         p_features[height_labels==height_label],
@@ -912,11 +941,11 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
         if verbose > 0:
             if np.max(wp_clusters) == -1:
-                print(f'  No EOD peaks in width cluster {width_label}')
+                print(f'      none')
             else:
                 unique_clusters = np.unique(wp_clusters[wp_clusters != -1])
-                if len(unique_clusters) > 1:
-                    print(f'    {len(unique_clusters):2d} different EOD shapes in width cluster {width_label}')
+                print(f'      num={len(unique_clusters):2d} different EOD shapes:',
+                      str(unique_clusters).strip('[]'))
         
         if plot_level > 0 or 'all_cluster_steps' in return_data:
             all_shapelabels.append(shape_labels)
@@ -939,6 +968,9 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         # update maxlab so that no clusters are overwritten
         all_p_clusters[width_labels==width_label] = wp_clusters
         all_t_clusters[width_labels==width_label] = wt_clusters
+
+    if verbose > 1:
+        print()
     
     # remove all non-reliable clusters
     unreliable_fish_mask_p, saved_data = \
@@ -1157,12 +1189,12 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
             for m, s, w in zip(means_x, stds_x, weights):
                 ax.plot(xx, w*np.exp(-0.5*((xx - m)/s)**2), 'k')
         ax.set_ylim(bottom=0)
-
+        """
         plot_bgm(x, means, variances, weights, use_log, labels_split,
                  labels, xlabel)
         if save_plot:
             plt.savefig('%sBGM_%s.%s' % (save_path, save_name, ftype))
-        plt.show()
+        """
         
     if return_data:
         bgm_dict = dict(x=x,
