@@ -191,7 +191,9 @@ def condition_pulse(eod, ratetime=None, sem=None, flip='none',
         sem_thresh = 8*msem
     # noise threshold:
     noise_thresh = max(range_thresh, sem_thresh)
-
+    if noise_thresh > 0.5*max_ampl:
+        noise_thresh = 0.5*max_ampl
+        
     # generous left edge of waveform:
     l1_idx = np.argmax(np.abs(meod) > noise_thresh)
     l2_idx = np.argmax(np.abs(meod) > 2*noise_thresh)
@@ -224,7 +226,7 @@ def condition_pulse(eod, ratetime=None, sem=None, flip='none',
         if eod.ndim == 2:
             eod = eod[l_idx:r_idx, :]
     
-    # return offset, flipped and, shifted waveform:
+    # return offset, flipped, and shifted waveform:
     if eod.ndim == 2:
         eod[:, 0] = time
         eod[:, 1] = meod
@@ -2620,7 +2622,7 @@ def add_analyze_pulse_config(cfg, min_pulse_win=0.001,
                              start_end_thresh_fac=0.01, peak_thresh_frac=0.002,
                              min_dist=50.0e-6, width_frac=0.5, fit_frac=0.5,
                              freq_resolution=1.0, fade_frac=0.0,
-                             flip_pulse='none', fit_gaussians=True,
+                             flip_pulse='none', fit_gaussians=False,
                              ipi_cv_thresh=0.5, ipi_percentile=30.0):
     """Add all parameters needed for the eod analysis functions as a new
     section to a configuration.

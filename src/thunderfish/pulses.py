@@ -17,12 +17,13 @@ except ImportError:
 from pathlib import Path
 from scipy import stats
 from scipy.interpolate import interp1d
-from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
 from sklearn.mixture import BayesianGaussianMixture
 from sklearn.metrics import pairwise_distances
+
 from thunderlab.eventdetection import detect_peaks, median_std_threshold
+from thunderlab.fourier import fourier_coeffs
 
 from .pulseplots import *
 
@@ -125,7 +126,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         Optional keys for return_data and the resulting additional key-value pairs to the log dictionary are:
         
         - 'all_eod_times':
-            - 'all_times':  list of two lists of floats.
+            - 'all_times':  list of two lists of float.
                 All peak (`all_times[0]`) and trough times (`all_times[1]`) extracted
                 by the peak detection algorithm. Times are given in seconds.
             - 'eod_troughtimes': list of 1D arrays.
@@ -133,7 +134,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                 where each 1D array encodes one cluster.
         
         - 'peak_detection':
-            - "data": 1D numpy array of floats.
+            - "data": 1D numpy array of float.
                 Quadratically interpolated data which was used for peak detection.
             - "peaks_1": 1D numpy array of int.
                 Peak indices on interpolated data after first peak detection step.
@@ -191,7 +192,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
 
         - 'BGM_width':
             - 'BGM_width': dictionary
-                - 'x': 1D numpy array of floats.
+                - 'x': 1D numpy array of float.
                     BGM input values (in this case the EOD widths),
                 - 'use_log': boolean.
                     True if the z-scored logarithm of the data was used as BGM input.
@@ -207,7 +208,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         - 'BGM_height':
             This key adds a new dictionary for each width cluster.
             - 'BGM_height_*n*' : dictionary, where *n* defines the width cluster as an int.
-                - 'x': 1D numpy array of floats.
+                - 'x': 1D numpy array of float.
                     BGM input values (in this case the EOD heights),
                 - 'use_log': boolean.
                     True if the z-scored logarithm of the data was used as BGM input.
@@ -274,12 +275,12 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
 
         - 'moving_fish':
             - 'moving_fish': dictionary.
-                - 'w' : list of floats.
+                - 'w' : list of float.
                     Median width for each width cluster that the moving fish algorithm is
                     computed on (in seconds).
-                - 'T' : list of floats.
+                - 'T' : list of float.
                     Lenght of analyzed recording for each width cluster (in seconds).
-                - 'dt' : list of floats.
+                - 'dt' : list of float.
                     Sliding window size (in seconds) for each width cluster.
                 - 'clusters' : list of 1D numpy int arrays.
                     Cluster labels for each EOD cluster in a width cluster.
@@ -301,7 +302,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         Use these timepoints for EOD averaging.
     eod_peaktimes: list of 1D arrays
         For each detected fish the times of EOD peaks in seconds.
-    zoom_window: tuple of floats
+    zoom_window: tuple of float
         Start and endtime of suggested window for plotting EOD timepoints.
     log_dict: dictionary
         Dictionary with logged variables, where variables to log are specified
@@ -363,8 +364,8 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         n_gaus_height = 10
         merge_thresh_height = 0.1
         clusters, x_merge, c_log_dict = \
-            cluster(x_peak, x_trough, eod_heights, eod_widths,
-                    i_data, i_rate, width_factor_shape, width_factor_wave,
+            cluster(i_data, i_rate, x_peak, x_trough, eod_heights, eod_widths,
+                    width_factor_shape, width_factor_wave,
                     min_samples=min_samples, min_samples_frac=min_samples_frac,
                     n_gaus_width=n_gaus_width,
                     merge_thresh_width=merge_thresh_width,
@@ -475,7 +476,7 @@ def detect_pulses(data, rate, thresh, min_rel_slope_diff=0.25,
         Indices of EOD peaks in data.
     trough_indices: array of int
         Indices of EOD troughs in data. There is one x_trough for each x_peak.
-    heights: array of floats
+    heights: array of float
         EOD heights for each x_peak.
     widths: array of int
         EOD widths for each x_peak (in samples).
@@ -598,7 +599,7 @@ def assign_side_peaks(data, peak_indices, trough_indices,
 
     Parameters
     ----------
-    data: array of floats
+    data: array of float
         Data in which the events were detected.
     peak_indices: array of int
         Indices of the detected peaks in the data time series.
@@ -616,11 +617,11 @@ def assign_side_peaks(data, peak_indices, trough_indices,
     trough_indices: array of int
         Corresponding trough indices of trough to the left or right
         of the peaks.
-    heights: array of floats
+    heights: array of float
         Peak heights (distance between peak and corresponding trough amplitude)
     widths: array of int
         Peak widths (distance between peak and corresponding trough indices)
-    slopes: array of floats
+    slopes: array of float
         Peak slope (height divided by width)
     """
     # is a main or side peak first?
@@ -668,7 +669,7 @@ def assign_side_peaks(data, peak_indices, trough_indices,
     return peak_indices, trough_indices, heights, widths, slopes
 
 
-def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
+def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             width_factor_shape, width_factor_wave,
             min_samples=5, min_samples_frac=0.05,
             n_gaus_width=3, merge_thresh_width=0.6,
@@ -687,18 +688,18 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
     Parameters
     ----------
+    data: array of float
+        Data in which to detect pulse EODs.
+    rate : float
+        Sampling rate of `data`.
     eod_xp : list of int
         Location of EOD peaks in indices.
     eod_xt: list of int
         Locations of EOD troughs in indices.
-    eod_heights: list of floats
+    eod_heights: list of float
         EOD heights.
     eod_widths: list of int
         EOD widths in samples.
-    data: array of floats
-        Data in which to detect pulse EODs.
-    rate : float
-        Sampling rate of `data`.
     width_factor_shape : float
         Multiplier for snippet extraction width. This factor is
         multiplied with the width between the peak and through of a
@@ -816,9 +817,11 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
         # determine height labels:
         raw_p_snippets, p_snippets, p_features, p_bg_ratio = \
-          extract_snippet_features(data, w_eod_xp, w_eod_heights, width)
+          extract_snippet_features(data, rate, w_eod_xp, w_eod_widths,
+                                   w_eod_heights, width)
         raw_t_snippets, t_snippets, t_features, t_bg_ratio = \
-          extract_snippet_features(data, w_eod_xt, w_eod_heights, width)
+          extract_snippet_features(data, rate, w_eod_xt, w_eod_widths,
+                                   w_eod_heights, width)
             
         # TODO: rather keep the height threshold independent of slopes!
         #median_bg_ratios = np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
@@ -1319,21 +1322,23 @@ def merge_gaussians(x, labels, min_samples=5, min_samples_frac=0.05,
     return labels
 
 
-def extract_snippet_features(data, eod_x, eod_heights, width, n_pca=5):
-    """ Extract snippets from recording data, normalize them, and perform PCA.
+def extract_snippet_features(data, rate, eod_idx, eod_widths, eod_heights,
+                             width, n_pca=5):
+    """Extract, align, normalize, snippets from recording data, normalize them, and perform PCA.
 
     Parameters
     ----------
-    data : 1D numpy array of floats
+    data: 1D numpy array of float
         Recording data.
-    eod_x : 1D array of int
+    eod_idx: 1D array of int
         Locations of EODs as indices.
-    eod_heights: 1D array of floats
+    eod_widths: 1D array of int
+        EOD widths (distance between peak and trough) in samples.
+    eod_heights: 1D array of float
         EOD heights.
-    width : int
+    width: int
         Width to cut out to each side in samples.
-
-    n_pca : int
+    n_pca: int
         Number of PCs to use for PCA.
 
     Returns
@@ -1346,16 +1351,36 @@ def extract_snippet_features(data, eod_x, eod_heights, width, n_pca=5):
         PC values of EOD snippets
     bg_ratio : 1D numpy array (N)
         Ratio of the background activity slopes compared to EOD height.
+
     """
     # extract snippets with corresponding width:
-    raw_snippets = np.vstack([data[x - width:x + width] for x in eod_x])
+    xwidth = width + min(10, width//4)
+    raw_snippets = np.vstack([data[idx - xwidth:idx + xwidth]
+                              for idx in eod_idx])
 
-    # subtract background slope and normalize snippets:
+    # align snippets on phase of first Fourier coefficient:
+    n = raw_snippets.shape[1]
+    dist = int(np.median(eod_widths))
+    freq = 1/(2*dist)
+    dist = int(1.2*dist)
+    coefs = np.zeros(len(raw_snippets),dtype=complex)
+    for k in range(len(raw_snippets)):
+        snippet = raw_snippets[k, n//2 - dist:n//2 + dist]
+        m = len(snippet)
+        coef = fourier_coeffs(snippet, np.arange(m) - m//2, freq, 2)[1]
+        coefs[k] = coef/np.abs(coef)
+    coefs *= np.conjugate(np.mean(coefs))
+    for k in range(len(raw_snippets)):
+        tshift = np.angle(coefs[k])/(2*np.pi*freq)
+        ishift = int(np.round(tshift))
+        raw_snippets[k] = np.roll(raw_snippets[k], ishift)
+    raw_snippets = raw_snippets[:, n//2 - width:n//2 + width]
+
+    # subtract background slope:
     snippets, bg_ratio = subtract_slope(np.copy(raw_snippets), eod_heights)
-    snippets = StandardScaler().fit_transform(snippets.T).T
 
     # scale so that the absolute integral = 1:
-    snippets = (snippets.T/np.sum(np.abs(snippets), axis=1)).T
+    snippets = (snippets.T*rate/np.sum(np.abs(snippets), axis=1)).T
 
     # compute PCA features for clustering on waveform:
     pca = PCA(n_pca)
@@ -1372,9 +1397,9 @@ def cluster_on_shape(features, bg_ratio,
 
     Parameters
     ----------
-    features : 2D numpy array of floats (N, n_pc)
+    features : 2D numpy array of float (N, n_pc)
         PCA features of each EOD in a recording.
-    bg_ratio : 1D array of floats
+    bg_ratio : 1D array of float
         Ratio of background activity slope the EOD is superimposed on.
     min_samples: int
         Minimum number of samples required for a valid cluster.
@@ -1405,13 +1430,16 @@ def cluster_on_shape(features, bg_ratio,
         min_samples = min_smpl
         
     # determine distance threshold from data:
+    """
     knn = np.sort(pairwise_distances(features, features), axis=0)[min_samples]
     eps = min(max(1, slope_ratio_factor*np.median(bg_ratio))*max_epsilon,
               np.percentile(knn, percentile))
+    """
     # TODO: fixed or adaptive?
-    eps = 0.02
+    # fixed: distances are in PCA spaceofstandardized waveforms.
+    eps = 5000.0
 
-    if verbose > 1:
+    if verbose > 0:
         print(f'      dbscan parameters: epsilon={eps:.4g}, slope-to-EOD ratio={np.median(bg_ratio):.4g}')
 
     return DBSCAN(eps=eps, min_samples=min_samples).fit(features).labels_
@@ -1513,7 +1541,7 @@ def delete_unreliable_fish(clusters, eod_widths, eod_x, verbose=0, sdict={}):
     ----------
     clusters : list of int
         Cluster labels.
-    eod_widths : list of floats or ints
+    eod_widths : list of float or int
         EOD widths in samples or seconds.
     eod_x : list of int or floats
         EOD times in samples or seconds.
@@ -1557,7 +1585,7 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths,
 
     Parameters
     ----------
-    data : list of floats
+    data : list of float
         Raw recording data.
     clusters : list of int
         Cluster labels.
@@ -1888,13 +1916,13 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
     ----------
     clusters: list of int
         EOD cluster labels.
-    eod_t: list of floats
+    eod_t: list of float
         Timepoints of the EODs (in seconds).
     T: float
         Length of recording (in seconds).
-    eod_heights: list of floats
+    eod_heights: list of float
         EOD amplitudes.
-    eod_widths: list of floats
+    eod_widths: list of float
         EOD widths (in seconds).
     rate: float
         Recording data sampling rate.
