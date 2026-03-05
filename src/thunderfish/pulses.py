@@ -1247,17 +1247,19 @@ def merge_gaussians(x, labels, min_samples=5, merge_thresh=0.1, verbose=0):
     u_labels = u_labels[u_counts >= min_samples]
     if len(u_labels) == 0:
         return labels
-    while True:
+    while len(u_labels) >= 2:
         # medians for each label:
         x_medians = np.array([np.median(x[labels == l]) for l in u_labels])
         sidx = np.argsort(x_medians)
         # fill a dict with label mappings:
         mapping = {}
-        for i in sidx[:-1]:
-            label_1 = u_labels[i]
-            label_2 = u_labels[i + 1]
-            median_1 = x_medians[i]
-            median_2 = x_medians[i + 1]
+        for k in range(len(sidx[:-1])):
+            i0 = sidx[k]
+            i1 = sidx[k + 1]
+            label_1 = u_labels[i0]
+            label_2 = u_labels[i1]
+            median_1 = x_medians[i0]
+            median_2 = x_medians[i1]
             rel_diff = np.abs(median_2 - median_1)/max(median_1, median_2)
             if rel_diff < merge_thresh:
                 mapping[label_2] = label_1
@@ -1270,8 +1272,6 @@ def merge_gaussians(x, labels, min_samples=5, merge_thresh=0.1, verbose=0):
             for key in mapping:
                 labels[labels == key] = mapping[key]
             u_labels = np.unique(labels[labels != -1])
-            if len(u_labels) == 0:
-                break
         else:
             break
     return labels
