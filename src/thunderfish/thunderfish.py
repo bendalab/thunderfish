@@ -346,7 +346,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
         # detect pulse fish:
         frate = 0.5e6  # TODO: make parameter
         eods, eod_times, eod_peaktimes, zoom_window, _ = \
-            extract_pulsefish(data, rate, max_clip, frate,
+            extract_pulsefish(data, rate, frate,
                               verbose=verbose - 1,
                               plot_level=plot_level,
                               save_path=os.path.splitext(os.path.basename(name))[0])

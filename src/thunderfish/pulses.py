@@ -81,7 +81,7 @@ def unique_counts(ar):
 ###########################################################################
 
 
-def extract_pulsefish(data, rate, amax, frate=0.5e6, width_factor_shape=3,
+def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                       width_factor_wave=8, width_factor_display=4,
                       verbose=0, plot_level=0, save_plots=False,
                       save_path='', ftype='png', return_data=[]):
@@ -97,8 +97,6 @@ def extract_pulsefish(data, rate, amax, frate=0.5e6, width_factor_shape=3,
         The data to be analysed.
     rate: float
         Sampling rate of the data in Hertz.
-    amax: float
-        Maximum amplitude of data range.
     frate: float
         Sampling rate used for the returned waveform estimates.
     width_factor_shape : float
@@ -345,46 +343,42 @@ def extract_pulsefish(data, rate, amax, frate=0.5e6, width_factor_shape=3,
     threshold = median_std_threshold(data, win_size)  # TODO make this a parameter
     
     # extract peaks:
+    width_fac = max(width_factor_shape, width_factor_display, width_factor_wave)
     if 'peak_detection' in return_data:
         x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
-            detect_pulses(i_data, i_rate, threshold,
-                          width_fac=np.max([width_factor_shape,
-                                            width_factor_display,
-                                            width_factor_wave]),
+            detect_pulses(i_data, i_rate, threshold, width_fac=width_fac,
                           verbose=verbose, return_data=True)
         log_dict.update(pd_log_dict)
     else:
         x_peak, x_trough, eod_heights, eod_widths = \
-            detect_pulses(i_data, i_rate, threshold,
-                          width_fac=np.max([width_factor_shape,
-                                            width_factor_display,
-                                            width_factor_wave]),
+            detect_pulses(i_data, i_rate, threshold, width_fac=width_fac,
                           verbose=verbose, return_data=False)
     
     if len(x_peak) > 0:
-        # cluster
+        # cluster:
         min_samples = 5  # TODO make parameter
-        clusters, x_merge, c_log_dict = cluster(x_peak, x_trough,
-                                                eod_heights,
-                                                eod_widths, i_data,
-                                                i_rate,
-                                                width_factor_shape,
-                                                width_factor_wave,
-                                                min_samples=min_samples,
-                                                merge_threshold_height=0.1*amax,
-                                                verbose=verbose,
-                                                plot_level=plot_level-1,
-                                                save_plots=save_plots,
-                                                save_path=save_path,
-                                                ftype=ftype,
-                                                return_data=return_data) 
+        n_gaus_width = 3
+        merge_thresh_width = 0.6
+        n_gaus_height = 10
+        merge_thresh_height = 0.1
+        minp = 10
+        clusters, x_merge, c_log_dict = \
+            cluster(x_peak, x_trough, eod_heights, eod_widths,
+                    i_data, i_rate, width_factor_shape, width_factor_wave,
+                    min_samples=min_samples, n_gaus_width=n_gaus_width,
+                    merge_thresh_width=merge_thresh_width,
+                    n_gaus_height=n_gaus_height,
+                    merge_thresh_height=merge_thresh_height, minp=minp,
+                    verbose=verbose, plot_level=plot_level-1,
+                    save_plots=save_plots, save_path=save_path,
+                    ftype=ftype, return_data=return_data) 
 
-        # extract mean eods and times
+        # extract mean eods and times:
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
           extract_means(i_data, x_merge, x_peak, x_trough, eod_widths, clusters,
                         i_rate, width_factor_display, verbose=verbose)
 
-        # determine clipped clusters (save them, but ignore in other steps)
+        # determine clipped clusters (save them, but ignore in other steps):
         clusters, clipped_eods, clipped_times, clipped_peaktimes, clipped_troughtimes = \
           find_clipped_clusters(clusters, mean_eods, eod_times,
                                 eod_peaktimes, eod_troughtimes,
@@ -658,7 +652,7 @@ def assign_side_peaks(data, peak_indices, trough_indices,
     # - when slopes are similar on both sides
     #   (within `min_rel_slope_diff` difference),
     #   the trough with the maximum height difference to the peak:
-    rel_slopes = np.abs(l_slope-r_slope)/(0.5*(l_slope+r_slope))
+    rel_slopes = np.abs(l_slope-r_slope)/(0.5*(l_slope + r_slope))
     take_slopes = rel_slopes > min_rel_slope_diff
     take_left = l_height > r_height
     take_left[take_slopes] = l_slope[take_slopes] > r_slope[take_slopes]
@@ -674,9 +668,10 @@ def assign_side_peaks(data, peak_indices, trough_indices,
 
 
 def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
-            width_factor_shape, width_factor_wave, n_gaus_height=10,
-            min_samples=5, merge_threshold_height=0.1, n_gaus_width=3,
-            merge_threshold_width=0.6, minp=10, verbose=0,
+            width_factor_shape, width_factor_wave,
+            min_samples=5, n_gaus_width=3, merge_thresh_width=0.6,
+            n_gaus_height=10, merge_thresh_height=0.1,
+            minp=10, verbose=0,
             plot_level=0, save_plots=False, save_path='', ftype='pdf',
             return_data=[]):
     """Cluster EODs.
@@ -711,14 +706,14 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         Multiplier for wavefish extraction width.
     min_samples: int
         Minimum number of samples required for a valid cluster.
-    n_gaus_height : int
-        Number of gaussians to use for the clustering based on EOD height.
-    merge_threshold_height : float
-        Threshold for merging clusters that are similar in height.
     n_gaus_width : int
         Number of gaussians to use for the clustering based on EOD width.
-    merge_threshold_width : float
+    merge_thresh_width : float
         Threshold for merging clusters that are similar in width.
+    n_gaus_height : int
+        Number of gaussians to use for the clustering based on EOD height.
+    merge_thresh_height : float
+        Threshold for merging clusters that are similar in height.
     minp : int
         Minimum number of points for core clusters (DBSCAN).
     verbose : int
@@ -775,7 +770,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
     # first cluster on width:
     width_labels, bgm_log_dict = BGM(1000*eod_widths/rate,
                                      min_samples=min_samples,
-                                     merge_thresh=merge_threshold_width,
+                                     merge_thresh=merge_thresh_width,
                                      n_gaus=n_gaus_width, use_log=False,
                                      xlabel='width [ms]',
                                      verbose=verbose - 1,
@@ -823,17 +818,18 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
         raw_t_snippets, t_snippets, t_features, t_bg_ratio = \
           extract_snippet_features(data, w_eod_xt, w_eod_heights, width)
             
-        median_heights = np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
-                                          axis=0))
-        merge_thresh_height = min(merge_threshold_height, median_heights)
+        # TODO: rather keep the height threshold independent of slopes?
+        #median_bg_ratios = np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
+        #                                  axis=0))
+        #merge_thresh_height = min(merge_thresh_height, median_bg_ratios)
 
         if verbose > 0:
             print(f'  clusters generated based on EOD height in width cluster {width_label}:')
             
         height_labels, bgm_log_dict = \
-          BGM(w_eod_heights, merge_thresh=merge_thresh_height,
-              min_samples=min_samples,
-              n_gaus=n_gaus_height, use_log=True, xlabel='height [a.u.]', 
+          BGM(w_eod_heights, min_samples=min_samples,
+              merge_thresh=merge_thresh_height, n_gaus=n_gaus_height,
+              use_log=True, xlabel='height [a.u.]', 
               verbose=verbose - 1, plot_level=plot_level - 1,
               save_plot=save_plots, save_path=save_path,
               save_name = f'height_{wi}',
@@ -1064,13 +1060,15 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
         use_log=False, xlabel='x [a.u.]', verbose=0, plot_level=0,
         save_plot=False, save_path='', save_name='', ftype='pdf',
         return_data=[]):
-    """ Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data.
+    """Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data.
 
-    Additional steps are used to merge clusters that are closer than
-    `merge_thresh`.  Broad gaussian fits that cover one or more other
-    gaussian fits are split by their intersections with the other
-    gaussians.
-
+    The data are clustered on their z-scores or on the z-scores of the
+    log-transformed data if `use_log`is true.
+    Broad gaussian fits that cover one or more other gaussian fits are
+    split by their intersections with the other gaussians.
+    Clusters that are closer than `merge_thresh` on the original scale
+    of the data (not the z-scores) are merged.
+    
     Parameters
     ----------
     x: 1D numpy array
@@ -1112,21 +1110,22 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
         Cluster labels for each sample in x.
     bgm_dict : dictionary
         Key value pairs of logged data if `return_data` is True.
+
     """
 
     bgm_dict = {}
 
-    if len(np.unique(x)) > n_gaus:
-        BGM_model = BayesianGaussianMixture(n_components=n_gaus,
-                                            max_iter=max_iter,
-                                            n_init=n_init)
-        if use_log:
-            z = stats.zscore(np.log(x)).reshape(-1, 1)
-        else:
-            z = stats.zscore(x).reshape(-1, 1)
-        labels = BGM_model.fit_predict(z)
-    else:
+    if len(np.unique(x)) <= n_gaus:
         return np.zeros(len(x), dtype=int), bgm_dict
+    
+    if use_log:
+        z = stats.zscore(np.log(x)).reshape(-1, 1)
+    else:
+        z = stats.zscore(x).reshape(-1, 1)
+    BGM_model = BayesianGaussianMixture(n_components=n_gaus,
+                                        max_iter=max_iter,
+                                        n_init=n_init)
+    labels = BGM_model.fit_predict(z)
     
     if not BGM_model.converged_ and verbose > 0:
         print('    !!! Bayesian Gaussian mixture did not converge !!!')
@@ -1143,7 +1142,8 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
     labels_split = np.copy(labels)
 
     # merge gaussian clusters that are closer than merge_thresh:
-    labels = merge_gaussians(x, labels, min_samples, merge_thresh)
+    labels = merge_gaussians(x, labels, min_samples, merge_thresh,
+                             verbose=verbose - 1)
 
     # sort model attributes by model.means_:
     sidx = np.argsort(BGM_model.means_[:, 0])
@@ -1154,7 +1154,7 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
     if plot_level > 0:
         all_labels = [labels_bgm, labels_split, labels]
         all_titles = ['BGM', 'split','merge']
-        if use_log:
+        if False: #use_log:
             bins = np.geomspace(np.min(x), np.max(x), 100)
             xx = np.geomspace(np.min(x), np.max(x), 500)
         else:
@@ -1172,7 +1172,7 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
                 ax.set_xlabel(xlabel)
             ax.set_ylabel('counts')
             ax.set_ylim(bottom=0.3)
-            if use_log:
+            if False: #use_log:
                 ax.set_xscale('log')
             ax.set_yscale('log')
             ax.legend(title='labels')
@@ -1206,21 +1206,31 @@ def BGM(x, min_samples=5, merge_thresh=0.1,
     return labels, bgm_dict
 
 
-def merge_gaussians(x, labels, min_samples=5, merge_thresh=0.1):
+def merge_gaussians(x, labels, min_samples=5, merge_thresh=0.1, verbose=0):
     """ Merge all clusters which have medians which are near.
 
     Only works in 1D.
+
+    First, cluster with less than `min_samples` samples are removed -
+    they get their label set to -1.
+    Then, clusters where the difference between their medians relative to
+    the larger of the two medians are smaller than `merge_thresh` are
+    merged - all their members get the smaller of the two labels assignd. 
 
     Parameters
     ----------
     x : 1D array of int or float
         Features used for clustering.
     labels : 1D array of int
-        Labels for each sample in x.
+        Labels for each sample in `x`.
     min_samples: int
         Minimum number of samples required for a valid cluster.
     merge_thresh : float
-        Similarity threshold to merge clusters.
+        Similarity threshold to merge clusters. The difference between
+        median values relative to the larger median needs to be smaler
+        than this threshold for merging.
+    verbose: int
+        Verbosity level.
 
     Returns
     -------
@@ -1229,37 +1239,45 @@ def merge_gaussians(x, labels, min_samples=5, merge_thresh=0.1):
     """
     # remove small clusters:
     u_labels, u_counts = unique_counts(labels[labels != -1])
-    for l in u_labels[u_counts < min_samples]:
-        labels[labels == l] = -1
+    for l, c in zip(u_labels, u_counts):
+        if c < min_samples:
+            labels[labels == l] = -1
+            if verbose > 0:
+                print(f'      removed cluster {l:2d}: number of samples {c:2d} smaller than {min_samples:2d}')
     u_labels = u_labels[u_counts >= min_samples]
     if len(u_labels) == 0:
         return labels
-    # medians for each label:
-    x_medians = np.array([np.median(x[labels == l]) for l in u_labels])
-    x_means = np.array([np.mean(x[labels == l]) for l in u_labels])
-    x_vars = np.array([np.var(x[labels == l]) for l in u_labels])
-    # fill a dict with label mappings:
-    # TODO: decide on metrics (dprime versus median over max) and clean up!
-    mapping = {}
-    for label_1, x_m1 in zip(u_labels, x_medians):
-        mask = u_labels > label_1
-        for label_2, x_m2 in zip(u_labels[mask], x_medians[mask]):
-            m1 = x_means[u_labels == label_1]
-            m2 = x_means[u_labels == label_2]
-            v1 = x_vars[u_labels == label_1]
-            v2 = x_vars[u_labels == label_2]
-            dprime = abs(m2 - m1)/np.sqrt(0.5*(v1 + v2))
-            if dprime < 3:  # TODO make merge_threshold
-                #print(label_1, label_2, x_m1, x_m2, np.abs(x_m2 - x_m1)/max(x_m1, x_m2), merge_thresh)
-                #if np.abs(x_m2 - x_m1)/max(x_m1, x_m2) < merge_thresh:
+    while True:
+        # medians for each label:
+        x_medians = np.array([np.median(x[labels == l]) for l in u_labels])
+        sidx = np.argsort(x_medians)
+        # fill a dict with label mappings:
+        mapping = {}
+        for i in sidx[:-1]:
+            label_1 = u_labels[i]
+            label_2 = u_labels[i + 1]
+            median_1 = x_medians[i]
+            median_2 = x_medians[i + 1]
+            rel_diff = np.abs(median_2 - median_1)/max(median_1, median_2)
+            if rel_diff < merge_thresh:
                 mapping[label_2] = label_1
-    # apply mapping:
-    for key in mapping:
-        labels[labels == key] = mapping[key]
+                if verbose > 0:
+                    print(f'      merge cluster {label_1:2d} (median={median_1:6.4g}) with cluster {label_2:2d} (median={median_2:6.4g}) because relative difference {rel_diff:4.2f} is smaller than {merge_thresh:4.2f}')
+            elif verbose > 0:
+                print(f'      keep  cluster {label_1:2d} (median={median_1:6.4g}) and  cluster {label_2:2d} (median={median_2:6.4g}) because relative difference {rel_diff:4.2f} is larger than {merge_thresh:4.2f}')
+        # apply mapping:
+        if len(mapping) > 0:
+            for key in mapping:
+                labels[labels == key] = mapping[key]
+            u_labels = np.unique(labels[labels != -1])
+            if len(u_labels) == 0:
+                break
+        else:
+            break
     return labels
 
 
-def extract_snippet_features(data, eod_x, eod_heights, width, n_pc=5):
+def extract_snippet_features(data, eod_x, eod_heights, width, n_pca=5):
     """ Extract snippets from recording data, normalize them, and perform PCA.
 
     Parameters
@@ -1273,7 +1291,7 @@ def extract_snippet_features(data, eod_x, eod_heights, width, n_pc=5):
     width : int
         Width to cut out to each side in samples.
 
-    n_pc : int
+    n_pca : int
         Number of PCs to use for PCA.
 
     Returns
@@ -1282,23 +1300,24 @@ def extract_snippet_features(data, eod_x, eod_heights, width, n_pc=5):
         Raw extracted EOD snippets.
     snippets : 2D numpy array (N, EOD_width)
         Normalized EOD snippets
-    features : 2D numpy array (N,n_pc)
+    features : 2D numpy array (N, n_pca)
         PC values of EOD snippets
     bg_ratio : 1D numpy array (N)
         Ratio of the background activity slopes compared to EOD height.
     """
-    # extract snippets with corresponding width
-    raw_snippets = np.vstack([data[x-width:x+width] for x in eod_x])
+    # extract snippets with corresponding width:
+    raw_snippets = np.vstack([data[x - width:x + width] for x in eod_x])
 
-    # subtract the slope and normalize the snippets
+    # subtract background slope and normalize snippets:
     snippets, bg_ratio = subtract_slope(np.copy(raw_snippets), eod_heights)
     snippets = StandardScaler().fit_transform(snippets.T).T
 
-    # scale so that the absolute integral = 1.
+    # scale so that the absolute integral = 1:
     snippets = (snippets.T/np.sum(np.abs(snippets), axis=1)).T
 
-    # compute features for clustering on waveform
-    features = PCA(n_pc).fit_transform(snippets)
+    # compute PCA features for clustering on waveform:
+    pca = PCA(n_pca)
+    features = pca.fit_transform(snippets)
 
     return raw_snippets, snippets, features, bg_ratio
 
@@ -1367,8 +1386,8 @@ def subtract_slope(snippets, heights):
         EOD height/background activity height.
     """
 
-    left_y = snippets[:,0]
-    right_y = snippets[:,-1]
+    left_y = snippets[:, 0]
+    right_y = snippets[:, -1]
 
     try:
         slopes = np.linspace(left_y, right_y, snippets.shape[1])
