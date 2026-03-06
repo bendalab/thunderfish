@@ -1355,8 +1355,14 @@ def extract_snippet_features(data, rate, eod_idx, eod_widths, eod_heights,
     """
     # extract snippets with corresponding width:
     xwidth = width + min(10, width//4)
-    raw_snippets = np.vstack([data[idx - xwidth:idx + xwidth]
-                              for idx in eod_idx])
+    raw_snippets = np.zeros((len(eod_idx), 2*xwidth))
+    w = min(eod_idx[0], xwidth)
+    raw_snippets[0, xwidth - w:] = data[eod_idx[0] - w:eod_idx[0] + xwidth]
+    for k, idx in enumerate(eod_idx[1:-1]):
+        raw_snippets[k + 1, :] = data[idx - xwidth:idx + xwidth]
+    if len(eod_idx) > 1:
+        w = min(len(data) - eod_idx[-1], xwidth)
+        raw_snippets[-1, :xwidth + w] = data[eod_idx[-1] - xwidth:eod_idx[-1] + w]
 
     # align snippets on phase of first Fourier coefficient:
     n = raw_snippets.shape[1]
@@ -1370,9 +1376,11 @@ def extract_snippet_features(data, rate, eod_idx, eod_widths, eod_heights,
         coef = fourier_coeffs(snippet, np.arange(m) - m//2, freq, 2)[1]
         coefs[k] = coef/np.abs(coef)
     coefs *= np.conjugate(np.mean(coefs))
+    ishifts = np.zeros(len(raw_snippets), dtype=int)
     for k in range(len(raw_snippets)):
         tshift = np.angle(coefs[k])/(2*np.pi*freq)
         ishift = int(np.round(tshift))
+        ishifts[k] = ishift
         raw_snippets[k] = np.roll(raw_snippets[k], ishift)
     raw_snippets = raw_snippets[:, n//2 - width:n//2 + width]
 
