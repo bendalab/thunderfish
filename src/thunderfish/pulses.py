@@ -817,10 +817,10 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
 
         # determine height labels:
         raw_p_snippets, p_snippets, p_features, p_bg_ratio = \
-          extract_snippet_features(data, rate, w_eod_xp, w_eod_widths,
+          extract_snippet_features(data, w_eod_xp, w_eod_widths,
                                    w_eod_heights, width)
         raw_t_snippets, t_snippets, t_features, t_bg_ratio = \
-          extract_snippet_features(data, rate, w_eod_xt, w_eod_widths,
+          extract_snippet_features(data, w_eod_xt, w_eod_widths,
                                    w_eod_heights, width)
             
         # TODO: rather keep the height threshold independent of slopes!
@@ -1322,7 +1322,7 @@ def merge_gaussians(x, labels, min_samples=5, min_samples_frac=0.05,
     return labels
 
 
-def extract_snippet_features(data, rate, eod_idx, eod_widths, eod_heights,
+def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
                              width, n_pca=5):
     """Extract, align, normalize, snippets from recording data, normalize them, and perform PCA.
 
@@ -1387,8 +1387,8 @@ def extract_snippet_features(data, rate, eod_idx, eod_widths, eod_heights,
     # subtract background slope:
     snippets, bg_ratio = subtract_slope(np.copy(raw_snippets), eod_heights)
 
-    # scale so that the absolute integral = 1:
-    snippets = (snippets.T*rate/np.sum(np.abs(snippets), axis=1)).T
+    # scale so that their euclidian norm equals one:
+    snippets = (snippets.T/np.linalg.norm(snippets, axis=1)).T
 
     # compute PCA features for clustering on waveform:
     pca = PCA(n_pca)
@@ -1444,8 +1444,8 @@ def cluster_on_shape(features, bg_ratio,
               np.percentile(knn, percentile))
     """
     # TODO: fixed or adaptive?
-    # fixed: distances are in PCA spaceofstandardized waveforms.
-    eps = 5000.0
+    # fixed: distances are in PCA space of normalized waveforms.
+    eps = 0.05
 
     if verbose > 0:
         print(f'      dbscan parameters: epsilon={eps:.4g}, slope-to-EOD ratio={np.median(bg_ratio):.4g}')
