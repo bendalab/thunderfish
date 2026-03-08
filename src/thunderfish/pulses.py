@@ -363,6 +363,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         merge_thresh_width = 0.5
         n_gaus_height = 10
         merge_thresh_height = 0.1
+        shape_eps = 0.05
         clusters, x_merge, c_log_dict = \
             cluster(i_data, i_rate, x_peak, x_trough, eod_heights, eod_widths,
                     width_factor_shape, width_factor_wave,
@@ -371,6 +372,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                     merge_thresh_width=merge_thresh_width,
                     n_gaus_height=n_gaus_height,
                     merge_thresh_height=merge_thresh_height,
+                    shape_eps=shape_eps,
                     verbose=verbose, plot_level=plot_level-1,
                     save_plots=save_plots, save_path=save_path,
                     ftype=ftype, return_data=return_data) 
@@ -674,6 +676,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             min_samples=5, min_samples_frac=0.05,
             n_gaus_width=3, merge_thresh_width=0.6,
             n_gaus_height=10, merge_thresh_height=0.1,
+            shape_eps=0.05,
             verbose=0, plot_level=0, save_plots=False,
             save_path='', ftype='pdf', return_data=[]):
     """Cluster EODs.
@@ -718,6 +721,8 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
         Number of gaussians to use for the clustering based on EOD height.
     merge_thresh_height : float
         Threshold for merging clusters that are similar in height.
+    shape_eps : float
+        Epsilon to use for DBSCAN clustering of EOD shapes.
     verbose : int
         Verbosity level.
     plot_level : int
@@ -899,8 +904,10 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             p_feats = p_features[height_labels == height_label]
             t_feats = t_features[height_labels == height_label]
             
-            p_labels = cluster_on_shape(p_feats, p_bg_ratio, min_samples, min_samples_frac, verbose=verbose - 1)
-            t_labels = cluster_on_shape(t_feats, t_bg_ratio, min_samples, min_samples_frac, verbose=verbose - 1)
+            p_labels = cluster_on_shape(p_feats, shape_eps, min_samples,
+                                        min_samples_frac)
+            t_labels = cluster_on_shape(t_feats, shape_eps, min_samples,
+                                        min_samples_frac)
 
             if plot_level > 0:
                 p_snips = p_snippets[height_labels == height_label]
@@ -1397,35 +1404,20 @@ def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
     return raw_snippets, snippets, features, bg_ratio
 
 
-def cluster_on_shape(features, bg_ratio,
-                     min_samples=5, min_samples_frac=0.05, percentile=80,
-                     max_epsilon=0.01, slope_ratio_factor=4,
-                     min_cluster_fraction=0.01, verbose=0):
+def cluster_on_shape(features, epsilon=0.05,
+                     min_samples=5, min_samples_frac=0.05):
     """Separate EODs by their shape using DBSCAN.
 
     Parameters
     ----------
     features : 2D numpy array of float (N, n_pc)
         PCA features of each EOD in a recording.
-    bg_ratio : 1D array of float
-        Ratio of background activity slope the EOD is superimposed on.
+    epsilon : float
+        Epsilon to use for DBSCAN clustering.
     min_samples: int
         Minimum number of samples required for a valid cluster.
     min_samples_frac: float
         Cluster with less samples than this fraction of all the samples are removed.
-    percentile : int
-        Percentile of KNN distribution, where K=min_samples, to use as epsilon for DBSCAN.
-    max_epsilon : float
-        Maximum epsilon to use for DBSCAN clustering. This is used to avoid adding
-        noisy clusters.
-    slope_ratio_factor : float
-        Influence of the slope-to-EOD ratio on the epsilon parameter.
-        A slope_ratio_factor of 4 means that slope-to-EOD ratios >1/4
-        start influencing epsilon.
-    min_cluster_fraction : float
-        Minimum fraction of all eveluated datapoint that can form a single cluster.
-    verbose : int
-        Verbosity level.
 
     Returns
     -------
@@ -1436,21 +1428,8 @@ def cluster_on_shape(features, bg_ratio,
     min_smpl = int(len(features)*min_samples_frac)
     if min_smpl > min_samples:
         min_samples = min_smpl
-        
-    # determine distance threshold from data:
-    """
-    knn = np.sort(pairwise_distances(features, features), axis=0)[min_samples]
-    eps = min(max(1, slope_ratio_factor*np.median(bg_ratio))*max_epsilon,
-              np.percentile(knn, percentile))
-    """
-    # TODO: fixed or adaptive?
-    # fixed: distances are in PCA space of normalized waveforms.
-    eps = 0.05
 
-    if verbose > 0:
-        print(f'      dbscan parameters: epsilon={eps:.4g}, slope-to-EOD ratio={np.median(bg_ratio):.4g}')
-
-    return DBSCAN(eps=eps, min_samples=min_samples).fit(features).labels_
+    return DBSCAN(eps=epsilon, min_samples=min_samples).fit(features).labels_
 
 
 def subtract_slope(snippets, heights):
