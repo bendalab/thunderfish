@@ -1380,7 +1380,7 @@ def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
     for k in range(len(raw_snippets)):
         snippet = raw_snippets[k, n//2 - dist:n//2 + dist]
         m = len(snippet)
-        coef = fourier_coeffs(snippet, np.arange(m) - m//2, freq, 2)[1]
+        coef = fourier_coeffs(snippet, np.arange(m) - m//2, freq, 1)[1]
         coefs[k] = coef/np.abs(coef)
     coefs *= np.conjugate(np.mean(coefs))
     ishifts = np.zeros(len(raw_snippets), dtype=int)

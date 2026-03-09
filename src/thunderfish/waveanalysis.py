@@ -69,7 +69,7 @@ from .harmonics import fundamental_freqs_and_power
 
 def extract_wave(data, rate, freq, deltaf,
                  win_fac='auto', min_segments=6, periods=5,
-                 frate=1e6, n_harmonics=20,
+                 frate=1e6, max_harmonics=20,
                  min_corr=0.99, min_ampl_frac=0.5,
                  verbose=0, plot_level=0):
     """Retrieve average EOD waveform via Fourier decomposition.
@@ -117,8 +117,8 @@ def extract_wave(data, rate, freq, deltaf,
         EOD period (`1/freq`) times `periods`.
     frate: float
         Sampling rate used for the returned waveform estimates.
-    n_harmonics: int
-        Number of harmonics used for the Fourier decomposition.
+    max_harmonics: int
+        Highest harmonics used for the Fourier decomposition.
     min_corr: float
         Minimum required correlation between two waveform estimates.
     min_ampl_fac: float
@@ -196,12 +196,11 @@ def extract_wave(data, rate, freq, deltaf,
         return mean_coeffs, mean_eod, freq, np.array([]), 0, f'no frequencies detected ({len(indicies)} indices, freqs={freqs})'
     # refined Fourier series and waveforms:
     n = int(periods/np.mean(freqs)*frate)
-    coeffs = np.zeros((len(indices), n_harmonics), dtype=complex)
+    coeffs = np.zeros((len(indices), max_harmonics), dtype=complex)
     waves = np.zeros((len(indices), n))
     for k in range(len(indices)):
         i = indices[k]
-        c = fourier_coeffs(data[i:i + step], rate, freqs[k],
-                           n_harmonics)
+        c = fourier_coeffs(data[i:i + step], rate, freqs[k], max_harmonics)
         c = normalize_fourier_coeffs(c)
         w = fourier_synthesis(freqs[k], c, frate, n)
         coeffs[k] = c
@@ -438,7 +437,7 @@ def condition_wave(eod, ratetime, freq, coeffs=None, flip_wave='none'):
 
     # shift time:
     if coeffs is None:
-        c = fourier_coeffs(eodw, time, freq, 2)
+        c = fourier_coeffs(eodw, time, freq, 1)
     else:
         c = coeffs
     period = 1/freq
@@ -766,7 +765,7 @@ def analyse_wave_spectrum(freq, coeffs, n_phase_harmonics=8):
 
     
 def analyze_wave(eod, ratetime, freq, coeffs=None,
-                 n_harmonics=20, flip_wave='none', thresh_frac=0.05,
+                 max_harmonics=20, flip_wave='none', thresh_frac=0.05,
                  n_phase_harmonics=8):
     """Full analysis of the EOD waveform of a wave fish.
     
@@ -791,8 +790,8 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
         The Fourier coefficients of an EOD waveform.
         If provided, they are taken for the spectrum and the waveform
         is updated from them.
-    n_harmonics: int
-        Number of harmonics used for the Fourier decomposition.
+    max_harmonics: int
+        Highest harmonics used for the Fourier decomposition.
     flip_wave: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
@@ -908,7 +907,7 @@ def analyze_wave(eod, ratetime, freq, coeffs=None,
     # spectrum:
     has_spec = coeffs is not None
     if not has_spec:
-        coeffs = fourier_coeffs(meod[:, 1], meod[:, 0], freq1, n_harmonics)
+        coeffs = fourier_coeffs(meod[:, 1], meod[:, 0], freq1, max_harmonics)
         phase1 = np.angle(coeffs[1])
         deltat = phase1/(2*np.pi*freq1)
         meod[:, 0] -= deltat   # TODO: test direction of shift
@@ -1807,7 +1806,7 @@ def load_wave_spectrum(file_path):
 
 
 def add_extract_wave_config(cfg, win_fac='auto', min_segments=6,
-                            periods=5, frate=1e6, n_harmonics=20,
+                            periods=5, frate=1e6, max_harmonics=20,
                             min_corr=0.99, min_ampl_frac=0.5):
     """Add all parameters needed for `extract_wave()` as a new
     section to a configuration.
@@ -1824,7 +1823,7 @@ def add_extract_wave_config(cfg, win_fac='auto', min_segments=6,
     cfg.add('minimumDataSegments', min_segments, '', 'Minimum number of data segments required for EOD waveform estimation.')
     cfg.add('periodsWaveEOD', periods, '', 'Number of periods computed for an EOD estimate.')
     cfg.add('samplingRateWaveEOD', 0.001*frate, 'kHz', 'Sampling rate of EOD waveform estimates.')
-    cfg.add('eodHarmonics', n_harmonics, '', 'Number of harmonics of the Fourier decomposition.')
+    cfg.add('eodHarmonics', max_harmonics, '', 'Highest harmonics of the Fourier decomposition.')
     cfg.add('minimumEODCorrelations', min_corr, '', 'Minimum correlation between good EOD waveform estimates.')
     cfg.add('minimumEODAmplitude', 100*min_ampl_frac, '%', 'Minimum amplitude of an EOD estimate relative to the largest one.')
 
@@ -1850,7 +1849,7 @@ def extract_wave_args(cfg):
                 min_segments='minimumDataSegments',
                 periods='periodsWaveEOD',
                 frate='samplingRateWaveEOD',
-                n_harmonics='eodHarmonics',
+                max_harmonics='eodHarmonics',
                 min_corr='minimumEODCorrelations',
                 min_ampl_frac='minimumEODAmplitude')
     if a['win_fac'] != 'auto':
@@ -1860,7 +1859,7 @@ def extract_wave_args(cfg):
     return a
 
         
-def add_analyze_wave_config(cfg, n_harmonics=20, flip_wave='none',
+def add_analyze_wave_config(cfg, max_harmonics=20, flip_wave='none',
                             thresh_frac=0.05, n_phase_harmonics=8):
     """Add all parameters needed for `analyse_wave()` as a new
     section to a configuration.
@@ -1873,7 +1872,7 @@ def add_analyze_wave_config(cfg, n_harmonics=20, flip_wave='none',
     See `analyze_wave()` for details on the remaining arguments.
     """
     cfg.add_section('Wave-type EOD analysis:')
-    cfg.add('eodHarmonics', n_harmonics, '', 'Number of harmonics fitted to the EOD waveform.')
+    cfg.add('eodHarmonics', max_harmonics, '', 'Highest harmonics of the Fourier decomposition.')
     cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave fish to make largest extremum positive (flip, none, or auto).')
     cfg.add('waveEODThresholdFraction', 100*thresh_frac, '%', 'Threshold for detecting peaks and troughs in wave-type EODs as a fraction of the p-p amplitude.')
     cfg.add('waveEODPhaseHarmonics', n_phase_harmonics, '', 'Number of harmonics over which to compute the slope of the phases..')
@@ -1896,7 +1895,7 @@ def analyze_wave_args(cfg):
         Dictionary with names of arguments of the `analyze_wave()` function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map(n_harmonics='eodHarmonics',
+    a = cfg.map(max_harmonics='eodHarmonics',
                 flip_wave='flipWaveEOD',
                 thresh_frac='waveEODThresholdFraction',
                 n_phase_harmonics='waveEODPhaseHarmonics')
