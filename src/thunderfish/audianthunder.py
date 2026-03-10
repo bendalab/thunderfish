@@ -39,7 +39,7 @@ from .thunderfish import wave_spec_styles, pulse_spec_styles
 from .bestwindow import clip_args, clip_amplitudes
 from .harmonics import colors_markers, plot_harmonic_groups
 from .eodanalysis import plot_eod_snippets
-from .eodanalysis import plot_eod_recording, save_analysis
+from .eodanalysis import plot_eod_recording, zoom_eod_recording, save_analysis
 from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_eod, plot_pulse_spectrum
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum 
 from .harmonics import annotate_harmonic_group
@@ -55,24 +55,16 @@ class TracePlot():
         self.navi.hide()
         self.ax = self.canvas.figure.subplots()
         rate = 1/np.mean(np.diff(time))
-        twidth = 0.1
-        if len(eod_props) > 0:
-            if eod_props[0]['type'] == 'wave':
-                twidth = 5.0/eod_props[0]['EODf']
-            else:
-                if len(wave_eodfs) > 0:
-                    twidth = 3.0/eod_props[0]['EODf']
-                else:
-                    twidth = 10.0/eod_props[0]['EODf']
-        twidth = (1+twidth//0.005)*0.005
-        plot_eod_recording(self.ax, data, rate, unit,
-                           twidth, time[0], rec_style)
-        zoom_window = [1.2, 1.3]
-        plot_pulse_eodtimes(self.ax, data, rate, zoom_window,
+        twidth = 0.5
+        tfac = plot_eod_recording(self.ax, data, rate, unit,
+                                  twidth, time[0], rec_style)
+        plot_pulse_eodtimes(self.ax, data, rate,
                             twidth, eod_props, time[0],
                             colors=pulse_colors,
                             markers=pulse_markers,
                             frameon=True, loc='upper right')
+        zoom_eod_recording(self.ax, eod_props, data, rate,
+                           twidth, tfac, time[0])
         if self.ax.get_legend() is not None:
             self.ax.get_legend().get_frame().set_color('white')
 
@@ -247,8 +239,7 @@ class ThunderfishDialog(QDialog):
         # detect EODs in the data:
         power_freqs, powers, self.wave_eodfs, self.wave_indices, \
         self.eod_props, self.mean_eods, self.spec_data, self.phase_data, \
-        self.pulse_data, power_thresh, \
-        self.skip_reason, self.zoom_window = \
+        self.pulse_data, power_thresh, self.skip_reason = \
           detect_eods(self.data, self.rate, power_freqs, power_times, powers,
                       min_clip=self.min_clip, max_clip=self.max_clip,
                       name=self.file_path, mode='wp',

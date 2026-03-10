@@ -1438,7 +1438,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
     return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
 
-def plot_pulse_eodtimes(ax, data, rate, zoom_window, width, eod_props,
+def plot_pulse_eodtimes(ax, data, rate, width, eod_props,
                         toffs=0, colors=None, markers=None, marker_size=10,
                         legend_rows=8, **kwargs):
     """Mark pulse EODs in a plot of an EOD recording.
@@ -1451,8 +1451,6 @@ def plot_pulse_eodtimes(ax, data, rate, zoom_window, width, eod_props,
         Recorded data (these are not plotted!).
     rate: float
         Sampling rate of the data in Hertz.
-    zoom_window: tuple of floats
-       Start and end time of the data to be plotted in seconds.
     width: float
        Minimum width of the data to be plotted in seconds.
     eod_props: list of dictionaries
@@ -1475,44 +1473,23 @@ def plot_pulse_eodtimes(ax, data, rate, zoom_window, width, eod_props,
     kwargs: 
             Key word arguments for the legend of the plot.
     """
-    zwidth = width
-    if len(zoom_window) == 2:
-        zwidth = np.diff(zoom_window)[0]
-        if zoom_window[1] > len(data)/rate:
-            zoom_window[1] = len(data)/rate
-            zoom_window[0] = zoom_window[1] - width
-        if zoom_window[0] < 0:
-            zoom_window[0] = 0
-            zoom_window[1] = width
-    else:
-        t0 = 0.5*len(data)/rate - zwidth/2
-        if t0 < 0:
-            t0 = 0
-        zoom_window = (t0, t0 + zwidth)
     k = 0
     for eod in eod_props:
         if eod['type'] != 'pulse':
             continue
         if 'times' not in eod:
             continue
-
-        width = min(width, zwidth)
-        while len(eod['peaktimes'][(eod['peaktimes'] > (zoom_window[1] - width)) & (eod['peaktimes'] < (zoom_window[1]))]) == 0:
-            width *= 2
-            if zoom_window[1] - width < 0:
-                width = width/2
-                break  
-
         x = eod['peaktimes'] + toffs
         pidx = np.round(eod['peaktimes']*rate).astype(int)
-        y = data[pidx[(pidx>0)&(pidx<len(data))]]
-        x = x[(pidx>0)&(pidx<len(data))]
+        mask = (pidx > 0) & (pidx < len(data))
+        y = data[pidx[mask]]
+        x = x[mask]
         color_kwargs = {}
         #if colors is not None:
         #    color_kwargs['color'] = colors[k%len(colors)]
         if marker_size is not None:
             color_kwargs['ms'] = marker_size
-        label = '%6.1f Hz' % eod['EODf']
+        label = f'{eod["EODf"]:6.1f} Hz'
         if legend_rows > 5 and k >= legend_rows:
             label = None
         if markers is None:
@@ -1533,18 +1510,6 @@ def plot_pulse_eodtimes(ax, data, rate, zoom_window, width, eod_props,
             ax.legend(numpoints=1, ncol=ncol, **kwargs)
         else:
             ax.legend(numpoints=1, **kwargs)
-
-    # reset window such that at least one EOD of each cluster is visible    
-    if len(zoom_window) > 0:
-        t0 = max(toffs, toffs + zoom_window[1] - width)
-        t1 = min(t0 + width, toffs + zoom_window[1])
-        ax.set_xlim(t0, t1)
-        i0 = int((t0 - toffs)*rate)
-        i1 = int((t1 - toffs)*rate)
-        ymin = np.min(data[i0:i1])
-        ymax = np.max(data[i0:i1])
-        dy = ymax - ymin
-        ax.set_ylim(ymin - 0.05*dy, ymax + 0.05*dy)
 
         
 def plot_pulse_eod(ax, eod_waveform, props, phases=None,

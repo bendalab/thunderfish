@@ -66,7 +66,8 @@ from .waveanalysis import add_analyze_wave_config, analyze_wave_args
 from .waveanalysis import wave_quality_args 
 from .eodanalysis import eod_waveform
 from .eodanalysis import unfilter, unfilter_coeff, clipped_fraction
-from .eodanalysis import plot_eod_recording, plot_eod_snippets
+from .eodanalysis import plot_eod_recording, zoom_eod_recording
+from .eodanalysis import plot_eod_snippets
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import add_species_config
 from .eodanalysis import add_eod_quality_config
@@ -340,12 +341,11 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
     power_thresh = None
     skip_reason = []
     max_pulse_amplitude = 0.0
-    zoom_window = []
 
     if 'p' in mode:
         # detect pulse fish:
         frate = 0.5e6  # TODO: make parameter
-        eods, eod_times, eod_peaktimes, zoom_window, _ = \
+        eods, eod_times, eod_peaktimes, _ = \
             extract_pulsefish(data, rate, frate,
                               verbose=verbose - 1,
                               plot_level=plot_level,
@@ -522,7 +522,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
         wave_indices = np.array([idx for idx in wave_indices if idx > -2], dtype=int)
     return (power_freqs, powers, wave_eodfs, wave_indices, eod_props,
             mean_eods, spec_data, phase_data, pulseeod_data,
-            power_thresh, skip_reason, zoom_window)
+            power_thresh, skip_reason)
 
 
 def remove_eod_files(output_basename, verbose, cfg):
@@ -565,7 +565,7 @@ def axes_style(ax):
 def plot_eods(title, message_filename, raw_data, rate, channel, idx0,
               idx1, clipped, power_freqs, powers, wave_eodfs,
               wave_indices, mean_eods, eod_props, phase_data,
-              pulse_data, spec_data, indices, unit, zoom_window,
+              pulse_data, spec_data, indices, unit,
               n_snippets=10, power_thresh=None, label_power=True,
               all_eods=False, spec_plots='auto', skip_bad=True,
               log_freq=False, min_freq=0.0, max_freq=3000.0,
@@ -626,8 +626,6 @@ def plot_eods(title, message_filename, raw_data, rate, channel, idx0,
         If None try to plot all.
     unit: string
         Unit of the trace and the mean EOD.
-    zoom_window: tuple of floats
-        Start and endtime of suggested window for plotting pulse EOD timepoints.
     n_snippets: int
         Number of EOD waveform snippets to be plotted. If zero do not plot any.
     power_thresh:  2 D array or None
@@ -784,24 +782,17 @@ def plot_eods(title, message_filename, raw_data, rate, channel, idx0,
     pulse_markers = pulse_markers[3:]
     if axr is not None:
         axes_style(axr)
-        twidth = 0.1
-        if len(indices) > 0:
-            if eod_props[indices[0]]['type'] == 'wave':
-                twidth = 5.0/eod_props[indices[0]]['EODf']
-            else:
-                if len(wave_eodfs) > 0:
-                    twidth = 3.0/eod_props[indices[0]]['EODf']
-                else:
-                    twidth = 10.0/eod_props[indices[0]]['EODf']
-            twidth = (1+twidth//0.005)*0.005
+        twidth = 0.5
         if data is not None and len(data) > 0:
-            plot_eod_recording(axr, data, rate, unit, twidth,
-                               idx0/rate, rec_style)
+            tfac = plot_eod_recording(axr, data, rate, unit, twidth,
+                                      idx0/rate, rec_style)
             plot_pulse_eodtimes(axr, data, rate,
-                                zoom_window, twidth, eod_props,
+                                twidth, eod_props,
                                 idx0/rate, colors=pulse_colors,
                                 markers=pulse_markers, frameon=True,
                                 loc='upper right')
+            zoom_eod_recording(axr, eod_props, data, rate,
+                               twidth, tfac, idx0/rate)
         if axr.get_legend() is not None:
             axr.get_legend().get_frame().set_color('white')
         axr.set_title('Recording', fontsize=14, y=1.05)
@@ -973,7 +964,7 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
                       rate, idx0, idx1, clipped, power_freqs, powers,
                       wave_eodfs, wave_indices, mean_eods, eod_props,
                       phase_data, pulse_data, spec_data, unit,
-                      zoom_window, n_snippets=10, power_thresh=None,
+                      n_snippets=10, power_thresh=None,
                       label_power=True, skip_bad=True, log_freq=False,
                       min_freq=0.0, max_freq=3000.0, save=True):
     """Plot time traces and spectra into separate windows or files.
@@ -1030,8 +1021,6 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
         each wavefish the relative amplitudes and phases of the harmonics.
     unit: string
         Unit of the trace and the mean EOD.
-    zoom_window: tuple of floats
-        Start and endtime of suggested window for plotting pulse EOD timepoints.
     n_snippets: int
         Number of EOD waveform snippets to be plotted. If zero do not plot any.
     power_thresh:  2 D array or None
@@ -1071,25 +1060,18 @@ def plot_eod_subplots(base_name, multi_pdf, subplots, title, raw_data,
     if 't' in subplots:
         top = 0.1 if multi_pdf is not None else 0
         fig, ax = plt.subplots(figsize=(10, 6))
-        twidth = 0.1
-        if len(eod_props) > 0:
-            if eod_props[0]['type'] == 'wave':
-                twidth = 5.0/eod_props[0]['EODf']
-            else:
-                if len(wave_eodfs) > 0:
-                    twidth = 3.0/eod_props[0]['EODf']
-                else:
-                    twidth = 10.0/eod_props[0]['EODf']
-        twidth = (1+twidth//0.005)*0.005
+        twidth = 0.5
         pulse_colors, pulse_markers = colors_markers()
         pulse_colors = pulse_colors[3:]
         pulse_markers = pulse_markers[3:]
-        plot_eod_recording(ax, raw_data[idx0:idx1], rate, unit,
-                           twidth, idx0/rate, rec_style)
-        plot_pulse_eodtimes(ax, raw_data[idx0:idx1], rate, zoom_window,
+        tfac = plot_eod_recording(ax, raw_data[idx0:idx1], rate, unit,
+                                  twidth, idx0/rate, rec_style)
+        plot_pulse_eodtimes(ax, raw_data[idx0:idx1], rate,
                             twidth, eod_props, idx0/rate,
                             colors=pulse_colors, markers=pulse_markers,
                             frameon=True, loc='upper right')
+        zoom_eod_recording(ax, eod_props, raw_data[idx0:idx1], rate,
+                           twidth, tfac, idx0/rate)
         if ax.get_legend() is not None:
             ax.get_legend().get_frame().set_color('white')
         axes_style(ax)
@@ -1334,7 +1316,6 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
     if len(eod_props) > 0 and not eod_props[0] is None and \
        'winclipped' in eod_props[0]:
         clipped = eod_props[0]['winclipped']
-    zoom_window = [1.2, 1.3]
     # load recording:
     power_freqs = None
     powers = None
@@ -1385,7 +1366,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
                         wave_eodfs, wave_indices, mean_eods,
                         eod_props, phase_data, pulse_data, spec_data,
                         None, unit,
-                        zoom_window, 10, None, True, all_eods,
+                        10, None, True, all_eods,
                         spec_plots, skip_bad, log_freq, min_freq,
                         max_freq, interactive=not save_plot,
                         verbose=verbose-1)
@@ -1405,7 +1386,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
                           power_freqs, powers, wave_eodfs,
                           wave_indices, mean_eods, eod_props,
                           phase_data, pulse_data, spec_data, unit,
-                          zoom_window, 10, None, True, skip_bad,
+                          10, None, True, skip_bad,
                           log_freq, min_freq, max_freq, save_plot)
     return None
 
@@ -1546,7 +1527,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
         # detect EODs in the data:
         power_freqs, powers, wave_eodfs, wave_indices, eod_props, \
-        mean_eods, spec_data, phase_data, pulse_data, power_thresh, skip_reason, zoom_window = \
+        mean_eods, spec_data, phase_data, pulse_data, \
+        power_thresh, skip_reason = \
           detect_eods(data, rate, None, None, None, min_clip, max_clip,
                       filename, mode, verbose, plot_level, cfg)
         if not found_bestwindow:
@@ -1614,7 +1596,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                                 clipped, power_freqs, powers,
                                 wave_eodfs, wave_indices, mean_eods, eod_props,
                                 phase_data, pulse_data, spec_data, None, unit,
-                                zoom_window, n_snippets, power_thresh,
+                                n_snippets, power_thresh,
                                 True, all_eods, spec_plots, skip_bad,
                                 log_freq, min_freq, max_freq,
                                 interactive=not save_plot,
@@ -1635,8 +1617,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                                   power_freqs, powers, wave_eodfs,
                                   wave_indices, mean_eods, eod_props,
                                   phase_data, pulse_data, spec_data, unit,
-                                  zoom_window, n_snippets,
-                                  power_thresh, True, skip_bad,
+                                  n_snippets, power_thresh, True, skip_bad,
                                   log_freq, min_freq, max_freq,
                                   save_plot)
     all_data.close()

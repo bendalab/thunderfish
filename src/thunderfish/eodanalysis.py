@@ -24,6 +24,7 @@ Analyse EOD waveforms.
 ## Visualization
 
 - `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
+- `zoom_eod_recording()`: set optimal time limits for EOD recording.
 - `plot_eod_snippets()`: plot a few EOD waveform snippets.
 
 ## Storage
@@ -597,9 +598,9 @@ def clipped_fraction(data, rate, eod_times, mean_eod,
         return clipped_frac
 
 
-def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
+def plot_eod_recording(ax, data, rate, unit=None, width=None,
                        toffs=0.0, rec_style=dict(lw=2, color='tab:red')):
-    """Plot a zoomed in range of the recorded trace.
+    """Plot the recorded trace.
 
     Parameters
     ----------
@@ -611,38 +612,102 @@ def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
         Sampling rate of the data in Hertz.
     unit: str
         Optional unit of the data used for y-label.
-    width: float
-        Width of data segment to be plotted in seconds.
+    width: float or None
+        Width of central data segment to be plotted in seconds.
+        If None plot all.
     toffs: float
         Time of first data value in seconds.
     rec_style: dict
         Arguments passed on to the plot command for the recorded trace.
-    """
-    widx2 = int(width*rate)//2
-    i0 = len(data)//2 - widx2
-    i0 = (i0//widx2)*widx2
-    i1 = i0 + 2*widx2
-    if i0 < 0:
-        i0 = 0
-    if i1 >= len(data):
-        i1 = len(data) - 1
-    time = np.arange(len(data))/rate + toffs
-    tunit = 'sec'
-    if np.abs(time[i0]) < 1.0 and np.abs(time[i1]) < 1.0:
-        time *= 1000.0
-        tunit = 'ms'
-    ax.plot(time, data, **rec_style)
-    ax.set_xlim(time[i0], time[i1])
 
-    ax.set_xlabel('Time [%s]' % tunit)
-    ymin = np.min(data[i0:i1])
-    ymax = np.max(data[i0:i1])
+    Returns
+    -------
+    tfac: float
+        Factor that has been used to multiply time.
+    """
+    if width is None or width > len(data)/rate:
+        width = len(data)/rate
+    time = np.arange(len(data))/rate + toffs
+    t_center = 0.5*(time[-1] + time[0])
+    t0 = t_center - width/2
+    t1 = t_center + width/2
+    tfac = 1
+    tunit = 's'
+    if np.abs(t0) < 1.0 and np.abs(t1) < 1.0:
+        tfac = 1000
+        tunit = 'ms'
+    # plot:
+    ax.plot(tfac*time, data, **rec_style)
+    ax.set_xlim(tfac*t0, tfac*t1)
+    # annotate:
+    ax.set_xlabel(f'Time [{tunit}]')
+    ymin = np.min(data)
+    ymax = np.max(data)
     dy = ymax - ymin
     ax.set_ylim(ymin - 0.05*dy, ymax + 0.05*dy)
     if len(unit) == 0 or unit == 'a.u.':
         ax.set_ylabel('Amplitude')
     else:
         ax.set_ylabel(f'Amplitude [{unit}]')
+    return tfac
+
+
+def zoom_eod_recording(ax, eod_props, data, rate, width=0.5, tfac=1, toffs=0):
+    """Set optimal time limits for EOD recording.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes used for plotting.
+    eod_props: list of dict or None
+        List of EOD properties from which EOD frequencies and fish types
+        are extracted.
+    data: 1D ndarray
+        Recorded data to be plotted.
+    rate: float
+        Sampling rate of the data in Hertz.
+    width: float
+        Default width of central data segment to be plotted in seconds.
+    tfac: float
+        Factor that has been used to multiply time.
+    toffs: float
+        Time of first data value in seconds.
+    """
+    # optimal width:
+    if width > len(data)/rate:
+        width = len(data)/rate
+    if eod_props is not None and len(eod_props) > 0:
+        # collect EOD frequencies:
+        wave_eodfs = []
+        pulse_eodfs = []
+        for props in eod_props:
+            if not 'EODf' in props:
+                continue
+            if 'type' in props and props['type'] == 'wave':
+                wave_eodfs.append(props['EODf'])
+            else:
+                pulse_eodfs.append(props['EODf'])
+                
+        # best time window:
+        if len(wave_eodfs) + len(pulse_eodfs) > 0:
+            max_wave_period = 0
+            max_pulse_period = 0
+            min_wave_period = 0
+            min_pulse_period = 0
+            if len(wave_eodfs) > 0:
+                max_wave_period = 1/np.min(wave_eodfs)
+                min_wave_period = 1/np.max(wave_eodfs)
+            if len(pulse_eodfs) > 0:
+                max_pulse_period = 1/np.min(pulse_eodfs)
+                min_pulse_period = 1/np.max(pulse_eodfs)
+            max_period = max(max_wave_period, max_pulse_period)
+            width = max(5*max_period, 8*min_pulse_period, 20*min_wave_period)
+    width = (1 + width//0.01)*0.01
+    # center in data:
+    t_center = toffs + len(data)/rate/2
+    t0 = t_center - width/2
+    t1 = t_center + width/2
+    ax.set_xlim(tfac*t0, tfac*t1)
 
         
 def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,

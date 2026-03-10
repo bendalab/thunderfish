@@ -303,9 +303,16 @@ def extract_wave(data, rate, freq, deltaf,
             axs[1, 1].legend()
         if verbose > 0:
             eodf = np.mean(freqs) if len(freqs) > 0 else np.nan
-            with np.printoptions(formatter={'float': lambda x: f'{x:.2f}'},
-                                 linewidth=10000, legacy='1.25'):
-                print(f'extract {freq:7.2f}Hz wave  fish: min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax}, segments={len(corr)}, num_selected={len(mask)}, selected={mask}, EODfs={freqs}, EODf={eodf:.2f}Hz')
+            kwargs = dict(legacy='1.25')
+            while True:
+                try:
+                    with np.printoptions(formatter={'float': lambda x: f'{x:.2f}'},
+                                         linewidth=10000, **kwargs):
+                        print(f'extract {freq:7.2f}Hz wave  fish: min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax}, segments={len(corr)}, num_selected={len(mask)}, selected={mask}, EODfs={freqs}, EODf={eodf:.2f}Hz')
+                    break
+                except KeyError:
+                    # old numpy versions do not have the legacy='1.25' option:
+                    kwargs = dict()
         if len(waves) == 0:
             if plot_level > 0:
                 plt.show()

@@ -302,8 +302,6 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         Use these timepoints for EOD averaging.
     eod_peaktimes: list of 1D arrays
         For each detected fish the times of EOD peaks in seconds.
-    zoom_window: tuple of float
-        Start and endtime of suggested window for plotting EOD timepoints.
     log_dict: dictionary
         Dictionary with logged variables, where variables to log are specified
         by `return_data`.
@@ -323,7 +321,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
     else:
         save_path = ''
 
-    mean_eods, eod_times, eod_peaktimes, zoom_window = [], [], [], []
+    mean_eods, eod_times, eod_peaktimes = [], [], []
     log_dict = {}
 
     # interpolate:
@@ -391,7 +389,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                                 verbose=verbose)
 
         # delete moving fish:
-        clusters, zoom_window, mf_log_dict = \
+        clusters, mf_log_dict = \
           delete_moving_fish(clusters, x_merge/i_rate, len(data)/rate,
                              eod_heights, eod_widths/i_rate, i_rate,
                              verbose=verbose, plot_level=plot_level-1,
@@ -432,7 +430,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
     if verbose > 0:
         print('')
 
-    return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
+    return mean_eods, eod_times, eod_peaktimes, log_dict
 
 
 def detect_pulses(data, rate, thresh, min_rel_slope_diff=0.25,
@@ -1945,21 +1943,17 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
     -------
     clusters : list of int
         Cluster labels, where deleted clusters have been set to -1.
-    window : list of 2 floats
-        Start and end of window selected for deleting moving fish in seconds.
     mf_dict : dictionary
         Key value pairs of logged data. Data to be logged is specified by return_data.
     """
     mf_dict = {}
     
     if len(np.unique(clusters[clusters != -1])) == 0:
-        return clusters, [0, 1], {}
+        return clusters, {}
 
     all_keep_clusters = []
     width_classes = merge_gaussians(eod_widths, np.copy(clusters), 0.75)   
 
-    all_windows = []
-    all_dts = []
     ev_num = 0
     for iw, w in enumerate(np.unique(width_classes[clusters >= 0])):
         # initialize variables
@@ -1976,8 +1970,6 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
         weod_t = eod_t[width_classes == w]
         weod_heights = eod_heights[width_classes == w]
         weod_widths = eod_widths[width_classes == w]
-
-        all_dts.append(dt)
 
         if verbose > 0:
             print('sliding window dt = %f'%dt)
@@ -2029,7 +2021,6 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
                     sparse_clusters = current_sparse_clusters
 
         all_keep_clusters.append(keep_clusters)
-        all_windows.append(window_end)
         
         if 'moving_fish' in return_data or plot_level > 0:
             if 'w' in mf_dict:
@@ -2063,8 +2054,8 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
 
     # delete all clusters that are not selected
     clusters[np.invert(np.isin(clusters, np.concatenate(all_keep_clusters)))] = -1
-
-    return clusters, [np.max(all_windows)-np.max(all_dts), np.max(all_windows)], mf_dict
+    
+    return clusters, mf_dict
 
 
 def remove_sparse_detections(clusters, eod_widths, rate, T,
