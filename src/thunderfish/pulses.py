@@ -363,6 +363,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         merge_thresh_width = 0.5
         n_gaus_height = 10
         merge_thresh_height = 0.1
+        n_pca = 5
         shape_eps = 0.05
         clusters, x_merge, c_log_dict = \
             cluster(i_data, i_rate, x_peak, x_trough, eod_heights, eod_widths,
@@ -372,7 +373,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                     merge_thresh_width=merge_thresh_width,
                     n_gaus_height=n_gaus_height,
                     merge_thresh_height=merge_thresh_height,
-                    shape_eps=shape_eps,
+                    n_pca=n_pca, shape_eps=shape_eps,
                     verbose=verbose, plot_level=plot_level-1,
                     save_plots=save_plots, save_path=save_path,
                     ftype=ftype, return_data=return_data) 
@@ -676,7 +677,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             min_samples=5, min_samples_frac=0.05,
             n_gaus_width=3, merge_thresh_width=0.6,
             n_gaus_height=10, merge_thresh_height=0.1,
-            shape_eps=0.05,
+            n_pca=5, shape_eps=0.05,
             verbose=0, plot_level=0, save_plots=False,
             save_path='', ftype='pdf', return_data=[]):
     """Cluster EODs.
@@ -721,6 +722,8 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
         Number of gaussians to use for the clustering based on EOD height.
     merge_thresh_height : float
         Threshold for merging clusters that are similar in height.
+    n_pca: int
+        Number of PCs to use for PCA.
     shape_eps : float
         Epsilon to use for DBSCAN clustering of EOD shapes.
     verbose : int
@@ -823,10 +826,10 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
         # determine height labels:
         raw_p_snippets, p_snippets, p_features, p_bg_ratio = \
           extract_snippet_features(data, w_eod_xp, w_eod_widths,
-                                   w_eod_heights, width)
+                                   w_eod_heights, width, n_pca)
         raw_t_snippets, t_snippets, t_features, t_bg_ratio = \
           extract_snippet_features(data, w_eod_xt, w_eod_widths,
-                                   w_eod_heights, width)
+                                   w_eod_heights, width, n_pca)
             
         # TODO: rather keep the height threshold independent of slopes!
         #median_bg_ratios = np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
@@ -1372,6 +1375,7 @@ def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
         raw_snippets[-1, :xwidth + w] = data[eod_idx[-1] - xwidth:eod_idx[-1] + w]
 
     # align snippets on phase of first Fourier coefficient:
+    # (aligning on maximum of higher harmonics is much less robust)
     n = raw_snippets.shape[1]
     dist = int(np.median(eod_widths))
     freq = 1/(2*dist)
