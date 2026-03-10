@@ -178,11 +178,11 @@ def extract_wave(data, rate, freq, deltaf,
     # extract Fourier series from data segments:
     n = int(periods/freq*rate)
     freqs = []
-    indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//4))
-    while len(indices) < min_segments or t_segment > 0.1:
+    indices = np.arange(0, max(1, len(data) - step + 1), step//4)
+    while len(indices) < min_segments and step > 8:
         t_segment /= 2
         step = max(8, int(t_segment*rate))
-        indices = np.arange(0, max(1, len(data) - step + 1), max(1, step//4))
+        indices = np.arange(0, max(1, len(data) - step + 1), step//4)
     times = indices/rate
     frange = np.linspace(freq - deltaf, freq + deltaf, nfreqs)
     for i in indices:
