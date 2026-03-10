@@ -196,7 +196,7 @@ def extract_wave(data, rate, freq, deltaf,
         return mean_coeffs, mean_eod, freq, np.array([]), 0, f'no frequencies detected ({len(indicies)} indices, freqs={freqs})'
     # refined Fourier series and waveforms:
     n = int(periods/np.mean(freqs)*frate)
-    coeffs = np.zeros((len(indices), max_harmonics), dtype=complex)
+    coeffs = np.zeros((len(indices), max_harmonics + 1), dtype=complex)
     waves = np.zeros((len(indices), n))
     for k in range(len(indices)):
         i = indices[k]
@@ -304,7 +304,7 @@ def extract_wave(data, rate, freq, deltaf,
         if verbose > 0:
             eodf = np.mean(freqs) if len(freqs) > 0 else np.nan
             with np.printoptions(formatter={'float': lambda x: f'{x:.2f}'},
-                                 linewidth=10000):
+                                 linewidth=10000, legacy='1.25'):
                 print(f'extract {freq:7.2f}Hz wave  fish: min_corr={min_c:.4f}, max_corr={corr_vals[-1]:.4f}, num_cmax={num_cmax}, segments={len(corr)}, num_selected={len(mask)}, selected={mask}, EODfs={freqs}, EODf={eodf:.2f}Hz')
         if len(waves) == 0:
             if plot_level > 0:
