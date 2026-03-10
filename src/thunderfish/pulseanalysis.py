@@ -979,7 +979,7 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None,
     return freq, power
 
 
-def analyze_pulse_spectrum(freqs, energy):
+def analyze_pulse_spectrum(freqs, energy, eodf=None):
     """Analyze the spectrum of a pulse-type EOD.
     
     Parameters
@@ -988,6 +988,8 @@ def analyze_pulse_spectrum(freqs, energy):
         The frequency components of the energy spectrum.
     energy: 1-D array of float
         The energy spectrum of the single pulse-type EOD.
+    eodf: float or None
+        EOD frequency.
     
     Returns
     -------
@@ -999,6 +1001,8 @@ def analyze_pulse_spectrum(freqs, energy):
         Frequency at trough before peak in Hertz.
     trough_energy: float
         Energy of trough before peak in x^2 s/Hz.
+    eodf_energy: float or None
+        Energy at the EOD frequency if `eodf` is provided.
     att5: float
         Attenuation of average energy below 5 Hz relative to
         peak energy in decibel.
@@ -1017,12 +1021,16 @@ def analyze_pulse_spectrum(freqs, energy):
     it = np.argmin(energy[:ip]) if ip > 0 else 0
     trough_freq = freqs[it]
     trough_energy = energy[it]
+    eodf_energy = None
+    if eodf is not None:
+        ie = np.argmin(np.abs(freqs - eodf))
+        eodf_energy = energy[ie]
     att5 = decibel(np.mean(energy[freqs<5.0]), peak_energy)
     att50 = decibel(np.mean(energy[freqs<50.0]), peak_energy)
     low_cutoff = freqs[decibel(energy, peak_energy) > 0.5*att5][0]
     high_cutoff = freqs[decibel(energy, peak_energy) > -3.0][-1]
     return peak_freq, peak_energy, trough_freq, trough_energy, \
-        att5, att50, low_cutoff, high_cutoff
+        eodf_energy, att5, att50, low_cutoff, high_cutoff
 
 
 def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
@@ -1206,6 +1214,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         - peakenergy: peak energy of the single pulse spectrum.
         - troughfreq: frequency at trough before peak in Hertz.
         - troughenergy: energy of trough before peak in x^2 s/Hz.
+        - eodfenergy: energy at EOD frequency in x^2 s/Hz.
         - energyatt5: attenuation of average energy below 5 Hz
           relative to peak energy in decibel.
         - energyatt50: attenuation of average energy below 50 Hz
@@ -1304,6 +1313,11 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
         if fit is not None:
             meod[:, -1] = fit
 
+    # analyze pulse intervals:
+    ipi_median, ipi_mean, ipi_std = \
+        analyze_pulse_intervals(eod_times,  ipi_cv_thresh, ipi_percentile)
+    eodf = 1/ipi_median if ipi_median is not None else None
+
     # energy spectrum of single EOD pulse:
     freqs, energy = pulse_spectrum(meod, None, freq_resolution, fade_frac)
     # store spectrum:
@@ -1312,8 +1326,8 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     eenergy[:, 1] = energy
     # analyse spectrum:
     peakfreq, peakenergy, troughfreq, troughenergy, \
-        att5, att50, lowcutoff, highcutoff = \
-        analyze_pulse_spectrum(freqs, energy)
+        eodfenergy, att5, att50, lowcutoff, highcutoff = \
+        analyze_pulse_spectrum(freqs, energy, eodf)
 
     # decompose EOD waveform:
     rmserror = np.inf
@@ -1328,10 +1342,6 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
             spec = pulsefish_spectrum(pulse, freqs)
             spec = np.abs(spec)**2
             eenergy = np.hstack((eenergy, spec.reshape((-1, 1))))
-
-    # analyze pulse intervals:
-    ipi_median, ipi_mean, ipi_std = \
-        analyze_pulse_intervals(eod_times,  ipi_cv_thresh, ipi_percentile)
     
     # store properties:
     props = {}
@@ -1340,7 +1350,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     if eod_times is not None:
         props['n'] = len(eod_times)
         props['times'] = eod_times + toffs
-        props['EODf'] = 1.0/ipi_median
+        props['EODf'] = eodf
         props['period'] = ipi_median
         props['IPI-mean'] = ipi_mean
         props['IPI-std'] = ipi_std
@@ -1372,6 +1382,7 @@ def analyze_pulse(eod, ratetime=None, eod_times=None,
     props['peakenergy'] = peakenergy
     props['troughfreq'] = troughfreq
     props['troughenergy'] = troughenergy
+    props['eodfenergy'] = eodfenergy
     props['energyatt5'] = att5
     props['energyatt50'] = att50
     props['lowcutoff'] = lowcutoff
@@ -2080,6 +2091,20 @@ def plot_pulse_spectrum(ax, energy, props, min_freq=1.0, max_freq=10000.0,
             ha='left', va='center', zorder=100, fontsize=fontsize)
     if ref_energy is None:
         ref_energy = np.max(energy[:, 1])
+    if 'EODf' in props and 'eodfenergy' in props and \
+       props['eodfenergy'] is not None:
+        eodf = props['EODf']
+        db = decibel(props['eodfenergy'], ref_energy)
+        ax.plot([eodf, eodf], [min_db, db], zorder=30, **cutoff_style)
+        ax.plot(eodf, db, zorder=60, **peak_style)
+        if lowcutoff < eodf or lowcutoff > 2*eodf:
+            ax.text(1.1*eodf, 0.5*(min_db + db),
+                    f'EODf={eodf:.0f}Hz: {db:.0f}dB',
+                    rotation='vertical', va='center', fontsize=fontsize)
+        else:
+            ax.text(0.95*eodf, min_db + 2, f'EODf={eodf:.0f}Hz: {db:.0f}dB',
+                    rotation='vertical', ha='right', va='bottom',
+                    fontsize=fontsize)
     if energy.shape[1] > 2 and np.all(np.isfinite(energy[:, 2])) and len(analytic_style) > 0:
         db = decibel(energy[:, 2], ref_energy)
         ax.plot(energy[:, 0], db, zorder=45, **analytic_style)
@@ -2195,6 +2220,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('peakenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
     td.append('troughfreq', 'Hz', '%.2f', value=pulse_props)
     td.append('troughenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
+    td.append('eodfenergy', f'{unit}^2s/Hz', '%.3g', value=pulse_props)
     td.append('energyatt5', 'dB', '%.2f', value=pulse_props)
     td.append('energyatt50', 'dB', '%.2f', value=pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', value=pulse_props)
