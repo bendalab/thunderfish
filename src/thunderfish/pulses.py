@@ -362,7 +362,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         n_gaus_height = 10
         merge_thresh_height = 0.1
         n_pca = 5
-        shape_eps = 0.2
+        shape_eps = 0.3
         clusters, x_merge, c_log_dict = \
             cluster(i_data, i_rate, x_peak, x_trough, eod_heights, eod_widths,
                     width_factor_shape, width_factor_wave,
@@ -1368,7 +1368,7 @@ def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
 
     """
     # extract snippets with corresponding width:
-    xwidth = width + min(10, width//4)
+    xwidth = width + min(10, width//3)
     raw_snippets = np.zeros((len(eod_idx), 2*xwidth))
     w = min(eod_idx[0], xwidth)
     raw_snippets[0, xwidth - w:] = data[eod_idx[0] - w:eod_idx[0] + xwidth]
@@ -1388,6 +1388,7 @@ def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
     for k in range(len(raw_snippets)):
         snippet = raw_snippets[k, n//2 - dist:n//2 + dist]
         m = len(snippet)
+        # TODO: sometimes snippet length is less than a period!
         coef = fourier_coeffs(snippet, np.arange(m) - m//2, freq, 1)[1]
         coefs[k] = coef/np.abs(coef)
     coefs *= np.conjugate(np.mean(coefs))

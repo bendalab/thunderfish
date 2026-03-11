@@ -105,7 +105,7 @@ pulse_eod_styles = dict(wave_style=dict(color=trace_color, lw=1.3),
                                             edgecolor='none'),
                         negative_style=dict(facecolor='#1040C0', alpha=0.2,
                                             edgecolor='none'),
-                        sem_style=dict(color='0.8'),
+                        sem_style=dict(color='0.3', alpha=0.2),
                         fit_style=dict(color=fit_color, lw=1),
                         phase_style=dict(zorder=50, ls='', marker='o',
                                          color=trace_color,
@@ -662,7 +662,7 @@ def plot_eods(title, message_filename, raw_data, rate, channel, idx0,
     """
 
     def keypress(event):
-        if event.key in 'pP':
+        if event.key in ' ':
             if idx1 > idx0:
                 playdata = 1.0 * raw_data[idx0:idx1]
             else:
