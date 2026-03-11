@@ -362,7 +362,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         n_gaus_height = 10
         merge_thresh_height = 0.1
         n_pca = 5
-        shape_eps = 0.05
+        shape_eps = 0.2
         clusters, x_merge, c_log_dict = \
             cluster(i_data, i_rate, x_peak, x_trough, eod_heights, eod_widths,
                     width_factor_shape, width_factor_wave,
@@ -861,20 +861,24 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             fig, axs = plt.subplots(2, 2, layout='constrained', sharex=True, sharey='col')
             axs[0, 0].set_title(f'Width cluster {width_label}: raw peak snippets')
             for l, c in zip(np.unique(height_labels), colors):
-                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                n = np.sum(height_labels == l)
+                ll = [f'{l} ({n})'] + [None]*(n - 1)
                 axs[0, 0].plot(raw_p_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
             axs[0, 1].set_title('Peak snippets')
             for l, c in zip(np.unique(height_labels), colors):
-                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                n = np.sum(height_labels == l)
+                ll = [f'{l} ({n})'] + [None]*(n - 1)
                 axs[0, 1].plot(p_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
             axs[0, 1].legend(title='height label')
             axs[1, 0].set_title(f'Width cluster {width_label}: raw trough snippets')
             for l, c in zip(np.unique(height_labels), colors):
-                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                n = np.sum(height_labels == l)
+                ll = [f'{l} ({n})'] + [None]*(n - 1)
                 axs[1, 0].plot(raw_t_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
             axs[1, 1].set_title('Trough snippets')
             for l, c in zip(np.unique(height_labels), colors):
-                ll = [f'{l}'] + [None]*(np.sum(height_labels == l) - 1)
+                n = np.sum(height_labels == l)
+                ll = [f'{l} ({n})'] + [None]*(n - 1)
                 axs[1, 1].plot(t_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
             axs[1, 1].legend(title='height label')
             axs[1, 0].set_xlabel('index')
@@ -922,7 +926,8 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
                 else:
                     colors = color_cycle
                 for l, c in zip(np.unique(p_labels), colors):
-                    ll = [f'{l}'] + [None]*(np.sum(p_labels == l) - 1)
+                    n = np.sum(p_labels == l)
+                    ll = [f'{l} ({n})'] + [None]*(n - 1)
                     axs[0, 0].plot(p_feats[p_labels == l, 0], p_feats[p_labels == l, 1], 'o', label=ll, color=c)
                     axs[0, 1].plot(p_snips[p_labels == l, :].T, label=ll, color=c, lw=0.2)
                 axs[0, 1].legend(title='shape label')
@@ -932,7 +937,8 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
                     colors = color_cycle
                 axs[1, 0].set_title(f'Width cluster {width_label}, height cluster {height_label}: trough snippets')
                 for l, c in zip(np.unique(t_labels), colors):
-                    ll = [f'{l}'] + [None]*(np.sum(t_labels == l) - 1)
+                    n = np.sum(t_labels == l)
+                    ll = [f'{l} ({n})'] + [None]*(n - 1)
                     axs[1, 0].plot(t_feats[t_labels == l, 0], t_feats[t_labels == l, 1], 'o', label=ll, color=c)
                     axs[1, 1].plot(t_snips[t_labels == l, :].T, label=ll, color=c, lw=0.2)
                 axs[1, 1].legend(title='shape label')
@@ -1213,7 +1219,7 @@ def BGM(x, min_samples=5, min_samples_frac=0.05,
             ax.set_title(all_titles[k])
             for l in np.unique(labs[labs != -1]):
                 xl = x[labs == l]
-                ax.hist(xl, bins, label=f'{l}')
+                ax.hist(xl, bins, label=f'{l} ({np.sum(labs == l)})')
             if k == len(all_labels) - 1:
                 ax.set_xlabel(xlabel)
             ax.set_ylabel('counts')
