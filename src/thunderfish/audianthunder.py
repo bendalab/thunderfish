@@ -29,6 +29,7 @@ from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QWidget, QTabWidget, QToolBar, QAction, QStyle
 from PyQt5.QtWidgets import QPushButton, QLabel, QScrollArea, QFileDialog
 
+from audioio import fade
 from thunderlab.powerspectrum import decibel, plot_decibel_psd
 from thunderlab.tabledata import write_table_args
 
@@ -213,7 +214,8 @@ class ThunderfishDialog(QDialog):
 
     def __init__(self, time, data, unit, ampl_max,
                  power_freqs, power_times, powers,
-                 channel, file_path, cfg, parent, *args, **kwargs):
+                 channel, file_path, cfg, audio, parent,
+                 *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.time = time
         self.rate = 1/np.mean(np.diff(self.time))
@@ -224,6 +226,7 @@ class ThunderfishDialog(QDialog):
         self.cfg = cfg
         self.file_path = file_path
         self.navis = []
+        self.audio = audio
         self.pulse_colors, self.pulse_markers = colors_markers()
         self.pulse_colors = self.pulse_colors[3:]
         self.pulse_markers = self.pulse_markers[3:]
@@ -372,6 +375,11 @@ class ThunderfishDialog(QDialog):
                           self.wave_eodfs, self.wave_indices, self.unit, 0,
                           **write_table_args(self.cfg))
 
+    def play(self):
+        playdata = np.array(self.data) - np.mean(self.data)
+        fade(playdata, self.rate, 0.1)
+        self.audio.play(playdata, self.rate, blocking=False)
+
     def home(self):
         for n in self.navis:
             n.home()
@@ -394,6 +402,16 @@ class ThunderfishDialog(QDialog):
 
     def setup_toolbar(self):
         tools = QToolBar(self)
+
+        act = QAction('&Play', self)
+        act.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        act.setToolTip('Play (Space)')
+        act.setShortcut(' ')
+        act.triggered.connect(self.play)
+        tools.addAction(act)
+        
+        tools.addSeparator()
+        
         act = QAction('&Home', self)
         act.setIcon(self.style().standardIcon(QStyle.SP_DirHomeIcon))
         act.setToolTip('Reset zoom (h, Home)')
@@ -477,7 +495,7 @@ class ThunderfishAnalyzer(Analyzer):
                                    self.source.ampl_max,
                                    freqs, times, spec, channel,
                                    self.browser.data.file_path,
-                                   self.cfg, self.browser)
+                                   self.cfg, self.browser.audio, self.browser)
         dialog.show()
 
 
