@@ -49,9 +49,8 @@ def test_best_window():
     bw.add_best_window_config(cfg)
     cfg.add('unwrapData', False, '', 'unwrap clipped data') 
     for win_pos in ['beginning', 'center', 'end', 'best', '0.1s', 'xxx']:
-        bw.analysis_window(data, rate, clip, win_pos, cfg,
-                           show_bestwindow=False)
-    bw.analysis_window(data, rate, clip, 'best', cfg, show_bestwindow=True)
+        bw.analysis_window(data, rate, clip, win_pos, cfg, plot_level=0)
+    bw.analysis_window(data, rate, clip, 'best', cfg, plot_level=1)
     
 
     # clipping:
@@ -64,20 +63,19 @@ def test_best_window():
     assert max_clip >= 0.8 * clip and max_clip <= clip, 'clip_amplitudes() failed to detect maximum clip amplitude'
 
     # plotting 1:
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
+    fig, ax = plt.subplots(layout='constrained')
     bw.plot_data_window(ax, data, rate, 'a.u.', idx0, idx1, clipped)
     fig.savefig('bestwindow.png')
     assert os.path.exists('bestwindow.png'), 'plotting failed'
     os.remove('bestwindow.png')
 
     # plotting 2:
-    fig, ax = plt.subplots(5, sharex=True)
+    fig, axs = plt.subplots(5, 1, sharex=True)
     bw.best_window_indices(data, rate, expand=False,
                            win_size=1.0, win_shift=0.1,
                            min_clip=-clip, max_clip=clip,
                            w_cv_ampl=10.0, tolerance=0.5,
-                           plot_data_func=bw.plot_best_window, ax=ax)
+                           plot_data_func=bw.plot_best_window, axs=axs)
     fig.savefig('bestdata.png')
     assert os.path.exists('bestdata.png'), 'plotting failed'
     os.remove('bestdata.png')
