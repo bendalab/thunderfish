@@ -781,14 +781,10 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
                                      min_samples_frac=min_samples_frac,
                                      merge_thresh=merge_thresh_width,
                                      n_gaus=n_gaus_width, use_log=False,
-                                     xlabel='width [ms]',
                                      verbose=verbose - 1,
-                                     plot_level=plot_level - 1,
-                                     save_plot=save_plots,
-                                     save_path=save_path,
-                                     save_name='width', ftype=ftype,
-                                     return_data='BGM_width' in return_data)
-    if len(bgm_log_dict) > 0:
+                                     return_data='BGM_width' in return_data or plot_level > 0)
+    
+    if 'BGM_width' in return_data:
         saved_data['BGM_width'] = bgm_log_dict
 
     if verbose > 0:
@@ -796,8 +792,11 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
         for l in np.unique(width_labels):
             print(f'  {l:2d}: num={len(width_labels[width_labels == l]):5d}, width={np.mean(1000*eod_widths[width_labels == l]/rate):6.3f} +- {np.std(1000*eod_widths[width_labels == l]/rate):6.3f}ms')
 
-    if plot_level > 1:
-        plt.show()
+    if plot_level > 0:
+        fig, axs = plt.subplots(3, 1, sharex=True)
+        plot_bgm_cluster(axs, 'width', 'ms', **bgm_log_dict)
+        if plot_level > 1:
+            plt.show()
 
     # loop over width clusters:
     unique_width_labels = np.unique(width_labels[width_labels != -1])
@@ -840,12 +839,10 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
         height_labels, bgm_log_dict = \
           BGM(w_eod_heights, min_samples=min_samples, min_samples_frac=min_samples_frac,
               merge_thresh=merge_thresh_height, n_gaus=n_gaus_height,
-              use_log=True, xlabel='height [a.u.]', 
-              verbose=verbose - 1, plot_level=plot_level - 1,
-              save_plot=save_plots, save_path=save_path,
-              save_name = f'height_{wi}',
-              ftype=ftype, return_data='BGM_height' in return_data)
-        if len(bgm_log_dict) > 0:
+              use_log=True, verbose=verbose - 1,
+              return_data='BGM_height' in return_data or plot_level > 0)
+        
+        if 'BGM_height' in return_data:
             saved_data[f'BGM_height_{wi}'] = bgm_log_dict
 
         if verbose > 0:
@@ -858,31 +855,28 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             colors = prop_cycle.by_key()['color']
             if np.min(height_labels) == -1:
                 colors = ['black'] + colors
-            fig, axs = plt.subplots(2, 2, layout='constrained', sharex=True, sharey='col')
-            axs[0, 0].set_title(f'Width cluster {width_label}: raw peak snippets')
+            fig = plt.figure(layout='constrained')
+            gs = fig.add_gridspec(6, 2)
+            axs = [fig.add_subplot(gs[k*2:(k + 1)*2, 0]) for k in range(3)]
+            axp = fig.add_subplot(gs[0:3, 1])
+            axt = fig.add_subplot(gs[3:6, 1])
+            plot_bgm_cluster(axs, 'height', 'a.u.', **bgm_log_dict)
+            axp.set_title(f'Width cluster {width_label}: raw peak snippets')
             for l, c in zip(np.unique(height_labels), colors):
                 n = np.sum(height_labels == l)
                 ll = [f'{l} ({n})'] + [None]*(n - 1)
-                axs[0, 0].plot(raw_p_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
-            axs[0, 1].set_title('Peak snippets')
+                axp.plot(raw_p_snippets[height_labels == l, :].T,
+                         label=ll, color=c, lw=0.2)
+            axp.set_xlabel('index')
+            axp.legend(title='height label')
+            axt.set_title(f'Width cluster {width_label}: raw trough snippets')
             for l, c in zip(np.unique(height_labels), colors):
                 n = np.sum(height_labels == l)
                 ll = [f'{l} ({n})'] + [None]*(n - 1)
-                axs[0, 1].plot(p_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
-            axs[0, 1].legend(title='height label')
-            axs[1, 0].set_title(f'Width cluster {width_label}: raw trough snippets')
-            for l, c in zip(np.unique(height_labels), colors):
-                n = np.sum(height_labels == l)
-                ll = [f'{l} ({n})'] + [None]*(n - 1)
-                axs[1, 0].plot(raw_t_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
-            axs[1, 1].set_title('Trough snippets')
-            for l, c in zip(np.unique(height_labels), colors):
-                n = np.sum(height_labels == l)
-                ll = [f'{l} ({n})'] + [None]*(n - 1)
-                axs[1, 1].plot(t_snippets[height_labels == l, :].T, label=ll, color=c, lw=0.2)
-            axs[1, 1].legend(title='height label')
-            axs[1, 0].set_xlabel('index')
-            axs[1, 1].set_xlabel('index')
+                axt.plot(raw_t_snippets[height_labels == l, :].T,
+                         label=ll, color=c, lw=0.2)
+            axt.set_xlabel('index')
+            axt.legend(title='height label')
             plt.show()
 
         unique_height_labels = np.unique(height_labels)
@@ -1107,9 +1101,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
 
 def BGM(x, min_samples=5, min_samples_frac=0.05,
         merge_thresh=0.1, n_gaus=5, max_iter=200, n_init=5,
-        use_log=False, xlabel='x [a.u.]', verbose=0, plot_level=0,
-        save_plot=False, save_path='', save_name='', ftype='pdf',
-        return_data=[]):
+        use_log=False, verbose=0, return_data=False):
     """Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data.
 
     The data are clustered on their z-scores or on the z-scores of the
@@ -1137,31 +1129,20 @@ def BGM(x, min_samples=5, min_samples_frac=0.05,
         Number of initializations for the gaussian fit.
     use_log: boolean
         Set to True to compute the gaussian fit on the logarithm of x.
-        Can improve clustering on features with nonlinear relationships such as peak height.
-    xlabel: str
-        Xlabel for displaying BGM plot.
+        Can improve clustering on features with nonlinear relationships
+        such as peak height.
     verbose: int
         Verbosity level.
-    plot_level: int
-        Similar to verbosity levels, but with plots. 
-        Only set to > 0 for debugging purposes.
-    save_plot: bool
-        Set to True to save created plot.
-    save_path: str
-        Path to location where data should be saved. Only used if save_plot == True.
-    save_name: str
-        Filename of the saved plot. Usefull as usually multiple BGM models are generated.
-    ftype: str
-        Filetype of plot image if save_plots == True.
     return_data: bool
-        True if additional data shouldbe returned in bgm_dict.
+        True if additional data should be returned in bgm_dict.
 
     Returns
     -------
     labels : 1D numpy array
         Cluster labels for each sample in x.
     bgm_dict : dictionary
-        Key value pairs of logged data if `return_data` is True.
+        Key value pairs of logged data if `return_data` is True,
+        otherwise empty dictionary.
 
     """
 
@@ -1202,58 +1183,12 @@ def BGM(x, min_samples=5, min_samples_frac=0.05,
     means = BGM_model.means_[sidx, 0]
     variances = BGM_model.covariances_[sidx, 0, 0]
     weights = BGM_model.weights_[sidx]
-
-    if plot_level > 0:
-        all_labels = [labels_bgm, labels_split, labels]
-        all_titles = ['BGM', 'split','merge']
-        if False: #use_log:
-            bins = np.geomspace(np.min(x), np.max(x), 100)
-            xx = np.geomspace(np.min(x), np.max(x), 500)
-        else:
-            bins = np.linspace(np.min(x), np.max(x), 100)
-            xx = np.linspace(np.min(x), np.max(x), 500)
-        fig, axs = plt.subplots(3, 1, layout='constrained')
-        for k in range(len(all_labels)):
-            ax = axs[k]
-            labs = all_labels[k]
-            ax.set_title(all_titles[k])
-            for l in np.unique(labs[labs != -1]):
-                xl = x[labs == l]
-                ax.hist(xl, bins, label=f'{l} ({np.sum(labs == l)})')
-            if k == len(all_labels) - 1:
-                ax.set_xlabel(xlabel)
-            ax.set_ylabel('counts')
-            ax.set_ylim(bottom=0.3)
-            if False: #use_log:
-                ax.set_xscale('log')
-            ax.set_yscale('log')
-            ax.legend(title='labels')
-        ax = axs[0].twinx()
-        if use_log:
-            means_logx = means*np.std(np.log(x)) + np.mean(np.log(x))
-            stds_logx = np.sqrt(variances)*np.std(np.log(x))
-            for m, s, w in zip(means_logx, stds_logx, weights):
-                gg = np.exp(-0.5*((np.log(xx) - m)/s)**2)
-                ax.plot(xx, w*gg, 'k')
-        else:
-            means_x = means*np.std(x) + np.mean(x)
-            stds_x = np.sqrt(variances)*np.std(x)
-            for m, s, w in zip(means_x, stds_x, weights):
-                ax.plot(xx, w*np.exp(-0.5*((xx - m)/s)**2), 'k')
-        ax.set_ylim(bottom=0)
-        """
-        plot_bgm(x, means, variances, weights, use_log, labels_split,
-                 labels, xlabel)
-        if save_plot:
-            plt.savefig('%sBGM_%s.%s' % (save_path, save_name, ftype))
-        """
         
     if return_data:
         bgm_dict = dict(x=x,
                         use_log=use_log,
-                        BGM=[weights, means, variances],
-                        labels=labels_split,
-                        xlab=xlabel)
+                        bgm=[weights, means, variances],
+                        labels=[labels_bgm, labels_split, labels])
 
     return labels, bgm_dict
 
@@ -1336,6 +1271,41 @@ def merge_gaussians(x, labels, min_samples=5, min_samples_frac=0.05,
     return labels
 
 
+def plot_bgm_cluster(axs, xlabel, xunit, x, use_log, bgm, labels):
+    """Plot histogram of x with BGM clusters.
+    """
+    titles = ['BGM', 'split','merge']
+    bins = np.linspace(np.min(x), np.max(x), 100)
+    xx = np.linspace(np.min(x), np.max(x), 500)
+    for k in range(len(labels)):
+        ax = axs[k]
+        labs = labels[k]
+        ax.set_title(titles[k])
+        for l in np.unique(labs[labs != -1]):
+            xl = x[labs == l]
+            ax.hist(xl, bins, label=f'{l} ({np.sum(labs == l)})')
+        if k == len(labels) - 1:
+            ax.set_xlabel(f'{xlabel} [{xunit}]')
+        ax.set_ylabel('counts')
+        ax.set_ylim(bottom=0.3)
+        ax.set_yscale('log')
+        ax.legend(title=f'{xlabel} labels')
+    ax = axs[0].twinx()
+    weights, means, variances = bgm
+    if use_log:
+        means_logx = means*np.std(np.log(x)) + np.mean(np.log(x))
+        stds_logx = np.sqrt(variances)*np.std(np.log(x))
+        for m, s, w in zip(means_logx, stds_logx, weights):
+            gg = np.exp(-0.5*((np.log(xx) - m)/s)**2)
+            ax.plot(xx, w*gg, 'k')
+    else:
+        means_x = means*np.std(x) + np.mean(x)
+        stds_x = np.sqrt(variances)*np.std(x)
+        for m, s, w in zip(means_x, stds_x, weights):
+            ax.plot(xx, w*np.exp(-0.5*((xx - m)/s)**2), 'k')
+    ax.set_ylim(bottom=0)
+
+    
 def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
                              width, n_pca=5):
     """Extract, align, normalize, snippets from recording data, normalize them, and perform PCA.
