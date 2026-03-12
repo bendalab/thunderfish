@@ -376,9 +376,12 @@ class ThunderfishDialog(QDialog):
                           **write_table_args(self.cfg))
 
     def play(self):
-        playdata = np.array(self.data) - np.mean(self.data)
-        fade(playdata, self.rate, 0.1)
-        self.audio.play(playdata, self.rate, blocking=False)
+        if self.audio.active():
+            self.audio.stop()
+        else:
+            playdata = np.array(self.data) - np.mean(self.data)
+            fade(playdata, self.rate, 0.1)
+            self.audio.play(playdata, self.rate, blocking=False)
 
     def home(self):
         for n in self.navis:
