@@ -25,8 +25,6 @@ from sklearn.metrics import pairwise_distances
 from thunderlab.eventdetection import detect_peaks, median_std_threshold
 from thunderlab.fourier import fourier_coeffs
 
-from .pulseplots import *
-
 import warnings
 def warn(*args, **kwargs):
     """
@@ -84,8 +82,7 @@ def unique_counts(ar):
 
 def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                       width_factor_wave=8, width_factor_display=4,
-                      verbose=0, plot_level=0, save_plots=False,
-                      save_path='', ftype='png', return_data=[]):
+                      verbose=0, plot_level=0, return_data=[]):
     """Extract and cluster pulse-type fish EODs from data.
     
     Takes recording data containing an unknown number of pulsefish and
@@ -113,13 +110,6 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
     plot_level : int
         Similar to verbosity levels, but with plots. 
         Only set to > 0 for debugging purposes.
-    save_plots : bool
-        Set to True to save the plots created by plot_level.
-    save_path: Path or str
-        Path for saving plots.
-    ftype : str
-        Define the filetype to save the plots in if save_plots is set to True.
-        Options are: 'png', 'jpg', 'svg' ...
     return_data : list of str
         Specify data that should be logged and returned in a dictionary. Each clustering 
         step has a specific keyword that results in adding different variables to the log dictionary.
@@ -129,6 +119,9 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
             - 'all_times':  list of two lists of float.
                 All peak (`all_times[0]`) and trough times (`all_times[1]`) extracted
                 by the peak detection algorithm. Times are given in seconds.
+            - 'eod_peaktimes': list of 1D arrays.
+                The timepoints in seconds of each unique extracted EOD cluster,
+                where each 1D array encodes one cluster.
             - 'eod_troughtimes': list of 1D arrays.
                 The timepoints in seconds of each unique extracted EOD cluster,
                 where each 1D array encodes one cluster.
@@ -196,14 +189,18 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                     BGM input values (in this case the EOD widths),
                 - 'use_log': boolean.
                     True if the z-scored logarithm of the data was used as BGM input.
-                - 'BGM': list of three 1D numpy arrays.
-                    The first instance are the weights of the Gaussian fits.
-                    The second instance are the means of the Gaussian fits.
-                    The third instance are the variances of the Gaussian fits.
-                - 'labels': 1D numpy array of int.
-                    Labels defined by BGM model (before merging based on merge factor).
-                - xlab': str.
-                    Label for plot (defines the units of the BGM data).
+                - 'means': 1D array of float
+                    Means of the Gaussian fits.
+                - 'variances': 1D array of float
+                    Variances of the Gaussian fits.
+                - 'weights': 1D array of float
+                    Weights of the Gaussian fits.
+                - 'labels_bgm': 1D array of int
+                    Labels resulting from BGM clustering.
+                - 'labels_split': 1D array of int
+                    Labels after splitting at overlapping Gaussians.
+                - 'labels': 1D array of int
+                    Final labels (after BGM clustering, splitting, and merging).
 
         - 'BGM_height':
             This key adds a new dictionary for each width cluster.
@@ -212,14 +209,18 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                     BGM input values (in this case the EOD heights),
                 - 'use_log': boolean.
                     True if the z-scored logarithm of the data was used as BGM input.
-                - 'BGM': list of three 1D numpy arrays.
-                    The first instance are the weights of the Gaussian fits.
-                    The second instance are the means of the Gaussian fits.
-                    The third instance are the variances of the Gaussian fits.
-                - 'labels': 1D numpy array of int.
-                    Labels defined by BGM model (before merging based on merge factor).
-                - 'xlab': str.
-                    Label for plot (defines the units of the BGM data).
+                - 'means': 1D array of float
+                    Means of the Gaussian fits.
+                - 'variances': 1D array of float
+                    Variances of the Gaussian fits.
+                - 'weights': 1D array of float
+                    Weights of the Gaussian fits.
+                - 'labels_bgm': 1D array of int
+                    Labels resulting from BGM clustering.
+                - 'labels_split': 1D array of int
+                    Labels after splitting at overlapping Gaussians.
+                - 'labels': 1D array of int
+                    Final labels (after BGM clustering, splitting, and merging).
 
         - 'snippet_clusters':
             This key adds a new dictionary for each height cluster.
@@ -313,14 +314,6 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
             print(70*'#')
         print('##### extract_pulsefish', 46*'#')
 
-    if save_plots and plot_level > 0:
-        # create folder to save things in:
-        save_path = Path(save_path)
-        if not save_path.exists():
-            save_path.mkdir(parents=True)
-    else:
-        save_path = ''
-
     mean_eods, eod_times, eod_peaktimes = [], [], []
     log_dict = {}
 
@@ -372,9 +365,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                     n_gaus_height=n_gaus_height,
                     merge_thresh_height=merge_thresh_height,
                     n_pca=n_pca, shape_eps=shape_eps,
-                    verbose=verbose, plot_level=plot_level-1,
-                    save_plots=save_plots, save_path=save_path,
-                    ftype=ftype, return_data=return_data) 
+                    verbose=verbose, plot_level=plot_level-1, return_data=return_data) 
 
         # extract mean eods and times:
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
@@ -392,10 +383,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         clusters, mf_log_dict = \
           delete_moving_fish(clusters, x_merge/i_rate, len(data)/rate,
                              eod_heights, eod_widths/i_rate, i_rate,
-                             verbose=verbose, plot_level=plot_level-1,
-                             save_plot=save_plots,
-                             save_path=save_path, ftype=ftype,
-                             return_data=return_data)
+                             verbose=verbose, return_data='moving_fish' in return_data)
         
         if 'moving_fish' in return_data:
             log_dict['moving_fish'] = mf_log_dict
@@ -413,16 +401,10 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         eod_times.extend(clipped_times)
         eod_peaktimes.extend(clipped_peaktimes)
         eod_troughtimes.extend(clipped_troughtimes)
-
-        if plot_level > 0:
-            plot_all(data, eod_peaktimes, eod_troughtimes, rate, mean_eods)
-            if save_plots:
-                plt.savefig('%sextract_pulsefish_results.%s' % (save_path, ftype))
-        if save_plots:
-            plt.close('all')
     
         if 'all_eod_times' in return_data:
             log_dict['all_times'] = [x_peak/i_rate, x_trough/i_rate]
+            log_dict['eod_peaktimes'] = eod_peaktimes
             log_dict['eod_troughtimes'] = eod_troughtimes
         
         log_dict.update(c_log_dict)
@@ -437,11 +419,6 @@ def detect_pulses(data, rate, thresh, min_rel_slope_diff=0.25,
                   min_width=0.00005, max_width=0.01, width_fac=5.0,
                   verbose=0, return_data=False):
     """Detect pulses in data.
-
-    Was `def extract_eod_times(data, rate, width_factor,
-                      interp_freq=500000, max_peakwidth=0.01,
-                      min_peakwidth=None, verbose=0, return_data=[],
-                      save_path='')` before.
 
     Parameters
     ----------
@@ -676,8 +653,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             n_gaus_width=3, merge_thresh_width=0.6,
             n_gaus_height=10, merge_thresh_height=0.1,
             n_pca=5, shape_eps=0.05,
-            verbose=0, plot_level=0, save_plots=False,
-            save_path='', ftype='pdf', return_data=[]):
+            verbose=0, plot_level=0, return_data=[]):
     """Cluster EODs.
     
     First cluster on EOD widths using a Bayesian Gaussian
@@ -729,12 +705,6 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
     plot_level : int
         Similar to verbosity levels, but with plots. 
         Only set to > 0 for debugging purposes.
-    save_plots : bool
-        Set to True to save created plots.
-    save_path : str
-        Path to save plots to. Only used if save_plots==True.
-    ftype : str
-        Filetype to save plot images in.
     return_data : list of str
         Keys that specify data to be logged. Keys that can be used to log data
         in this function are: 'all_cluster_steps', 'BGM_width', 'BGM_height',
@@ -937,34 +907,22 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
                     axs[1, 1].plot(t_snips[t_labels == l, :].T, label=ll, color=c, lw=0.2)
                 axs[1, 1].legend(title='shape label')
                 plt.show()
-            
-            if False: #plot_level > 1:
-                plot_feature_extraction(raw_p_snippets[height_labels == height_label],
-                                        p_snippets[height_labels == height_label],
-                                        p_features[height_labels == height_label],
-                                        p_labels, 1/rate, 0)
-                plt.savefig('%sDBSCAN_peak_w%i_h%i.%s' % (save_path, wi, hi, ftype))
-                plot_feature_extraction(raw_t_snippets[height_labels == height_label],
-                                        t_snippets[height_labels == height_label],
-                                        t_features[height_labels == height_label],
-                                        t_labels, 1/rate, 1)
-                plt.savefig('%sDBSCAN_trough_w%i_h%i.%s' % (save_path, wi, hi, ftype))
 
             if 'snippet_clusters' in return_data:
-                saved_data[f'snippet_clusters_{width_label}_{height_label}_peak'] = {
-                    'raw_snippets': raw_p_snippets[height_labels == height_label],
-                    'snippets': p_snippets[height_labels == height_label],
-                    'features': p_features[height_labels == height_label],
-                    'clusters': p_labels,
-                    'rate': rate}
-                saved_data['snippet_clusters_{width_label}_{height_label}_trough'] = {
-                    'raw_snippets': raw_t_snippets[height_labels == height_label],
-                    'snippets': t_snippets[height_labels == height_label],
-                    'features': t_features[height_labels == height_label],
-                    'clusters': t_labels,
-                    'rate': rate}
+                saved_data[f'snippet_clusters_{width_label}_{height_label}_peak'] = dict(
+                    raw_snippets=raw_p_snippets[height_labels == height_label],
+                    snippets=p_snippets[height_labels == height_label],
+                    features=p_features[height_labels == height_label],
+                    clusters=p_labels,
+                    rate=rate)
+                saved_data[f'snippet_clusters_{width_label}_{height_label}_trough'] = dict(
+                    raw_snippets=raw_t_snippets[height_labels == height_label],
+                    snippets=t_snippets[height_labels == height_label],
+                    features=t_features[height_labels == height_label],
+                    clusters=t_labels,
+                    rate=rate)
 
-            if plot_level > 0 or 'all_cluster_steps' in return_data:
+            if 'all_cluster_steps' in return_data:
                 shape_labels.append([p_labels, t_labels])
                 cfeatures.append([p_features[height_labels == height_label],
                                   t_features[height_labels == height_label]])
@@ -987,7 +945,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
                 print(f'      num={len(unique_clusters):2d} different EOD shapes:',
                       str(unique_clusters).strip('[]'))
         
-        if plot_level > 0 or 'all_cluster_steps' in return_data:
+        if 'all_cluster_steps' in return_data:
             all_shapelabels.append(shape_labels)
             all_snippets.append(csnippets)
             all_features.append(cfeatures)
@@ -1066,15 +1024,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
 
             all_dmasks.append(wd_2)
             all_mmasks.append(wm_2)
-
-        if plot_level > 0:
-            plot_clustering(rate, [unique_width_labels, eod_widths, width_labels],
-                            [all_unique_heightlabels, all_heights, all_heightlabels],
-                            [all_snippets, all_features, all_shapelabels],
-                            all_dmasks, all_mmasks)
-            if save_plots:
-                plt.savefig('%sclustering.%s' % (save_path, ftype))
-
+ 
         if 'all_cluster_steps' in return_data:
             saved_data.update(rate=rate,
                               EOD_widths=[unique_width_labels, eod_widths, width_labels],
@@ -1189,7 +1139,9 @@ def BGM(x, min_samples=5, min_samples_frac=0.05,
                         weights=weights,
                         means=means,
                         variances=variances,
-                        labels=[labels_bgm, labels_split, labels])
+                        labels_bgm=labels_bgm,
+                        labels_split=labels_split,
+                        labels=labels)
 
     return labels, bgm_dict
 
@@ -1273,20 +1225,22 @@ def merge_gaussians(x, labels, min_samples=5, min_samples_frac=0.05,
 
 
 def plot_bgm_cluster(axs, xlabel, xunit, x, use_log,
-                     weights, means, variances, labels):
+                     weights, means, variances,
+                     labels_bgm, labels_split, labels):
     """Plot histogram of x with BGM clusters.
     """
     titles = ['BGM', 'split','merge']
+    all_labels = [labels_bgm, labels_split, labels]
     bins = np.linspace(np.min(x), np.max(x), 100)
     xx = np.linspace(np.min(x), np.max(x), 500)
-    for k in range(len(labels)):
+    for k in range(len(all_labels)):
         ax = axs[k]
-        labs = labels[k]
+        labs = all_labels[k]
         ax.set_title(titles[k])
         for l in np.unique(labs[labs != -1]):
             xl = x[labs == l]
             ax.hist(xl, bins, label=f'{l} ({np.sum(labs == l)})')
-        if k == len(labels) - 1:
+        if k == len(all_labels) - 1:
             ax.set_xlabel(f'{xlabel} [{xunit}]')
         ax.set_ylabel('counts')
         ax.set_ylim(bottom=0.3)
@@ -1869,9 +1823,7 @@ def find_clipped_clusters(clusters, mean_eods, eod_times,
 
 def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
                        rate, min_dt=0.25, stepsize=0.05,
-                       sliding_window_factor=2000, verbose=0,
-                       plot_level=0, save_plot=False, save_path='',
-                       ftype='pdf', return_data=[]):
+                       sliding_window_factor=2000, verbose=0, return_data=[]):
     """
     Use a sliding window to detect the minimum number of fish detected simultaneously, 
     then delete all other EOD clusters. 
@@ -1903,19 +1855,8 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
         where the sliding window width = median(EOD_width)*sliding_window_factor.
     verbose : int
         Verbosity level.
-    plot_level : int
-        Similar to verbosity levels, but with plots. 
-        Only set to > 0 for debugging purposes.
-    save_plot : bool
-        Set to True to save the plots created by plot_level.
-    save_path : str
-        Path to save data to. Only important if you wish to save data (save_data == True).
-    ftype : str
-        Define the filetype to save the plots in if save_plots is set to True.
-        Options are: 'png', 'jpg', 'svg' ...
-    return_data : list of str
-        Keys that specify data to be logged. The key that can be used to log data
-        in this function is 'moving_fish' (see extract_pulsefish()).
+    return_data : bool
+        If True fill mf_dict with data.
 
     Returns
     -------
@@ -2000,7 +1941,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
 
         all_keep_clusters.append(keep_clusters)
         
-        if 'moving_fish' in return_data or plot_level > 0:
+        if return_data:
             if 'w' in mf_dict:
                 mf_dict['w'].append(np.median(eod_widths[width_classes == w]))
                 mf_dict['T'] = T
@@ -2011,7 +1952,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
                 mf_dict['ignore_steps'].append(ignore_steps)
             else:
                 mf_dict['w'] = [np.median(eod_widths[width_classes == w])]
-                mf_dict['T'] = [T]
+                mf_dict['T'] = T
                 mf_dict['dt'] = [dt]
                 mf_dict['clusters'] = [wclusters]
                 mf_dict['t'] = [weod_t]
@@ -2020,15 +1961,6 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
 
     if verbose > 0:
         print('Estimated nr of pulsefish in recording: %i'%len(all_keep_clusters))
-
-    if plot_level > 0:
-        plot_moving_fish(mf_dict['w'], mf_dict['dt'], mf_dict['clusters'],mf_dict['t'],
-                         mf_dict['fishcount'], T, mf_dict['ignore_steps'])
-        if save_plot:
-            plt.savefig('%sdelete_moving_fish.%s' % (save_path, ftype))
-        # empty dict
-        if 'moving_fish' not in return_data:
-            mf_dict = {}
 
     # delete all clusters that are not selected
     clusters[np.invert(np.isin(clusters, np.concatenate(all_keep_clusters)))] = -1

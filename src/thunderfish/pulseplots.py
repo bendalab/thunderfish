@@ -408,7 +408,7 @@ def loghist(ax, x, bmin, bmax, n, c, orientation='vertical', label=''):
                    color=c, orientation=orientation, label=label)
 
 
-def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
+def plot_all(data, rate, eod_p_times, eod_tr_times, mean_eods):
     """Quick way to view the output of extract_pulsefish in a single plot.
 
     Parameters
@@ -419,21 +419,25 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
         EOD peak indices.
     eod_tr_times: array of ints
         EOD trough indices.
-    fs: float
+    rate: float
         Sampling rate.
     mean_eods: list of numpy arrays
         Mean EODs of each pulsefish found in the recording.
-    """
-    fig = plt.figure(figsize=(10, 5), layout='tight')
 
+    Returns
+    -------
+    fig: matplotlib.Figure
+        The figure with the plots.
+    """
     if len(eod_p_times) > 0:
+        fig = plt.figure(figsize=(10, 5), layout='tight')
         gs = gridspec.GridSpec(2, len(eod_p_times))
         ax = fig.add_subplot(gs[0,:])
-        ax.plot(np.arange(len(data))/fs, data, c='k', alpha=0.3)
+        ax.plot(np.arange(len(data))/rate, data, c='k', alpha=0.3)
         
         for i, (pt, tt) in enumerate(zip(eod_p_times, eod_tr_times)):
-            ax.plot(pt, data[(pt*fs).astype('int')], 'o', label=i+1, ms=10, c=cmap(i))
-            ax.plot(tt, data[(tt*fs).astype('int')], 'o', label=i+1, ms=10, c=cmap(i))
+            ax.plot(pt, data[(pt*rate).astype('int')], 'o', label=i+1, ms=10, c=cmap(i))
+            ax.plot(tt, data[(tt*rate).astype('int')], 'o', label=i+1, ms=10, c=cmap(i))
             
         ax.set_xlabel('time [s]')
         ax.set_ylabel('amplitude [V]')
@@ -446,7 +450,9 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
             ax.set_xlabel('time [ms]')
             ax.set_ylabel('amplitude [mV]') 
     else:
-        plt.plot(np.arange(len(data))/fs, data, c='k', alpha=0.3)
+        fig, ax = plt.subplots(figsize=(10, 5), layout='tight')
+        ax.plot(np.arange(len(data))/rate, data, c='k', alpha=0.3)
+    return fig
 
 
 def plot_clustering(rate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks):
@@ -491,6 +497,11 @@ def plot_clustering(rate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_
         peak-centered clusters and `merge_mask[:,1]` represents the trough-centered clusters.
         Merge masks are saved in nested lists 
         that represent the width and height clusters.
+
+    Returns
+    -------
+    fig: matplotlib.Figure
+        The figure with the plots.
     """
     # create figure + transparant figure.
     fig = plt.figure(figsize=(12, 7))
@@ -705,9 +716,10 @@ def plot_clustering(rate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_
                 line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
                               transform=fig.transFigure, color='grey', linewidth=1)
                 fig.lines.append(line)
+    return fig
                                         
 
-def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
+def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlabel):
     """Plot a BGM clustering step either on EOD width or height.
 
     Parameters
@@ -726,12 +738,17 @@ def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
         Labels defined by BGM model (before merging based on merge factor).
     labels_am: 1D array of int
         Labels defined by BGM model (after merging based on merge factor).
-    xlab: str
+    xlabel: str
         Label for plot (defines the units of the BGM data).
+
+    Returns
+    -------
+    fig: matplotlib.Figure
+        The figure with the plots.
     """
-    if xlab.lower().startswith('width'):
+    if xlabel.lower().startswith('width'):
         ccol = c_o
-    elif xlab.lower().startswith('height'):
+    elif xlabel.lower().startswith('height'):
         ccol = c_g
     else:
         ccol = 'b'
@@ -762,19 +779,18 @@ def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
         gmin=min(gmin, np.min(gaussians[c][classes==c]))
 
     # set up the figure
-    fig, ax1 = plt.subplots(figsize=(8, 4.8))
+    fig, ax1 = plt.subplots(figsize=(8, 4.8), layout='tight')
     fig_ysize = 4
     ax2 = ax1.twinx()
     ax1.spines['top'].set_visible(False)
     ax2.spines['top'].set_visible(False)
-    ax1.set_xlabel('x [a.u.]')
     ax1.set_ylabel('#')
     ax2.set_ylabel('Likelihood')
     ax2.set_yscale('log')
     ax1.set_yscale('log')
     if use_log:
         ax1.set_xscale('log')
-    ax1.set_xlabel(xlab)
+    ax1.set_xlabel(xlabel)
 
     # define colors for plotting gaussians
     colidxs = -np.linspace(-1.25, -0.5, len(np.unique(classes)))
@@ -818,7 +834,7 @@ def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
                ncol=len(np.unique(classes)))
     ax1.legend(loc='upper left', frameon=False, bbox_to_anchor=(-0.05, 1.3),
                ncol=len(np.unique(labels)))
-    plt.tight_layout()
+    return fig
 
 
 def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt, pt):
@@ -838,6 +854,11 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
         Sample interval of snippets.
     pt : int
         Set to 0 for peak-centered EODs and set to 1 for trough-centered EODs.
+
+    Returns
+    -------
+    fig: matplotlib.Figure
+        The figure with the plots.
     """
     ccol = cmap_pts[pt]
 
@@ -915,6 +936,7 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
         xscalebar(ax, 0, 0, wbar, wformat='%%.%if'%size)
         yscalebar(ax, 0, 0, wbar, hformat='%%.%if'%size)
         ax.axis('off')
+    return fig
 
         
 def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
@@ -937,6 +959,11 @@ def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
         Lenght of analyzed recording in seconds.
     ignore_stepss : list of 1D int arrays
         Mask for fishcounts that were ignored (ignored if True) in the moving_fish analysis.
+
+    Returns
+    -------
+    fig: matplotlib.Figure
+        The figure with the plots.
     """
     fig = plt.figure()
     
@@ -1007,7 +1034,8 @@ def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
                               axesA=ax1, axesB=ax2, color='k')
         ax2.add_artist(con)
         
-        plt.xlim(0, T)
+        ax2.set_xlim(0, T)
+    return fig
 
 
 if __name__ == '__main__':
@@ -1027,7 +1055,7 @@ if __name__ == '__main__':
     data, idx0, idx1, clipped, min_clip, max_clip = \
         analysis_window(raw_data[:, 0], rate, amax, 'best', cfg)
     frate = 0.5e6  # TODO: make parameter
-    eods, eod_times, eod_peaktimes, pdict = \
+    mean_eods, eod_times, eod_peaktimes, pdict = \
         extract_pulsefish(data, rate, frate,
                           verbose=0, plot_level=0,
                           return_data=['all_eod_times',
@@ -1041,19 +1069,34 @@ if __name__ == '__main__':
                                        'moving_fish'])
     bgm = pdict['BGM_width']
     plot_bgm(bgm['x'], bgm['means'], bgm['variances'],
-             bgm['weights'], bgm['use_log'], bgm['labels'][2],
-             bgm['labels'][0], 'width [ms]')
-    for w in range(100):
-        k = f'BGM_height_{w}'
+             bgm['weights'], bgm['use_log'], bgm['labels'],
+             bgm['labels_bgm'], 'width [ms]')
+    for wi in range(100):
+        k = f'BGM_height_{wi}'
         if not k in pdict:
             break
         bgm = pdict[k]
         plot_bgm(bgm['x'], bgm['means'], bgm['variances'],
-                 bgm['weights'], bgm['use_log'], bgm['labels'][2],
-                 bgm['labels'][0], f'height (width cluster {w}) [{unit}]')
+                 bgm['weights'], bgm['use_log'], bgm['labels'],
+                 bgm['labels_bgm'], f'height (width cluster {wi}) [{unit}]')
+        for hi in range(100):
+            k = f'snippet_clusters_{wi}_{hi}_peak'
+            if not k in pdict:
+                break
+            snip = pdict[k]
+            plot_feature_extraction(snip['raw_snippets'], snip['snippets'],
+                                    snip['features'], snip['clusters'], 1/pdict['i_rate'], 0)
+            k = f'snippet_clusters_{wi}_{hi}_trough'
+            snip = pdict[k]
+            plot_feature_extraction(snip['raw_snippets'], snip['snippets'],
+                                    snip['features'], snip['clusters'], 1/pdict['i_rate'], 1)
+    plot_clustering(rate, pdict['EOD_widths'], pdict['EOD_heights'], pdict['EOD_shapes'],
+                    pdict['discarding_masks'], pdict['merge_masks'])
+    plot_all(data, rate, pdict['eod_peaktimes'], pdict['eod_troughtimes'], mean_eods)
+    move = pdict['moving_fish']
+    plot_moving_fish(move['w'], move['dt'], move['clusters'], move['t'],
+                     move['fishcount'], move['T'], move['ignore_steps'])
     plt.show()
-    #plt.plot(data)
-    #plt.show()
     
 
     
