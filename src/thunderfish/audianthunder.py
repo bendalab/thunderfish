@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import QWidget, QTabWidget, QToolBar, QAction, QStyle
 from PyQt5.QtWidgets import QPushButton, QLabel, QScrollArea, QFileDialog
 
 from audioio import fade
+from thunderlab.eventdetection import minmax_threshold, detect_peaks
 from thunderlab.powerspectrum import decibel, plot_decibel_psd
 from thunderlab.tabledata import write_table_args
 
@@ -74,6 +75,7 @@ class PowerPlot():
     
     def __init__(self, power_freqs, powers, power_thresh,
                  wave_eodfs, wave_indices, wave_colors, wave_markers):
+        self.deltaf = np.mean(np.diff(power_freqs))
         self.power_freqs = power_freqs
         self.powers = powers
         self.canvas = FigureCanvas(Figure(figsize=(10, 5),
@@ -116,12 +118,11 @@ class PowerPlot():
         
     def onpick(self, event):
         self.clear()
-        deltaf = np.mean(np.diff(self.power_freqs))
         a = event.artist
         if a in self.wave_dict:
             finx, fish = self.wave_dict[a]
             self.annotation = annotate_harmonic_group(self.ax, fish, finx,
-                                                      freq_thresh=0.8*deltaf)
+                                                      freq_thresh=0.8*self.deltaf)
             self.ax.get_figure().canvas.draw()
             self.pick = QTime.currentTime()
             
@@ -146,10 +147,18 @@ class PowerPlot():
                 self.harmonics_div += 1
             else:
                 self.harmonics_div = 1
-            f = event.xdata
-            mask = (self.power_freqs >= f - df) & (self.power_freqs <= f + df)
-            i = np.argmax(self.powers[mask])
-            self.harmonics_freq = self.power_freqs[mask][i]
+                f = event.xdata
+                mask = (self.power_freqs >= f - df) & (self.power_freqs <= f + df)
+                dbpower = decibel(self.powers[mask])
+                thresh = minmax_threshold(dbpower, None, 0.3)
+                peaks, troughs = detect_peaks(dbpower, thresh)
+                if len(peaks) == 0:
+                    i = np.argmax(self.powers[mask])
+                elif len(peaks) == 1:
+                    i = peaks[0]
+                else:
+                    i = peaks[np.argmin(np.abs(self.power_freqs[mask][peaks] - f))]
+                self.harmonics_freq = self.power_freqs[mask][i]
             f1 = self.harmonics_freq/self.harmonics_div
             for h in range(1, 1000*self.harmonics_div):
                 if h*f1 > self.power_freqs[-1]:
