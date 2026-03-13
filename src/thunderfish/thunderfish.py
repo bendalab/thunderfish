@@ -348,8 +348,7 @@ def detect_eods(data, rate, power_freqs, power_times, powers,
         eods, eod_times, eod_peaktimes, _ = \
             extract_pulsefish(data, rate, frate,
                               verbose=verbose - 1,
-                              plot_level=plot_level,
-                              save_path=os.path.splitext(os.path.basename(name))[0])
+                              plot_level=plot_level)
         if verbose > 0:
             if len(eod_times) > 0:
                 print(f'found {len(eod_times):2d} pulsefish EODs')

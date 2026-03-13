@@ -1076,20 +1076,19 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
                 plt.savefig('%sclustering.%s' % (save_path, ftype))
 
         if 'all_cluster_steps' in return_data:
-            saved_data = {'rate': rate,
-                      'EOD_widths': [unique_width_labels, eod_widths, width_labels],
-                      'EOD_heights': [all_unique_heightlabels, all_heights, all_heightlabels],
-                      'EOD_shapes': [all_snippets, all_features, all_shapelabels],
-                      'discarding_masks': all_dmasks,
-                      'merge_masks': all_mmasks
-                    }
+            saved_data.update(rate=rate,
+                              EOD_widths=[unique_width_labels, eod_widths, width_labels],
+                              EOD_heights=[all_unique_heightlabels, all_heights, all_heightlabels],
+                              EOD_shapes=[all_snippets, all_features, all_shapelabels],
+                              discarding_masks=all_dmasks,
+                              merge_masks=all_mmasks)
     
     if 'masks' in return_data:
-        saved_data = {'masks' : np.vstack(((artefact_masks_p & artefact_masks_t),
+        saved_data.update(masks=np.vstack(((artefact_masks_p & artefact_masks_t),
                                            (unreliable_fish_mask_p & unreliable_fish_mask_t),
                                            (wave_mask_p & wave_mask_t),
                                            (sidepeak_mask_p & sidepeak_mask_t),
-                                           (all_p_labels+all_t_labels)))}
+                                           (all_p_labels+all_t_labels))))
 
     if verbose > 0:
         print('clusters generated based on height, width and shape: ')
@@ -1187,7 +1186,9 @@ def BGM(x, min_samples=5, min_samples_frac=0.05,
     if return_data:
         bgm_dict = dict(x=x,
                         use_log=use_log,
-                        bgm=[weights, means, variances],
+                        weights=weights,
+                        means=means,
+                        variances=variances,
                         labels=[labels_bgm, labels_split, labels])
 
     return labels, bgm_dict
@@ -1271,7 +1272,8 @@ def merge_gaussians(x, labels, min_samples=5, min_samples_frac=0.05,
     return labels
 
 
-def plot_bgm_cluster(axs, xlabel, xunit, x, use_log, bgm, labels):
+def plot_bgm_cluster(axs, xlabel, xunit, x, use_log,
+                     weights, means, variances, labels):
     """Plot histogram of x with BGM clusters.
     """
     titles = ['BGM', 'split','merge']
@@ -1291,7 +1293,6 @@ def plot_bgm_cluster(axs, xlabel, xunit, x, use_log, bgm, labels):
         ax.set_yscale('log')
         ax.legend(title=f'{xlabel} labels')
     ax = axs[0].twinx()
-    weights, means, variances = bgm
     if use_log:
         means_logx = means*np.std(np.log(x)) + np.mean(np.log(x))
         stds_logx = np.sqrt(variances)*np.std(np.log(x))

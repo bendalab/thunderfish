@@ -27,11 +27,13 @@ try:
 except ImportError:
     pass
 
-from thunderlab.eventdetection import percentile_threshold, detect_peaks, trim_to_peak
+from thunderlab.eventdetection import percentile_threshold, detect_peaks
+from thunderlab.eventdetection import trim_to_peak
 from audioio import unwrap
 
 
-def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
+def clip_amplitudes(data, win_indices=10000,
+                    min_fac=2.0, nbins=20,
                     min_ampl=None, max_ampl=1.0,
                     min_clip=None, max_clip=0,
                     plot_hist_func=None, **kwargs):
@@ -197,7 +199,8 @@ def clip_args(cfg, rate):
                 nbins='clipBins',
                 min_clip='minClipAmplitude',
                 max_clip='maxClipAmplitude')
-    a['win_indices'] = int(cfg.value('clipWindow')*rate)
+    if 'clipWindow' in cfg:
+        a['win_indices'] = int(cfg.value('clipWindow')*rate)
     return a
 
 
@@ -709,7 +712,7 @@ def analysis_window(data, rate, ampl_max, win_pos,
     clipped = 0
     min_clip, max_clip = clip_amplitudes(data, max_ampl=ampl_max,
                                          **clip_args(cfg, rate))
-    if cfg.value('unwrapData'):
+    if 'unwrapData' in cfg and cfg.value('unwrapData'):
         unwrap(data, 1.5, ampl_max)
         min_clip *= 2
         max_clip *= 2
@@ -717,7 +720,7 @@ def analysis_window(data, rate, ampl_max, win_pos,
     bwa = best_window_args(cfg)
     if 'win_size' in bwa:
         del bwa['win_size']
-    window_size = cfg.value('windowSize')
+    window_size = cfg.value('windowSize') if 'windowSize' in cfg else 8.0
     if window_size <= 0.0:
         window_size = (len(data)-1)/rate
     # plot cost function:

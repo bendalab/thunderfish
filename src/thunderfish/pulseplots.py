@@ -2,7 +2,6 @@
 Plot and save key steps in pulses.py for visualizing the alorithm.
 """
 
-import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -425,7 +424,7 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
     mean_eods: list of numpy arrays
         Mean EODs of each pulsefish found in the recording.
     """
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(10, 5), layout='tight')
 
     if len(eod_p_times) > 0:
         gs = gridspec.GridSpec(2, len(eod_p_times))
@@ -448,8 +447,6 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
             ax.set_ylabel('amplitude [mV]') 
     else:
         plt.plot(np.arange(len(data))/fs, data, c='k', alpha=0.3)
-
-    plt.tight_layout()
 
 
 def plot_clustering(rate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks):
@@ -732,9 +729,9 @@ def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
     xlab: str
         Label for plot (defines the units of the BGM data).
     """
-    if 'width' in xlab:
+    if xlab.lower().startswith('width'):
         ccol = c_o
-    elif 'height' in xlab:
+    elif xlab.lower().startswith('height'):
         ccol = c_g
     else:
         ccol = 'b'
@@ -1011,3 +1008,52 @@ def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
         ax2.add_artist(con)
         
         plt.xlim(0, T)
+
+
+if __name__ == '__main__':
+    import sys
+    from pathlib import Path
+    from thunderlab.dataloader import load_data
+    from thunderlab.configfile import ConfigFile
+    from .bestwindow import analysis_window
+    from .pulses import extract_pulsefish
+
+    if len(sys.argv) < 2:
+        print('pulseplots recording.wav')
+        exit()
+    data_file = Path(sys.argv[1])
+    cfg = ConfigFile()
+    raw_data, rate, unit, amax = load_data(data_file)
+    data, idx0, idx1, clipped, min_clip, max_clip = \
+        analysis_window(raw_data[:, 0], rate, amax, 'best', cfg)
+    frate = 0.5e6  # TODO: make parameter
+    eods, eod_times, eod_peaktimes, pdict = \
+        extract_pulsefish(data, rate, frate,
+                          verbose=0, plot_level=0,
+                          return_data=['all_eod_times',
+                                       'peak_detection',
+                                       'all_cluster_steps',
+                                       'BGM_width',
+                                       'BGM_height',
+                                       'snippet_clusters',
+                                       'eod_deletion',
+                                       'masks',
+                                       'moving_fish'])
+    bgm = pdict['BGM_width']
+    plot_bgm(bgm['x'], bgm['means'], bgm['variances'],
+             bgm['weights'], bgm['use_log'], bgm['labels'][2],
+             bgm['labels'][0], 'width [ms]')
+    for w in range(100):
+        k = f'BGM_height_{w}'
+        if not k in pdict:
+            break
+        bgm = pdict[k]
+        plot_bgm(bgm['x'], bgm['means'], bgm['variances'],
+                 bgm['weights'], bgm['use_log'], bgm['labels'][2],
+                 bgm['labels'][0], f'height (width cluster {w}) [{unit}]')
+    plt.show()
+    #plt.plot(data)
+    #plt.show()
+    
+
+    
