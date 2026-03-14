@@ -24,7 +24,7 @@ from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 
 from PyQt5.QtCore import Qt, QTime
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QKeySequence
 from PyQt5.QtWidgets import QDialog, QShortcut, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QWidget, QTabWidget, QToolBar, QAction, QStyle
 from PyQt5.QtWidgets import QPushButton, QLabel, QScrollArea, QFileDialog
@@ -60,15 +60,15 @@ class TracePlot():
         self.ax = self.canvas.figure.subplots()
         rate = 1/np.mean(np.diff(time))
         twidth = 0.5
-        tfac = plot_eod_recording(self.ax, data, rate, unit,
-                                  twidth, time[0], rec_style)
+        self.tfac = plot_eod_recording(self.ax, data, rate, unit,
+                                       twidth, time[0], rec_style)
         plot_pulse_eodtimes(self.ax, data, rate,
                             twidth, eod_props, time[0],
                             colors=pulse_colors,
                             markers=pulse_markers,
                             frameon=True, loc='upper right')
         zoom_eod_recording(self.ax, eod_props, data, rate,
-                           twidth, tfac, time[0])
+                           twidth, self.tfac, time[0])
         if self.ax.get_legend() is not None:
             self.ax.get_legend().get_frame().set_color('white')
 
@@ -80,7 +80,57 @@ class TracePlot():
             self.ax.set_xlim(*self.zoomed_time_range)
             self.zoomed_time_range = None
         self.canvas.draw()
-        
+
+    def zoom_in(self):
+        t0, t1 = self.ax.get_xlim()
+        if (t1 - t0)/self.tfac > 0.001:
+            t1 = t0 + 0.5*(t1 - t0)
+            self.ax.set_xlim(t0, t1)
+            self.canvas.draw()
+
+    def zoom_out(self):
+        t0, t1 = self.ax.get_xlim()
+        if t1 < self.full_time_range[1]:
+            t1 = t0 + 2*(t1 - t0)
+            if t1 > self.full_time_range[1]:
+                t1 = self.full_time_range[1]
+            self.ax.set_xlim(t0, t1)
+            self.canvas.draw()
+            
+    def move_backward(self):
+        t0, t1 = self.ax.get_xlim()
+        if t0 > self.full_time_range[0]:
+            dt = 0.5*(t1 - t0)
+            if t0 - dt < self.full_time_range[0]:
+                dt = t0 - self.full_time_range[0]
+            self.ax.set_xlim(t0 - dt, t1 - dt)
+            self.canvas.draw()
+            
+    def move_forward(self):
+        t0, t1 = self.ax.get_xlim()
+        if t1 < self.full_time_range[1]:
+            dt = 0.5*(t1 - t0)
+            if t1 + dt > self.full_time_range[1]:
+                dt = self.full_time_range[1] - t1
+            self.ax.set_xlim(t0 + dt, t1 + dt)
+            self.canvas.draw()                
+            
+    def home(self):
+        t0, t1 = self.ax.get_xlim()
+        if t0 > self.full_time_range[0]:
+            dt = t1 - t0
+            t0 = self.full_time_range[0]
+            self.ax.set_xlim(t0, t0 + dt)
+            self.canvas.draw()
+            
+    def end(self):
+        t0, t1 = self.ax.get_xlim()
+        if t1 < self.full_time_range[1]:
+            dt = t1 - t0
+            t1 = self.full_time_range[1]
+            self.ax.set_xlim(t1 - dt, t1)
+            self.canvas.draw()                
+
         
 class PowerPlot():
     
@@ -299,6 +349,7 @@ class ThunderfishDialog(QDialog):
         self.tabs.setDocumentMode(True)
         self.tabs.setMovable(True)
         self.tabs.setTabsClosable(False)
+        self.tabs.currentChanged.connect(self.toggle_trace)
         vbox.addWidget(self.tabs)
 
         # log messages:
@@ -320,19 +371,19 @@ class ThunderfishDialog(QDialog):
                                     self.eod_props, self.wave_eodfs,
                                     self.pulse_colors, self.pulse_markers)
         self.navis.append(self.trace_plot.navi)
-        trace_idx = self.tabs.addTab(self.trace_plot.canvas, 'Trace')
+        self.trace_idx = self.tabs.addTab(self.trace_plot.canvas, 'Trace')
 
         # tab with power spectrum:
         self.power_plot = PowerPlot(power_freqs, powers, power_thresh,
                                     self.wave_eodfs, self.wave_indices,
                                     self.wave_colors, self.wave_markers)
         self.navis.append(self.power_plot.navi)
-        spec_idx = self.tabs.addTab(self.power_plot.canvas, 'Spectrum')
+        self.spec_idx = self.tabs.addTab(self.power_plot.canvas, 'Spectrum')
         
         if self.nwave > self.npulse:
-            self.tabs.setCurrentIndex(spec_idx)
+            self.tabs.setCurrentIndex(self.spec_idx)
         else:
-            self.tabs.setCurrentIndex(trace_idx)
+            self.tabs.setCurrentIndex(self.trace_idx)
 
         self.eod_tabs = None
         if len(self.eod_props) > 0:
@@ -356,7 +407,8 @@ class ThunderfishDialog(QDialog):
                 self.navis.append(eod_plot.navi)
                 self.eod_tabs.addTab(eod_plot.canvas,
                                      f'{i}: {self.eod_props[k]['EODf']:.1f}Hz')
-                
+
+        self.trace_acts = []
         self.tools = self.setup_toolbar()
         close = QPushButton('&Close', self)
         close.pressed.connect(self.accept)
@@ -433,8 +485,13 @@ class ThunderfishDialog(QDialog):
         for n in self.navis:
             n.pan()
 
-    def toggle_time_range(self):
-        self.trace_plot.toggle_time_range()
+    def dispatch_trace(self, func):
+        if self.tabs.currentIndex() == self.trace_idx:
+            getattr(self.trace_plot, func)()
+
+    def toggle_trace(self, index):
+        for act in self.trace_acts:
+            act.setEnabled(index == self.trace_idx)
         
     def setup_toolbar(self):
         tools = QToolBar(self)
@@ -451,7 +508,7 @@ class ThunderfishDialog(QDialog):
         act = QAction('&Home', self)
         act.setIcon(self.style().standardIcon(QStyle.SP_DirHomeIcon))
         act.setToolTip('Reset zoom (h, Home)')
-        act.setShortcuts(['h', 'r', Qt.Key_Home])
+        act.setShortcuts(['h', 'r'])
         act.triggered.connect(self.home)
         tools.addAction(act)
         
@@ -483,12 +540,63 @@ class ThunderfishDialog(QDialog):
         act.triggered.connect(self.pan)
         tools.addAction(act)
         
+        tools.addSeparator()
+        
         act = QAction('Trace', self)
         #act.setIcon(self.style().standardIcon(QStyle.SP_DirHomeIcon))
         act.setToolTip('Show all time in trace plot (a)')
         act.setShortcuts(['a'])
-        act.triggered.connect(self.toggle_time_range)
+        act.triggered.connect(lambda x: self.dispatch_trace('toggle_time_range'))
         tools.addAction(act)
+        self.trace_acts.append(act)
+        
+        act = QAction('Home', self)
+        act.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
+        act.setToolTip('Skip to beginning of trace plot (Home)')
+        act.setShortcuts([QKeySequence.MoveToStartOfLine, QKeySequence.MoveToStartOfDocument])
+        act.triggered.connect(lambda x: self.dispatch_trace('home'))
+        tools.addAction(act)
+        self.trace_acts.append(act)
+        
+        act = QAction('Seek backward', self)
+        act.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekBackward))
+        act.setToolTip('Seek backward in trace plot (Page up)')
+        act.setShortcuts([QKeySequence.MoveToPreviousPage])
+        act.triggered.connect(lambda x: self.dispatch_trace('move_backward'))
+        tools.addAction(act)
+        self.trace_acts.append(act)
+        
+        act = QAction('Seek forward', self)
+        act.setIcon(self.style().standardIcon(QStyle.SP_MediaSeekForward))
+        act.setToolTip('Seek forward in trace plot (Page down)')
+        act.setShortcuts([QKeySequence.MoveToNextPage])
+        act.triggered.connect(lambda x: self.dispatch_trace('move_forward'))
+        tools.addAction(act)
+        self.trace_acts.append(act)
+        
+        act = QAction('End', self)
+        act.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipForward))
+        act.setToolTip('Skip to end of trace plot (End)')
+        act.setShortcuts([QKeySequence.MoveToEndOfLine, QKeySequence.MoveToEndOfDocument])
+        act.triggered.connect(lambda x: self.dispatch_trace('end'))
+        tools.addAction(act)
+        self.trace_acts.append(act)
+        
+        act = QAction('+', self)
+        #act.setIcon(self.style().standardIcon(QStyle.SP_DirHomeIcon))
+        act.setToolTip('Zoom in to trace plot (+)')
+        act.setShortcuts([QKeySequence.ZoomIn, '+', '='])
+        act.triggered.connect(lambda x: self.dispatch_trace('zoom_in'))
+        tools.addAction(act)
+        self.trace_acts.append(act)
+        
+        act = QAction('-', self)
+        #act.setIcon(self.style().standardIcon(QStyle.SP_DirHomeIcon))
+        act.setToolTip('Zoom out of trace plot (-)')
+        act.setShortcuts([QKeySequence.ZoomOut, '-'])
+        act.triggered.connect(lambda x: self.dispatch_trace('zoom_out'))
+        tools.addAction(act)
+        self.trace_acts.append(act)
         
         tools.addSeparator()
 
