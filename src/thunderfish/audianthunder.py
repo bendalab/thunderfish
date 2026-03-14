@@ -51,6 +51,8 @@ class TracePlot():
     
     def __init__(self, time, data, unit, eod_props, wave_eodfs,
                  pulse_colors, pulse_markers):
+        self.full_time_range = (time[0], time[-1])
+        self.zoomed_time_range = None
         self.canvas = FigureCanvas(Figure(figsize=(10, 5),
                                           layout='constrained'))
         self.navi = NavigationToolbar(self.canvas)
@@ -70,7 +72,16 @@ class TracePlot():
         if self.ax.get_legend() is not None:
             self.ax.get_legend().get_frame().set_color('white')
 
-            
+    def toggle_time_range(self):
+        if self.zoomed_time_range is None:
+            self.zoomed_time_range = self.ax.get_xlim()
+            self.ax.set_xlim(*self.full_time_range)
+        else:
+            self.ax.set_xlim(*self.zoomed_time_range)
+            self.zoomed_time_range = None
+        self.canvas.draw()
+        
+        
 class PowerPlot():
     
     def __init__(self, power_freqs, powers, power_thresh,
@@ -412,6 +423,9 @@ class ThunderfishDialog(QDialog):
         for n in self.navis:
             n.pan()
 
+    def toggle_time_range(self):
+        self.trace_plot.toggle_time_range()
+        
     def setup_toolbar(self):
         tools = QToolBar(self)
 
@@ -457,6 +471,13 @@ class ThunderfishDialog(QDialog):
         act.setToolTip('Pan and zoom (p)')
         act.setShortcuts(['p'])
         act.triggered.connect(self.pan)
+        tools.addAction(act)
+        
+        act = QAction('Trace', self)
+        #act.setIcon(self.style().standardIcon(QStyle.SP_DirHomeIcon))
+        act.setToolTip('Show all time in trace plot (a)')
+        act.setShortcuts(['a'])
+        act.triggered.connect(self.toggle_time_range)
         tools.addAction(act)
         
         tools.addSeparator()
