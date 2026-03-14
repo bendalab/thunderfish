@@ -1308,12 +1308,19 @@ def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
     n = raw_snippets.shape[1]
     dist = int(np.median(eod_widths))
     freq = 1/(2*dist)
-    dist = int(1.2*dist)
+    idist = int(1.2*dist)
+    i0 = n//2 - idist
+    i1 = n//2 + idist
+    if i0 < 0:
+        i0 = 0
+    if i1 > n:
+        i1 = n
+    if 2*dist > n:
+        freq = 1.1/n 
     coefs = np.zeros(len(raw_snippets),dtype=complex)
     for k in range(len(raw_snippets)):
-        snippet = raw_snippets[k, n//2 - dist:n//2 + dist]
+        snippet = raw_snippets[k, i0:i1]
         m = len(snippet)
-        # TODO: sometimes snippet length is less than a period!
         coef = fourier_coeffs(snippet, np.arange(m) - m//2, freq, 1)[1]
         coefs[k] = coef/np.abs(coef)
     coefs *= np.conjugate(np.mean(coefs))
