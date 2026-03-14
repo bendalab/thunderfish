@@ -227,7 +227,17 @@ class EODPlot():
             self.axs = self.canvas.figure.add_subplot(gs[:, 1])
             plot_pulse_spectrum(self.axs, spectrum, props,
                                 **pulse_spec_styles)
-    
+
+
+class TeeStringIO(StringIO):
+    def __init__(self):
+        super().__init__()
+        self.orig_stdout = sys.stdout
+        self.orig_stdout.flush()
+
+    def write(self,*args, **kwargs):
+        super().write(*args, **kwargs)
+        self.orig_stdout.write(*args, **kwargs)
 
         
 class ThunderfishDialog(QDialog):
@@ -254,7 +264,7 @@ class ThunderfishDialog(QDialog):
         
         # collect stdout:
         orig_stdout = sys.stdout
-        sys.stdout = StringIO()
+        sys.stdout = TeeStringIO()
         # clipping amplitudes:
         self.min_clip, self.max_clip = \
             clip_amplitudes(self.data, max_ampl=self.ampl_max,
