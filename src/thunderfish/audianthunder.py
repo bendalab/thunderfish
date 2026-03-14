@@ -47,30 +47,18 @@ from .waveanalysis import plot_wave_eod, plot_wave_spectrum
 from .harmonics import annotate_harmonic_group
 
 
-class TracePlot():
+class TimePlot():
     
-    def __init__(self, time, data, unit, eod_props, wave_eodfs,
-                 pulse_colors, pulse_markers):
+    def __init__(self, time):
         self.full_time_range = (time[0], time[-1])
         self.zoomed_time_range = None
+        self.tfac = 1
         self.canvas = FigureCanvas(Figure(figsize=(10, 5),
                                           layout='constrained'))
         self.navi = NavigationToolbar(self.canvas)
         self.navi.hide()
         self.ax = self.canvas.figure.subplots()
-        rate = 1/np.mean(np.diff(time))
-        twidth = 0.5
-        self.tfac = plot_eod_recording(self.ax, data, rate, unit,
-                                       twidth, time[0], rec_style)
-        plot_pulse_eodtimes(self.ax, data, rate,
-                            twidth, eod_props, time[0],
-                            colors=pulse_colors,
-                            markers=pulse_markers,
-                            frameon=True, loc='upper right')
-        zoom_eod_recording(self.ax, eod_props, data, rate,
-                           twidth, self.tfac, time[0])
-        if self.ax.get_legend() is not None:
-            self.ax.get_legend().get_frame().set_color('white')
+        self.rate = 1/np.mean(np.diff(time))
 
     def toggle_time_range(self):
         if self.zoomed_time_range is None:
@@ -131,6 +119,56 @@ class TracePlot():
             self.ax.set_xlim(t1 - dt, t1)
             self.canvas.draw()                
 
+
+class TracePlot(TimePlot):
+    
+    def __init__(self, time, data, unit, eod_props, wave_eodfs,
+                 pulse_colors, pulse_markers):
+        super().__init__(time)
+        twidth = 0.5
+        self.tfac = plot_eod_recording(self.ax, data, self.rate, unit,
+                                       twidth, time[0], rec_style)
+        plot_pulse_eodtimes(self.ax, data, self.rate,
+                            twidth, eod_props, time[0],
+                            colors=pulse_colors,
+                            markers=pulse_markers,
+                            frameon=True, loc='upper right')
+        zoom_eod_recording(self.ax, eod_props, data, self.rate,
+                           twidth, self.tfac, time[0])
+        if self.ax.get_legend() is not None:
+            self.ax.get_legend().get_frame().set_color('white')
+
+
+class RatePlot(TimePlot):
+    
+    def __init__(self, time, eod_props, pulse_colors):
+        super().__init__(time)
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        colors = prop_cycle.by_key()['color']
+        k = 0
+        for props in eod_props:
+            if props['type'] != 'pulse':
+                continue
+            if 'times' not in props:
+                continue
+            times = props['peaktimes'] + self.full_time_range[0]
+            rate = 1/np.diff(times)
+            mask = np.append(np.abs(np.diff(rate))/rate[:-1] < 0.1, True)
+            #color = pulse_colors[k % len(pulse_colors)]
+            color = colors[k % len(colors)]
+            label = f'{props["EODf"]:6.1f} Hz'
+            self.ax.plot(times[:-1][mask], rate[mask], '-o',
+                         color=color, label=label)
+            self.ax.plot(times[:-1][~mask], rate[~mask], 'o',
+                         color=color)
+            self.ax.set_xlabel('Time [s]')
+            self.ax.set_ylim(bottom=0)
+            self.ax.set_ylabel('Rate [Hz]')
+            self.ax.legend()
+            k += 1
+        if self.ax.get_legend() is not None:
+            self.ax.get_legend().get_frame().set_color('white')
+            
         
 class PowerPlot():
     
@@ -349,6 +387,7 @@ class ThunderfishDialog(QDialog):
         self.tabs.setDocumentMode(True)
         self.tabs.setMovable(True)
         self.tabs.setTabsClosable(False)
+        self.trace_acts = []
         self.tabs.currentChanged.connect(self.toggle_trace)
         vbox.addWidget(self.tabs)
 
@@ -372,6 +411,12 @@ class ThunderfishDialog(QDialog):
                                     self.pulse_colors, self.pulse_markers)
         self.navis.append(self.trace_plot.navi)
         self.trace_idx = self.tabs.addTab(self.trace_plot.canvas, 'Trace')
+        
+        # tab with pulse rates:
+        self.rate_plot = RatePlot(self.time, self.eod_props, self.pulse_colors)
+        self.rate_plot.ax.set_xlim(*self.trace_plot.ax.get_xlim())
+        self.navis.append(self.rate_plot.navi)
+        self.rate_idx = self.tabs.addTab(self.rate_plot.canvas, 'Rate')
 
         # tab with power spectrum:
         self.power_plot = PowerPlot(power_freqs, powers, power_thresh,
@@ -408,7 +453,6 @@ class ThunderfishDialog(QDialog):
                 self.eod_tabs.addTab(eod_plot.canvas,
                                      f'{i}: {self.eod_props[k]['EODf']:.1f}Hz')
 
-        self.trace_acts = []
         self.tools = self.setup_toolbar()
         close = QPushButton('&Close', self)
         close.pressed.connect(self.accept)
@@ -486,12 +530,13 @@ class ThunderfishDialog(QDialog):
             n.pan()
 
     def dispatch_trace(self, func):
-        if self.tabs.currentIndex() == self.trace_idx:
+        if self.tabs.currentIndex() in [self.trace_idx, self.rate_idx]:
             getattr(self.trace_plot, func)()
+            getattr(self.rate_plot, func)()
 
     def toggle_trace(self, index):
         for act in self.trace_acts:
-            act.setEnabled(index == self.trace_idx)
+            act.setEnabled(index in [self.trace_idx, self.rate_idx])
         
     def setup_toolbar(self):
         tools = QToolBar(self)

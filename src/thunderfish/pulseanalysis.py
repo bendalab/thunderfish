@@ -1071,7 +1071,7 @@ def analyze_pulse_intervals(eod_times, ipi_cv_thresh=0.5,
         ipi_std = np.std(inter_pulse_intervals)
     else:
         intervals = inter_pulse_intervals[inter_pulse_intervals <
-                                np.percentile(inter_pulse_intervals, ipi_percentile)]
+                        np.percentile(inter_pulse_intervals, ipi_percentile)]
         ipi_median = np.median(intervals)
         ipi_mean = np.mean(intervals)
         ipi_std = np.std(intervals)
