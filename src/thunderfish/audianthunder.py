@@ -42,9 +42,11 @@ from .bestwindow import clip_args, clip_amplitudes
 from .harmonics import colors_markers, plot_harmonic_groups
 from .eodanalysis import plot_eod_snippets
 from .eodanalysis import plot_eod_recording, zoom_eod_recording, save_analysis
-from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_eod, plot_pulse_spectrum
+from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_eod
+from .pulseanalysis import pulsetrain, plot_pulse_spectrum
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum 
 from .harmonics import annotate_harmonic_group
+from .fakefish import wavefish_eods
 
 
 class TimePlot():
@@ -153,7 +155,7 @@ class RatePlot(TimePlot):
                 continue
             times = props['peaktimes'] + self.full_time_range[0]
             rate = 1/np.diff(times)
-            mask = np.append(np.abs(np.diff(rate))/rate[:-1] < 0.1, True)
+            mask = np.append(True, np.abs(np.diff(rate))/rate[:-1] < 0.1)
             #color = pulse_colors[k % len(pulse_colors)]
             color = colors[k % len(colors)]
             label = f'{props["EODf"]:6.1f} Hz'
@@ -296,25 +298,40 @@ class EODPlot():
         self.navi.hide()
         gs = self.canvas.figure.add_gridspec(2, 2)
         self.axe = self.canvas.figure.add_subplot(gs[:, 0])
-        if props['type'] == 'wave':
-            plot_wave_eod(self.axe, mean_eod, props, phases,
+        self.props = props
+        self.mean_eod = mean_eod
+        self.spectrum = spectrum
+        self.duration = len(data)/rate
+        if self.props['type'] == 'wave':
+            plot_wave_eod(self.axe, self.mean_eod, self.props, phases,
                           unit=unit, **wave_eod_styles)
             self.axa = self.canvas.figure.add_subplot(gs[0, 1])
             self.axp = self.canvas.figure.add_subplot(gs[1, 1], sharex=self.axa)
-            plot_wave_spectrum(self.axa, self.axp, spectrum, props,
+            plot_wave_spectrum(self.axa, self.axp, self.spectrum, self.props,
                                unit=unit, **wave_spec_styles)
         else:
-            plot_pulse_eod(self.axe, mean_eod, props, phases,
+            plot_pulse_eod(self.axe, self.mean_eod, self.props, phases,
                            unit=unit, **pulse_eod_styles)
-            if 'times' in props:
+            if 'times' in self.props:
                 plot_eod_snippets(self.axe, data, rate,
-                                  mean_eod[0, 0], mean_eod[-1, 0],
-                                  props['times'], n_snippets,
-                                  props['flipped'],
-                                  props['aoffs'], snippet_style)
+                                  self.mean_eod[0, 0], self.mean_eod[-1, 0],
+                                  self.props['times'], n_snippets,
+                                  self.props['flipped'],
+                                  self.props['aoffs'], snippet_style)
             self.axs = self.canvas.figure.add_subplot(gs[:, 1])
-            plot_pulse_spectrum(self.axs, spectrum, props,
+            plot_pulse_spectrum(self.axs, self.spectrum, self.props,
                                 **pulse_spec_styles)
+
+    def play(self, audio):
+        rate = 44100.0
+        if self.props['type'] == 'wave':
+            playdata = wavefish_eods(self.spectrum, self.spectrum[0, 1],
+                                     rate=rate, duration=2.0)
+            fade(playdata, rate, 0.1)
+        else:
+            playdata = pulsetrain(self.props['times'], self.mean_eod,
+                                  None, self.duration, rate, 0.05)
+        audio.play(playdata, rate, blocking=False)
 
 
 class TeeStringIO(StringIO):
@@ -509,6 +526,12 @@ class ThunderfishDialog(QDialog):
             fade(playdata, self.rate, 0.1)
             self.audio.play(playdata, self.rate, blocking=False)
 
+    def play_fish(self):
+        if self.audio.active():
+            self.audio.stop()
+        else:
+            self.eod_plots[self.eod_tabs.currentIndex()].play(self.audio)
+
     def home(self):
         for n in self.navis:
             n.home()
@@ -546,6 +569,13 @@ class ThunderfishDialog(QDialog):
         act.setToolTip('Play (Space)')
         act.setShortcut(' ')
         act.triggered.connect(self.play)
+        tools.addAction(act)
+
+        act = QAction('Play fish', self)
+        act.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        act.setToolTip('Play fish (Ctrl + Space)')
+        act.setShortcut('Ctrl+Space')
+        act.triggered.connect(self.play_fish)
         tools.addAction(act)
         
         tools.addSeparator()

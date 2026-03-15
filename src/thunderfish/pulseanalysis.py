@@ -11,6 +11,7 @@ Analysis of pulse-type EOD waveforms.
 - `decompose_pulse()`: decompose single pulse waveform into sum of Gaussians.
 - `analyze_pulse_tail()`: fit exponential to last peak/trough of pulse EOD.
 - `pulse_spectrum()`: spectrum of a single pulse-type EOD.
+- `pulsetrain(): synthesize train of pulse-type EODs.
 - `pulsetrain_spectrum()`: power spectrum of train of pulse-type EODs.
 - `analyze_pulse_spectrum()`: analyze the spectrum of a pulse-type EOD.
 - `analyze_pulse_intervals()`: basic statistics of interpulse intervals.
@@ -887,6 +888,89 @@ def pulse_spectrum(eod, ratetime=None, freq_resolution=1.0, fade_frac=0.0):
     return freqs, energy
 
 
+def pulsetrain(eod_times, eod, ratetime=None,
+               dwin=None, drate=None, fade_frac=0.0):
+    """Synthesize train of pulse-type EODs.
+
+    Place mean EOD waveform at `eod_times`.
+    
+    Parameters
+    ----------
+    eod_times: 1-D array or None
+        List of times of detected EODs.
+    eod: 1-D or 2-D array
+        The EOD waveform of which the spectrum is computed.
+        If an 1-D array, then this is the waveform and you
+        need to also pass a sampling rate in `rate`.
+        If a 2-D array, then first column is time in seconds and second
+        column is the EOD waveform. Further columns are ignored.
+    ratetime: None or float or array of float
+        If a 1-D array is passed on to `eod` then either the sampling
+        rate in Hertz or the time array corresponding to `eod`.
+    dwin: float or None
+        Duration of data window from which `eod_times` where extracted.
+        If None estimate from `eod_times`.
+    drate: float or None
+        Sampling rate of the generated data. If None set to sampling rate
+        of EOD waveform.
+    fade_frac: float
+        Fraction of time of the EOD waveform that is used to fade in
+        and out to zero baseline.
+    
+    Returns
+    -------
+    data: 1-D array of float
+        Synthesized pulse train with samplingrate `drate`.
+    """
+    if eod.ndim == 2:
+        rate = 1.0/(eod[1, 0] - eod[0, 0])
+        time = eod[:, 0]
+        eod = eod[:, 1]
+    elif isinstance(ratetime, (list, tuple, np.ndarray)):
+        time = ratetime
+        rate = 1.0/(time[1] - time[0])
+    else:
+        time = np.arange(len(eod))/ratetime
+
+    # interpolate:
+    if drate is None:
+        drate = rate
+        dtime = time
+    else:
+        dtime = np.arange(time[0], time[-1] + 0.5/drate, 1/drate)
+        eod = np.interp(dtime, time, eod)
+
+    ipi = np.median(np.diff(eod_times))
+    n_ipi = int(ipi*drate)
+    if dwin is None:
+        n = int(eod_times[-1]*drate) + n_ipi//2
+    else:
+        n = int(dwin*drate)
+    data = np.zeros(n)
+    i0 = np.argmin(np.abs(dtime))
+    i1 = len(eod) - i0
+    fn = int(fade_frac*len(eod))
+    # place eod waveforms at eod_times:
+    prev_idx = -n_ipi
+    for t in eod_times:
+        idx = int(np.round(t*drate))
+        if idx >= n:
+            break
+        ii0 = i0 if idx - i0 >= 0 else idx
+        if idx - ii0 < (idx + prev_idx)//2:
+            ii0 = idx - (idx + prev_idx)//2
+            if ii0 < 0:
+                ii0 = 0
+        ii1 = i1 if idx + i1 < len(data) else len(data) - 1 - idx
+        data[idx - ii0:idx + ii1] = eod[i0 - ii0:i0 + ii1]
+        # fade in and out:
+        if fn > 0:
+            data[idx - ii0:idx - ii0 + fn] *= np.arange(fn)/fn
+            data[idx + ii1 - fn:idx + ii1] *= np.arange(fn)[::-1]/fn
+        prev_idx = idx
+    return data
+
+
 def pulsetrain_spectrum(eod_times, eod, ratetime=None,
                         dwin=None, drate=None,
                         fade_frac=0.0, freq_resolution=1.0, **kwargs):
@@ -930,52 +1014,9 @@ def pulsetrain_spectrum(eod_times, eod, ratetime=None,
         Power spectral density in [eod]^2/Hz.
 
     """
-    if eod.ndim == 2:
-        rate = 1.0/(eod[1, 0] - eod[0, 0])
-        time = eod[:, 0]
-        eod = eod[:, 1]
-    elif isinstance(ratetime, (list, tuple, np.ndarray)):
-        time = ratetime
-        rate = 1.0/(time[1] - time[0])
-    else:
-        time = np.arange(len(eod))/ratetime
-
-    # interpolate:
-    if drate is None:
-        drate = rate
-        dtime = time
-    else:
-        dtime = np.arange(time[0], time[-1] + 0.5/drate, 1/drate)
-        eod = np.interp(dtime, time, eod)
-
-    ipi = np.median(np.diff(eod_times))
-    n_ipi = int(ipi*drate)
-    if dwin is None:
-        n = int(eod_times[-1]*drate) + n_ipi//2
-    else:
-        n = int(dwin*drate)
-    data = np.zeros(n)
-    i0 = np.argmin(np.abs(dtime))
-    i1 = len(eod) - i0
-    fn = int(fade_frac*len(eod))
-    # place eod waveforms at eod_times:
-    prev_idx = -n_ipi
-    for t in eod_times:
-        idx = int(np.round(t*drate))
-        ii0 = i0 if idx - i0 >= 0 else idx
-        if idx - ii0 < (idx + prev_idx)//2:
-            ii0 = idx - (idx + prev_idx)//2
-            if ii0 < 0:
-                ii0 = 0
-        ii1 = i1 if idx + i1 < len(data) else len(data) - 1 - idx
-        data[idx - ii0:idx + ii1] = eod[i0 - ii0:i0 + ii1]
-        # fade in and out:
-        if fn > 0:
-            data[idx - ii0:idx - ii0 + fn] *= np.arange(fn)/fn
-            data[idx + ii1 - fn:idx + ii1] *= np.arange(fn)[::-1]/fn
-        prev_idx = idx
+    data = pulsetrain(eod_times, eod, ratetime=ratetime,
+                      dwin=dwin, drate=drate, fade_frac=fade_frac)
     freq, power = psd(data - np.mean(data), drate, freq_resolution, **kwargs)
-    #power *= n/drate/ipi/len(eod_times)
     return freq, power
 
 
