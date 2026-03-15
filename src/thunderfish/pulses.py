@@ -3,7 +3,7 @@ Extract and cluster EOD waverforms of pulse-type electric fish.
 
 ## Main function
 
-- `extract_pulsefish()`: checks for pulse-type fish based on the EOD amplitude and shape.
+- `extract_pulsefish()`: checks for pulse-type fish based on EOD amplitude and shape.
 
 """
 
@@ -81,7 +81,7 @@ def unique_counts(ar):
 
 
 def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
-                      width_factor_wave=8, width_factor_display=4,
+                      width_factor_wave=8, width_factor_display=8,
                       verbose=0, plot_level=0, return_data=[]):
     """Extract and cluster pulse-type fish EODs from data.
     
@@ -369,8 +369,8 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
 
         # extract mean eods and times:
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
-          extract_means(i_data, x_merge, x_peak, x_trough, eod_widths, clusters,
-                        i_rate, width_factor_display, verbose=verbose)
+          extract_mean_waveforms(i_data, i_rate, x_merge, x_peak, x_trough,
+                                 eod_widths, clusters, width_factor_display)
 
         # determine clipped clusters (save them, but ignore in other steps):
         clusters, clipped_eods, clipped_times, clipped_peaktimes, clipped_troughtimes = \
@@ -393,9 +393,8 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
 
         # extract mean eods
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
-          extract_means(i_data, x_merge, x_peak, x_trough, eod_widths,
-                        clusters, i_rate, width_factor_display,
-                        verbose=verbose)
+          extract_mean_waveforms(i_data, i_rate, x_merge, x_peak, x_trough,
+                                 eod_widths, clusters, width_factor_display)
 
         mean_eods.extend(clipped_eods)
         eod_times.extend(clipped_times)
@@ -1261,6 +1260,76 @@ def plot_bgm_cluster(axs, xlabel, xunit, x, use_log,
     ax.set_ylim(bottom=0)
 
     
+def extract_snippets(data, eod_idx, eod_widths, left, right):
+    """Extract and align snippets from recording data.
+
+    Parameters
+    ----------
+    data: 1D numpy array of float
+        Recording data.
+    eod_idx: 1D array of int
+        Locations of EODs in data as indices.
+    eod_widths: 1D array of int
+        EOD widths (distance between peak and trough) in samples.
+    left: int
+        Width to cut out to the left in samples.
+    right: int
+        Width to cut out to the right in samples.
+
+    Returns
+    -------
+    snippets : 2D array of float
+        Extracted EOD snippets (rows are snippets, columns are time).
+
+    """
+    # extract snippets with corresponding width:
+    xleft = left + min(10, left//3)
+    xright = right + min(10, right//3)
+    snippets = np.zeros((len(eod_idx), xleft +xright))
+    # first snippet:
+    l = min(eod_idx[0], xleft)
+    snippets[0, xleft - l:] = data[eod_idx[0] - l:eod_idx[0] + xright]
+    # middle snippets:
+    for k, idx in enumerate(eod_idx[1:-1]):
+        snippets[k + 1, :] = data[idx - xleft:idx + xright]
+    # last snippet:
+    if len(eod_idx) > 1:
+        r = min(len(data) - eod_idx[-1], xright)
+        snippets[-1, :xleft + r] = data[eod_idx[-1] - xleft:eod_idx[-1] + r]
+
+    # align snippets on phase of first Fourier coefficient:
+    # (aligning on maximum of higher harmonics is much less robust)
+    n = snippets.shape[1]
+    dist = int(np.median(eod_widths))
+    freq = 1/(2*dist)
+    idist = min(dist + 1, int(1.2*dist))
+    ileft = xleft
+    i0 = ileft - idist
+    i1 = ileft + idist
+    if i0 < 0:
+        ileft += i0
+        i0 = 0
+    if i1 > n:
+        i1 = n
+    if 2*dist > n:
+        freq = 1.1/n 
+    coefs = np.zeros(len(snippets), dtype=complex)
+    for k in range(len(snippets)):
+        snippet = snippets[k, i0:i1]
+        m = len(snippet)
+        coef = fourier_coeffs(snippet, np.arange(m) - ileft, freq, 1)[1]
+        coefs[k] = coef/np.abs(coef)
+    coefs *= np.conjugate(np.mean(coefs))
+    ishifts = np.zeros(len(snippets), dtype=int)
+    for k in range(len(snippets)):
+        tshift = np.angle(coefs[k])/(2*np.pi*freq)
+        ishift = int(np.round(tshift))
+        ishifts[k] = ishift
+        snippets[k] = np.roll(snippets[k], ishift)
+    snippets = snippets[:, xleft - left:xleft + right]
+    return snippets
+
+    
 def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
                              width, n_pca=5):
     """Extract, align, normalize, snippets from recording data, normalize them, and perform PCA.
@@ -1292,45 +1361,7 @@ def extract_snippet_features(data, eod_idx, eod_widths, eod_heights,
         Ratio of the background activity slopes compared to EOD height.
 
     """
-    # extract snippets with corresponding width:
-    xwidth = width + min(10, width//3)
-    raw_snippets = np.zeros((len(eod_idx), 2*xwidth))
-    w = min(eod_idx[0], xwidth)
-    raw_snippets[0, xwidth - w:] = data[eod_idx[0] - w:eod_idx[0] + xwidth]
-    for k, idx in enumerate(eod_idx[1:-1]):
-        raw_snippets[k + 1, :] = data[idx - xwidth:idx + xwidth]
-    if len(eod_idx) > 1:
-        w = min(len(data) - eod_idx[-1], xwidth)
-        raw_snippets[-1, :xwidth + w] = data[eod_idx[-1] - xwidth:eod_idx[-1] + w]
-
-    # align snippets on phase of first Fourier coefficient:
-    # (aligning on maximum of higher harmonics is much less robust)
-    n = raw_snippets.shape[1]
-    dist = int(np.median(eod_widths))
-    freq = 1/(2*dist)
-    idist = int(1.2*dist)
-    i0 = n//2 - idist
-    i1 = n//2 + idist
-    if i0 < 0:
-        i0 = 0
-    if i1 > n:
-        i1 = n
-    if 2*dist > n:
-        freq = 1.1/n 
-    coefs = np.zeros(len(raw_snippets),dtype=complex)
-    for k in range(len(raw_snippets)):
-        snippet = raw_snippets[k, i0:i1]
-        m = len(snippet)
-        coef = fourier_coeffs(snippet, np.arange(m) - m//2, freq, 1)[1]
-        coefs[k] = coef/np.abs(coef)
-    coefs *= np.conjugate(np.mean(coefs))
-    ishifts = np.zeros(len(raw_snippets), dtype=int)
-    for k in range(len(raw_snippets)):
-        tshift = np.angle(coefs[k])/(2*np.pi*freq)
-        ishift = int(np.round(tshift))
-        ishifts[k] = ishift
-        raw_snippets[k] = np.roll(raw_snippets[k], ishift)
-    raw_snippets = raw_snippets[:, n//2 - width:n//2 + width]
+    raw_snippets = extract_snippets(data, eod_idx, eod_widths, width, width)
 
     # subtract background slope:
     snippets, bg_ratio = subtract_slope(np.copy(raw_snippets), eod_heights)
@@ -1697,76 +1728,74 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
     return clusters.astype(int), x_merged, np.vstack([c1_keep, c2_keep])
 
 
-def extract_means(data, eod_inx, eod_peak_inx, eod_tr_inx, eod_widths,
-                  clusters, rate, width_fac, verbose=0):
-    """ Extract mean EODs and EOD timepoints for each EOD cluster.
+def extract_mean_waveforms(data, rate, pos_inx, peak_inx, trough_inx,
+                           widths, labels, width_fac):
+    """ Extract time points and mean waveforms for each cluster.
 
     Parameters
     ----------
     data: 1-D array of float
-        Raw recording data.
-    eod_inx: list of int
-        Locations of EODs in samples.
-    eod_peak_inx : list of int
-        Locations of EOD peaks in samples.
-    eod_tr_inx : list of int
-        Locations of EOD troughs in samples.
-    eod_widths: list of int
-        EOD widths in samples.
-    clusters: list of int
-        EOD cluster labels
+        Timeseries with the detected pulses.
     rate: float
-        Sampling rate of recording  
+        Sampling rate of time series.  
+    pos_inx: list of int
+        Locations of pulses in samples.
+    peak_inx : list of int
+        Locations of peaks in samples.
+    trough_inx : list of int
+        Locations of troughs in samples.
+    widths: list of int
+        Widths in samples.
+    labels: list of int
+        Cluster labels
     width_fac : float
-        Multiplication factor for window used to extract EOD.
-    
-    verbose : int
-        Verbosity level.
+        Multiplication factor for window used to extract waveform snippets.
 
     Returns
     -------
-    mean_eods: list of 2D arrays
-        The average EOD for each detected fish. First column is time in seconds,
-        second column the mean eod, third column the standard deviation.
-    eod_times: list of 1D arrays
-        For each detected fish the times of EOD in seconds.
-    eod_peak_times: list of 1D arrays
-        For each detected fish the times of EOD peaks in seconds.
-    eod_trough_times: list of 1D arrays
-        For each detected fish the times of EOD troughs in seconds.
-    eod_labels: list of int
-        Cluster label for each detected fish.
+    mean_waveforms: list of 2D array of float
+        The average waveform for each detected cluster.
+        First column is time in seconds, second column mean waveform,
+        third column the corresponding standard error of the mean.
+    pos_times: list of 1D array of float
+        For each cluster the time points of waveforms in seconds.
+    peak__times: list of 1D array of float
+        For each cluster the time points of waveform peaks in seconds.
+    trough_times: list of 1D array of float
+        For each detected fish the time points of waveform troughs in seconds.
+    ulabels: list of int
+        Label for each cluster.
     """
-    mean_eods = []
-    eod_times = []
-    eod_peak_times = []
-    eod_tr_times = []
-    eod_heights = []
-    cluster_labels = []
+    waveforms = []
+    pos_times = []
+    peak_times = []
+    trough_times = []
+    heights = []
+    ulabels = []
 
-    for cluster in np.unique(clusters):
-        if cluster != -1:
-            cutwidth = np.mean(eod_widths[clusters == cluster])*width_fac
-            current_inx = eod_inx[(eod_inx > cutwidth) & (eod_inx < (len(data) - cutwidth))]
-            current_clusters = clusters[(eod_inx > cutwidth) & (eod_inx < (len(data)-cutwidth))]
+    for l in np.unique(labels):
+        if l == -1:
+            continue
+        w = widths[labels == l]
+        cut_width = int(np.ceil(np.median(w)*width_fac))
+        snippets = extract_snippets(data, pos_inx[labels == l],
+                                    w, cut_width, 2*cut_width)
 
-            snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_inx[current_clusters == cluster]])
-            mean_eod = np.mean(snippets, axis=0)
-            eod_time = np.arange(len(mean_eod))/rate - cutwidth/rate
+        mean = np.mean(snippets, axis=0)
+        sem = np.std(snippets, axis=0)/np.sqrt(len(snippets))
+        height = np.max(mean) - np.min(mean)
+        time = np.arange(len(mean))/rate - cut_width/rate
+        waveform = np.column_stack([time, mean, sem])
 
-            mean_eod = np.column_stack([eod_time,
-                                        mean_eod,
-                                        np.std(snippets, axis=0)])
+        waveforms.append(waveform)
+        pos_times.append(pos_inx[labels == l]/rate)
+        heights.append(height)
+        peak_times.append(peak_inx[labels == l]/rate)
+        trough_times.append(trough_inx[labels == l]/rate)
+        ulabels.append(l)
 
-            mean_eods.append(mean_eod)
-            eod_times.append(eod_inx[clusters == cluster]/rate)
-            eod_heights.append(np.max(mean_eod[:, 1]) - np.max(mean_eod[:, 1]))
-            eod_peak_times.append(eod_peak_inx[clusters == cluster]/rate)
-            eod_tr_times.append(eod_tr_inx[clusters == cluster]/rate)
-            cluster_labels.append(cluster)
-
-    sidx = np.argsort(eod_heights)
-    return [mean_eods[i] for i in sidx], [eod_times[i] for i in sidx], [eod_peak_times[i] for i in sidx], [eod_tr_times[i] for i in sidx], [cluster_labels[i] for i in sidx]
+    sidx = list(reversed(np.argsort(heights)))
+    return [waveforms[i] for i in sidx], [pos_times[i] for i in sidx], [peak_times[i] for i in sidx], [trough_times[i] for i in sidx], [ulabels[i] for i in sidx]
 
 
 def find_clipped_clusters(clusters, mean_eods, eod_times,

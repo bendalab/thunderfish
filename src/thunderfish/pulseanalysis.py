@@ -211,13 +211,13 @@ def condition_pulse(eod, ratetime=None, sem=None, flip='none',
     w = 2*(r1_idx - r2_idx)
     if w < n_base:
         w = n_base
-    r_idx = r1_idx + w
+    r_idx = max(r1_idx + w, 2*(max_idx - l_idx))
     if r_idx >= len(meod):
         r_idx = len(meod)
     # cut out relevant signal:
     if time[r_idx - 1] - time[l_idx] < min_pulse_win:
-        ct = time[(l_idx + r_idx)//2]
-        mask = (time >= ct - min_pulse_win/2) & (time <= ct + min_pulse_win/2)
+        tmax = time[max_idx]
+        mask = (time >= tmax - min_pulse_win/3) & (time <= tmax + 2*min_pulse_win/3)
         meod = meod[mask]
         time = time[mask]
         if eod.ndim == 2:
