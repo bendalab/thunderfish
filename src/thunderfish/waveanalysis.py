@@ -64,6 +64,7 @@ from thunderlab.fourier import fourier_synthesis
 from thunderlab.powerspectrum import decibel
 from thunderlab.tabledata import TableData
 
+from .files import open_from_zip, close_zip
 from .harmonics import fundamental_freqs_and_power
 
 
@@ -1446,13 +1447,15 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_wave_eodfs(file_path):
+def load_wave_eodfs(file_handle):
     """Load frequencies of wave EODs from file.
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -1471,7 +1474,9 @@ def load_wave_eodfs(file_path):
     --------
     save_wave_eodfs()
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     eodfs = data.array()
     if 'index' in data:
         indices = data[:, 'index']
@@ -1571,7 +1576,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_wave_fish(file_path):
+def load_wave_fish(file_handle):
     """Load properties of wave EODs from file.
 
     All times are scaled to seconds, all frequencies to Hertz and all
@@ -1579,8 +1584,10 @@ def load_wave_fish(file_path):
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -1597,7 +1604,9 @@ def load_wave_fish(file_path):
     save_wave_fish()
 
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     eod_props = data.dicts()
     for props in eod_props:
         if 'winclipped' in props:
@@ -1687,13 +1696,15 @@ def save_wave_phases(phases, unit, idx, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_wave_phases(file_path):
+def load_wave_phases(file_handle):
     """Load phase properties of wave-type EOD from file.
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -1720,7 +1731,9 @@ def load_wave_phases(file_path):
     --------
     save_wave_phases()
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     phases = dict(indices=data['index'].astype(int),
                   times=data['time']*0.001,
                   amplitudes=data['amplitude'],
@@ -1779,13 +1792,15 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_wave_spectrum(file_path):
+def load_wave_spectrum(file_handle):
     """Load amplitude and phase spectrum of wave EOD from file.
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -1806,7 +1821,9 @@ def load_wave_spectrum(file_path):
     --------
     save_wave_spectrum()
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     spec = data.array()
     spec[:, 3] *= 0.01
     return spec, data.unit('amplitude')

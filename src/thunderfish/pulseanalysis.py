@@ -74,6 +74,7 @@ from thunderlab.eventdetection import detect_peaks, peak_width
 from thunderlab.powerspectrum import next_power_of_two, nfft, psd, decibel
 from thunderlab.tabledata import TableData
 
+from .files import open_from_zip, close_zip
 from .fakefish import pulsefish_waveform, pulsefish_spectrum
 
 
@@ -2236,7 +2237,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_pulse_fish(file_path):
+def load_pulse_fish(file_handle):
     """Load properties of pulse EODs from file.
 
     All times are scaled to seconds, all frequencies to Hertz, and all
@@ -2244,8 +2245,10 @@ def load_pulse_fish(file_path):
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -2262,7 +2265,9 @@ def load_pulse_fish(file_path):
     save_pulse_fish()
 
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     eod_props = data.dicts()
     for props in eod_props:
         if 'winclipped' in props:
@@ -2344,13 +2349,15 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_pulse_spectrum(file_path):
+def load_pulse_spectrum(file_handle):
     """Load energy spectrum of pulse EOD from file.
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -2366,7 +2373,9 @@ def load_pulse_spectrum(file_path):
     --------
     save_pulse_spectrum()
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     spec = data.array()
     return spec
 
@@ -2434,13 +2443,15 @@ def save_pulse_phases(phases, unit, idx, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_pulse_phases(file_path):
+def load_pulse_phases(file_handle):
     """Load phase properties of pulse EOD from file.
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -2469,7 +2480,9 @@ def load_pulse_phases(file_path):
     --------
     save_pulse_phases()
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     phases = dict(indices=data['index'].astype(int),
                   times=data['time']*0.001,
                   amplitudes=data['amplitude'],
@@ -2535,13 +2548,15 @@ def save_pulse_gaussians(pulse, unit, idx, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_pulse_gaussians(file_path):
+def load_pulse_gaussians(file_handle):
     """Load Gaussian phase properties of pulse EOD from file.
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -2568,7 +2583,9 @@ def load_pulse_gaussians(file_path):
     save_pulse_gaussians()
 
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     pulses = data.dict()
     pulses['times'] = 0.001*np.array(data['times'])
     pulses['amplitudes'] = np.array(data['amplitudes'])
@@ -2623,13 +2640,15 @@ def save_pulse_times(pulse_times, idx, basename, **kwargs):
     return td.write_file_stream(basename, fp, **kwargs)
 
 
-def load_pulse_times(file_path):
+def load_pulse_times(file_handle):
     """Load times of pulse EOD from file.
 
     Parameters
     ----------
-    file_path: string
-        Path of the file to be loaded.
+    file_handle: str, Path, or stream
+        The file to be loaded.
+        If str or Path and file does not exist, try to open
+        possible corresponding zip file and read file from there.
 
     Returns
     -------
@@ -2645,7 +2664,9 @@ def load_pulse_times(file_path):
     --------
     save_pulse_times()
     """
-    data = TableData(file_path)
+    file_handle, zf = open_from_zip(file_handle)
+    data = TableData(file_handle)
+    close_zip(file_handle, zf)
     pulse_times = data.array()[:, 0]
     return pulse_times
 
