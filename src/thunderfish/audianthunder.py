@@ -22,6 +22,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
+from matplotlib.ticker import PercentFormatter
 
 from PyQt5.QtCore import Qt, QTime
 from PyQt5.QtGui import QFont, QKeySequence
@@ -46,7 +47,7 @@ from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_eod
 from .pulseanalysis import pulsetrain, plot_pulse_spectrum
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum 
 from .harmonics import annotate_harmonic_group
-from .fakefish import wavefish_eods
+from .fakefish import wavefish_eods, musical_intervals, musical_intervals_short
 
 
 class TimePlot():
@@ -288,6 +289,95 @@ class PowerPlot():
         self.ax.get_figure().canvas.draw()
 
 
+class FrequenciesPlot():
+    
+    def __init__(self, freqs):
+        self.canvas = FigureCanvas(Figure(figsize=(10, 5),
+                                          layout='constrained'))
+        self.axs = self.canvas.figure.subplots(1, 3)
+        freqs = np.sort(freqs)
+        # deltafs:
+        ax = self.axs[0]
+        ax.set_title('Differences $\\Delta f$')
+        deltafs = freqs.reshape(1, -1) - freqs.reshape(-1, 1)
+        vmax = np.max(np.abs(deltafs))
+        cma = ax.pcolormesh(deltafs[::-1, :], cmap='seismic', vmin=-vmax, vmax=vmax)
+        for r in range(deltafs.shape[0]):
+            for c in range(deltafs.shape[1]):
+                ax.text(c + 0.5, r + 0.5, f'{deltafs[-1 - r, c]:.1f}', ha='center', va='center',
+                        fontsize='large',
+                        bbox=dict(boxstyle='round,pad=0.1', ec='none', fc='white', alpha=0.8))
+        ax.set_aspect('equal')
+        ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(freqs)) + 0.5))
+        ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in freqs]))
+        ax.yaxis.set_major_locator(plt.FixedLocator(np.arange(len(freqs)) + 0.5))
+        ax.yaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in reversed(freqs)]))
+        ax.set_xlabel('EOD$f_i$ [Hz]')
+        ax.set_ylabel('EOD$f_j$ [Hz]')
+        ax.get_figure().colorbar(cma, ax=ax, label='$\\Delta f$ [Hz]')
+        # ratios:
+        ax = self.axs[1]
+        ax.set_title('Ratios $f_1/f_0$')
+        ratios = freqs.reshape(1, -1) / freqs.reshape(-1, 1)
+        cma = ax.pcolormesh(ratios[::-1, :], cmap='seismic', norm='log', vmin=1/5, vmax=5)
+        for r in range(ratios.shape[0]):
+            for c in range(ratios.shape[1]):
+                ax.text(c + 0.5, r + 0.5, f'{ratios[-1 - r, c]:.3f}', ha='center', va='center',
+                        fontsize='large',
+                        bbox=dict(boxstyle='round,pad=0.1', ec='none', fc='white', alpha=0.8))
+        ax.set_aspect('equal')
+        ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(freqs)) + 0.5))
+        ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in freqs]))
+        ax.yaxis.set_major_locator(plt.FixedLocator(np.arange(len(freqs)) + 0.5))
+        ax.yaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in reversed(freqs)]))
+        ax.set_xlabel('EOD$f_i$ [Hz]')
+        ax.get_figure().colorbar(cma, ax=ax, label='Ratio', ticks=[1/5, 1/2, 1, 2, 5], format='%g')
+        # musical intervals:
+        ax = self.axs[2]
+        ax.set_title('Musical intervals')
+        all_intervals = np.array([musical_intervals[k][0] for k in musical_intervals])
+        if len(freqs) < 6:
+            all_names = list(musical_intervals.keys())
+        else:
+            all_names = [musical_intervals_short[k] for k in musical_intervals]
+        intervals = np.zeros(ratios.shape, dtype=int)
+        diffs = np.zeros(ratios.shape)
+        diff_fracs = np.zeros(ratios.shape)
+        for r in range(ratios.shape[0]):
+            for c in range(ratios.shape[1]):
+                if r != c and 0.5 <= ratios[r, c] < 2.05:
+                    if ratios[r, c] >= 1.0:
+                        ratio = ratios[r, c]
+                    else:
+                        ratio = 1/ratios[r, c]
+                    intervals[r, c] = np.argmin(np.abs(all_intervals - ratio))
+                    diffs[r, c] = np.abs(all_intervals[intervals[r, c]] - ratio)
+                    diff_fracs[r, c] = diffs[r, c]/all_intervals[intervals[r, c]]
+                else:
+                    intervals[r, c] = -1
+                    diffs[r, c] = np.nan
+                    diff_fracs[r, c] = np.nan
+        cma = ax.pcolormesh(100*diff_fracs[::-1, :], cmap='YlOrRd_r', vmin=0, vmax=2)
+        for r in range(ratios.shape[0]):
+            for c in range(ratios.shape[1]):
+                if -1 - r != c and intervals[-1 - r, c] >= 0:
+                    idx = intervals[-1 - r, c]
+                    if len(freqs) < 6:
+                        label = f'{all_intervals[idx]:.4f}\n{all_names[idx]}\n$\\Delta$={diffs[-1 - r, c]:.4f}\n{100*diff_fracs[-1 - r, c]:.1f}%'
+                    else:
+                        label = f'{all_names[idx]}\n{100*diff_fracs[-1 - r, c]:.1f}%'
+                    ax.text(c + 0.5, r + 0.5, label,
+                            ha='center', va='center', fontsize='large',
+                            bbox=dict(boxstyle='round,pad=0.1', ec='none', fc='white', alpha=0.8))
+        ax.set_aspect('equal')
+        ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(freqs)) + 0.5))
+        ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in freqs]))
+        ax.yaxis.set_major_locator(plt.FixedLocator(np.arange(len(freqs)) + 0.5))
+        ax.yaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in reversed(freqs)]))
+        ax.set_xlabel('EOD$f_i$ [Hz]')
+        ax.get_figure().colorbar(cma, ax=ax, label='Deviation from musical interval', format=PercentFormatter())
+        
+
 class EODPlot():
 
     def __init__(self, data, rate, mean_eod, spectrum, props, phases, unit):
@@ -430,10 +520,14 @@ class ThunderfishDialog(QDialog):
         self.trace_idx = self.tabs.addTab(self.trace_plot.canvas, 'Trace')
         
         # tab with pulse rates:
-        self.rate_plot = RatePlot(self.time, self.eod_props, self.pulse_colors)
-        self.rate_plot.ax.set_xlim(*self.trace_plot.ax.get_xlim())
-        self.navis.append(self.rate_plot.navi)
-        self.rate_idx = self.tabs.addTab(self.rate_plot.canvas, 'Rate')
+        if self.npulse > 0:
+            self.rate_plot = RatePlot(self.time, self.eod_props, self.pulse_colors)
+            self.rate_plot.ax.set_xlim(*self.trace_plot.ax.get_xlim())
+            self.navis.append(self.rate_plot.navi)
+            self.rate_idx = self.tabs.addTab(self.rate_plot.canvas, 'Rate')
+        else:
+            self.rate_plot = None
+            self.rate_idx = None
 
         # tab with power spectrum:
         self.power_plot = PowerPlot(power_freqs, powers, power_thresh,
@@ -441,7 +535,17 @@ class ThunderfishDialog(QDialog):
                                     self.wave_colors, self.wave_markers)
         self.navis.append(self.power_plot.navi)
         self.spec_idx = self.tabs.addTab(self.power_plot.canvas, 'Spectrum')
-        
+
+        # tab with frequencies:
+        freqs = [props['EODf'] for props in self.eod_props]
+        if len(freqs) > 1:
+            self.freqs_plot = FrequenciesPlot(freqs)
+            self.freqs_idx = self.tabs.addTab(self.freqs_plot.canvas, 'Frequencies')
+        else:
+            self.freqs_plot = None
+            self.freqs_idx = None
+
+        # set current plot:
         if self.nwave > self.npulse:
             self.tabs.setCurrentIndex(self.spec_idx)
         else:

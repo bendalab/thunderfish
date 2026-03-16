@@ -10,7 +10,7 @@
 ## Muscial intervals
 
 - `musical_intervals`: names and frequency ratios of musical intervals
-
+- `musical_intervals_short`: short names for musical intervals
 
 ## Wavefish
 
@@ -85,10 +85,30 @@ musical_intervals = {
     'subminor seventh': (7/4, 7, 4, 9.5), # 1.75
     'minor seventh': (9/5, 9, 5, 10),     # 1.8
     'major seventh': (15/8, 15, 8, 11),   # 1.875
-    'octave': (2/1, 2, 1, 12),            # 2
+    'octave': (2/1, 2, 1, 12)             # 2
 }
 """Name, frequency ratio, nominator, denominator, and index of musical intervals
 """
+
+musical_intervals_short =  {
+    'unison': 'P1',
+    'minor second': 'm2',
+    'major second': 'M2',
+    'minor third': 'm3',
+    'major third': 'M3',
+    'forth': 'P4',
+    'tritone': 'd5',
+    'fifth': 'P5',
+    'minor sixth': 'm6',
+    'major sixth': 'M6',
+    'subminor seventh': 'd7',
+    'minor seventh': 'm7',
+    'major seventh': 'M7',
+    'octave': 'P8'
+}
+"""Short names for musical intervals
+"""
+
 
 # EODs of various wavefish species:
 
