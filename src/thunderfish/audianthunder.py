@@ -681,7 +681,7 @@ class ThunderfishDialog(QDialog):
     def dispatch_trace(self, func):
         if self.tabs.currentIndex() in [self.trace_idx, self.rate_idx]:
             getattr(self.trace_plot, func)()
-            if rate_plot is not None:
+            if self.rate_plot is not None:
                 getattr(self.rate_plot, func)()
 
     def toggle_trace(self, index):
