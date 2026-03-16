@@ -297,25 +297,31 @@ class PowerPlot():
 class FrequenciesPlot(QObject):
     
     sigEODFreq = Signal(float)
+    sigEODFreqs = Signal(float, float)
     
     def __init__(self, freqs):
         super().__init__()
         self.canvas = FigureCanvas(Figure(figsize=(10, 5),
                                           layout='constrained'))
         self.canvas.mpl_connect('button_release_event', self.onrelease)
-        self.axs = self.canvas.figure.subplots(1, 3)
+        self.navi = NavigationToolbar(self.canvas)
+        self.navi.hide()
+        self.axs = self.canvas.figure.subplots(1, 3, sharex=True, sharey=True)
         self.freqs = np.sort(freqs)
         # deltafs:
         ax = self.axs[0]
         ax.set_title('Differences $\\Delta f$')
         deltafs = self.freqs.reshape(1, -1) - self.freqs.reshape(-1, 1)
         vmax = np.max(np.abs(deltafs))
-        cma = ax.pcolormesh(deltafs[::-1, :], cmap='seismic', vmin=-vmax, vmax=vmax)
+        cma = ax.pcolormesh(deltafs[::-1, :], cmap='seismic',
+                            vmin=-vmax, vmax=vmax)
         for r in range(deltafs.shape[0]):
             for c in range(deltafs.shape[1]):
-                ax.text(c + 0.5, r + 0.5, f'{deltafs[-1 - r, c]:.1f}', ha='center', va='center',
-                        fontsize='large',
-                        bbox=dict(boxstyle='round,pad=0.1', ec='none', fc='white', alpha=0.8))
+                ax.text(c + 0.5, r + 0.5, f'{deltafs[-1 - r, c]:.1f}',
+                        ha='center', va='center',
+                        fontsize='large', clip_on=True,
+                        bbox=dict(boxstyle='round,pad=0.1', ec='none',
+                                  fc='white', alpha=0.8))
         ax.set_aspect('equal')
         ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
         ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in self.freqs]))
@@ -328,12 +334,15 @@ class FrequenciesPlot(QObject):
         ax = self.axs[1]
         ax.set_title('Ratios $f_1/f_0$')
         ratios = self.freqs.reshape(1, -1) / self.freqs.reshape(-1, 1)
-        cma = ax.pcolormesh(ratios[::-1, :], cmap='seismic', norm='log', vmin=1/5, vmax=5)
+        cma = ax.pcolormesh(ratios[::-1, :], cmap='seismic', norm='log',
+                            vmin=1/5, vmax=5)
         for r in range(ratios.shape[0]):
             for c in range(ratios.shape[1]):
-                ax.text(c + 0.5, r + 0.5, f'{ratios[-1 - r, c]:.3f}', ha='center', va='center',
-                        fontsize='large',
-                        bbox=dict(boxstyle='round,pad=0.1', ec='none', fc='white', alpha=0.8))
+                ax.text(c + 0.5, r + 0.5, f'{ratios[-1 - r, c]:.3f}',
+                        ha='center', va='center',
+                        fontsize='large', clip_on=True,
+                        bbox=dict(boxstyle='round,pad=0.1', ec='none',
+                                  fc='white', alpha=0.8))
         ax.set_aspect('equal')
         ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
         ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in self.freqs]))
@@ -360,13 +369,14 @@ class FrequenciesPlot(QObject):
                     else:
                         ratio = 1/ratios[r, c]
                     intervals[r, c] = np.argmin(np.abs(all_intervals - ratio))
-                    diffs[r, c] = np.abs(all_intervals[intervals[r, c]] - ratio)
+                    diffs[r, c] = all_intervals[intervals[r, c]] - ratio
                     diff_fracs[r, c] = diffs[r, c]/all_intervals[intervals[r, c]]
                 else:
                     intervals[r, c] = -1
                     diffs[r, c] = np.nan
                     diff_fracs[r, c] = np.nan
-        cma = ax.pcolormesh(100*diff_fracs[::-1, :], cmap='YlOrRd_r', vmin=0, vmax=2)
+        cma = ax.pcolormesh(100*np.abs(diff_fracs[::-1, :]), cmap='YlOrRd_r',
+                            vmin=0, vmax=2)
         for r in range(ratios.shape[0]):
             for c in range(ratios.shape[1]):
                 if -1 - r != c and intervals[-1 - r, c] >= 0:
@@ -376,8 +386,10 @@ class FrequenciesPlot(QObject):
                     else:
                         label = f'{all_names[idx]}\n{100*diff_fracs[-1 - r, c]:.1f}%'
                     ax.text(c + 0.5, r + 0.5, label,
-                            ha='center', va='center', fontsize='large',
-                            bbox=dict(boxstyle='round,pad=0.1', ec='none', fc='white', alpha=0.8))
+                            ha='center', va='center',
+                            fontsize='large', clip_on=True,
+                            bbox=dict(boxstyle='round,pad=0.1', ec='none',
+                                      fc='white', alpha=0.8))
         ax.set_aspect('equal')
         ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
         ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in self.freqs]))
@@ -392,10 +404,12 @@ class FrequenciesPlot(QObject):
             c = int(event.xdata)
             eodf1 = self.freqs[-1 - r]
             eodf2 = self.freqs[c]
-            if event.button == MouseButton.RIGHT:
-                self.sigEODFreq.emit(eodf2)
-            else:
+            if event.button == MouseButton.LEFT:
                 self.sigEODFreq.emit(eodf1)
+            elif event.button == MouseButton.RIGHT:
+                self.sigEODFreq.emit(eodf2)
+            elif event.button == MouseButton.MIDDLE:
+                self.sigEODFreqs.emit(eodf1, eodf2)
         
 
 class EODPlot():
@@ -432,16 +446,20 @@ class EODPlot():
             plot_pulse_spectrum(self.axs, self.spectrum, self.props,
                                 **pulse_spec_styles)
 
+    def synthesize(self, rate, duration=2.0):
+        if self.props['type'] == 'wave':
+            data = wavefish_eods(self.spectrum, self.spectrum[0, 1],
+                                 rate=rate, duration=duration)
+        else:
+            data = pulsetrain(self.props['times'], self.mean_eod,
+                              None, self.duration, rate, 0.05)
+        return data
+
     def play(self, audio):
         rate = 44100.0
-        if self.props['type'] == 'wave':
-            playdata = wavefish_eods(self.spectrum, self.spectrum[0, 1],
-                                     rate=rate, duration=2.0)
-            fade(playdata, rate, 0.1)
-        else:
-            playdata = pulsetrain(self.props['times'], self.mean_eod,
-                                  None, self.duration, rate, 0.05)
-        audio.play(playdata, rate, blocking=False)
+        data = self.synthesize(rate, 2.0)
+        fade(data, rate, 0.1)
+        audio.play(data, rate, blocking=False)
 
 
 class TeeStringIO(StringIO):
@@ -560,8 +578,11 @@ class ThunderfishDialog(QDialog):
         # tab with frequencies:
         if len(self.eodfs) > 1:
             self.freqs_plot = FrequenciesPlot(self.eodfs)
-            self.freqs_idx = self.tabs.addTab(self.freqs_plot.canvas, 'Frequencies')
+            self.navis.append(self.freqs_plot.navi)
+            self.freqs_idx = self.tabs.addTab(self.freqs_plot.canvas,
+                                              'Frequencies')
             self.freqs_plot.sigEODFreq.connect(self.raise_and_play)
+            self.freqs_plot.sigEODFreqs.connect(self.play_interval)
         else:
             self.freqs_plot = None
             self.freqs_idx = None
@@ -830,6 +851,18 @@ class ThunderfishDialog(QDialog):
         inx = np.argmin(np.abs(self.eodfs - eodf))
         self.eod_tabs.setCurrentIndex(inx)
         self.eod_plots[inx].play(self.audio)
+
+    def play_interval(self, eodf1, eodf2):
+        rate = 44100.0
+        inx1 = np.argmin(np.abs(self.eodfs - eodf1))
+        self.eod_tabs.setCurrentIndex(inx1)
+        data1 = self.eod_plots[inx1].synthesize(rate, 2.0)
+        inx2 = np.argmin(np.abs(self.eodfs - eodf2))
+        data2 = self.eod_plots[inx2].synthesize(rate, 2.0)
+        n = min(len(data1), len(data2))
+        playdata = data1[:n] + data2[:n]
+        fade(playdata, rate, 0.1)
+        self.audio.play(playdata, rate, blocking=False)
             
 
 class ThunderfishAnalyzer(Analyzer):
