@@ -896,9 +896,6 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             h_eod_heights = w_eod_heights[height_labels == height_label]
             h_eod_xp = w_eod_xp[height_labels == height_label]
             h_eod_xt = w_eod_xt[height_labels == height_label]
-            
-            if verbose > 0:
-                print(f'    clusters generated based on EOD shape in width cluster {width_label}, height cluster {height_label}:')
 
             p_feats = p_features[height_labels == height_label]
             t_feats = t_features[height_labels == height_label]
@@ -907,6 +904,9 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
                                         min_samples_frac)
             t_labels = cluster_on_shape(t_feats, shape_eps, min_samples,
                                         min_samples_frac)
+            
+            if verbose > 0:
+                print(f'    clusters generated based on EOD shape in width cluster {width_label}, height cluster {height_label}: {len(np.unique(p_labels[p_labels != -1]))} {len(np.unique(t_labels[t_labels != -1]))}')
 
             if plot_level > 0:
                 p_snips = p_snippets[height_labels == height_label]
@@ -968,11 +968,12 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             max_label_t = max(np.max(wt_labels), np.max(all_t_labels)) + 1
 
         if verbose > 0:
+            print(f'  clusters generated based on EOD shape in width cluster {width_label}:')            
             if np.max(wp_labels) == -1:
-                print(f'      none')
+                print(f'    none')
             else:
                 unique_clusters = np.unique(wp_labels[wp_labels != -1])
-                print(f'      num={len(unique_clusters):2d} different EOD shapes:',
+                print(f'    num={len(unique_clusters):2d} different EOD shapes:',
                       str(unique_clusters).strip('[]'))
         
         if 'all_cluster_steps' in return_data:
@@ -1226,7 +1227,7 @@ def merge_gaussians(x, labels, min_samples=5, min_samples_frac=0.05,
             labels[labels == l] = -1
             if verbose > 0:
                 print(f'      removed cluster {l:2d}: fraction of samples {100*c/len(labels):4.1f}% smaller than {100*min_samples_frac:4.1f}%')
-    u_labels = u_labels[u_counts >= min_samples]
+    u_labels = np.unique(labels[labels != -1])
     if len(u_labels) == 0:
         return labels
     while len(u_labels) >= 2:
