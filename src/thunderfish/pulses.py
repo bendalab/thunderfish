@@ -238,6 +238,26 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                 - 'rate': float.
                     Sampling rate of snippets.
 
+        - 'artefacts':
+            This key adds two dictionaries for each width cluster,
+            one for peak-centered and one for trough-centered shape clusters:
+            - 'artefacts_peaks_*width*'
+            - 'artefacts_troughs_*width*'
+            where *width* (int) is the label of the width cluster.
+            Both of them have the same entries
+            where *cluster* (int) is the unique shape cluster label:
+            - 'mean_eod_*cluster*': 1D array of float
+                Mean EOD waveform of cluster.
+            - 'fft_power_*cluster*': 1D array of float
+                Power spectrum of mean EOD waveform.
+            - 'fft_freqs_*cluster*': 1D array of float
+                Frequencies of power spectrum.
+            - 'low_frequency': float
+                Frequency defining low frequencies.
+            - 'low_frequency_ratio_*cluster*': float
+                Ratio of low frequency power to total power.
+            - 'mask_*cluster*': float
+
         - 'eod_deletion':
             This key adds two dictionaries for each (peak centered) shape cluster,
             where *cluster* (int) is the unique shape cluster label.
@@ -356,6 +376,8 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         merge_thresh_height = 0.1
         n_pca = 5
         shape_eps = 0.3
+        low_freq = 5000
+        min_power_ratio = 0.5
         clusters, x_merge, c_log_dict = \
             cluster(i_data, i_rate, x_peak, x_trough, eod_heights, eod_widths,
                     width_factor_shape, width_factor_wave,
@@ -365,7 +387,9 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                     n_gaus_height=n_gaus_height,
                     merge_thresh_height=merge_thresh_height,
                     n_pca=n_pca, shape_eps=shape_eps,
-                    verbose=verbose, plot_level=plot_level-1, return_data=return_data) 
+                    low_freq=low_freq, min_power_ratio=min_power_ratio,
+                    verbose=verbose, plot_level=plot_level-1,
+                    return_data=return_data) 
 
         # extract mean eods and times:
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
@@ -652,6 +676,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             n_gaus_width=3, merge_thresh_width=0.6,
             n_gaus_height=10, merge_thresh_height=0.1,
             n_pca=5, shape_eps=0.05,
+            low_freq=10000, min_power_ratio=0.5,
             verbose=0, plot_level=0, return_data=[]):
     """Cluster EODs.
     
@@ -699,6 +724,11 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
         Number of PCs to use for PCA.
     shape_eps : float
         Epsilon to use for DBSCAN clustering of EOD shapes.
+    low_freq: float
+        Frequency defining low frequencies in Hertz.
+    min_power_ratio: float
+        Minimum ratio of low-frequency power to total power
+        for mean EOD snippets not being an artefact.
     verbose : int
         Verbosity level.
     plot_level : int
@@ -707,7 +737,8 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
     return_data : list of str
         Keys that specify data to be logged. Keys that can be used to log data
         in this function are: 'all_cluster_steps', 'BGM_width', 'BGM_height',
-        'snippet_clusters', 'eod_deletion' (see extract_pulsefish()).
+        'snippet_clusters', 'artefacts', 'eod_deletion'
+        (see extract_pulsefish()).
 
     Returns
     -------
@@ -817,7 +848,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
         if verbose > 0:
             # report height clusters:
             for l in np.unique(height_labels):
-                print(f'    {l:2d}: num={len(height_labels[height_labels == l]):5d}, height={np.mean(w_eod_heights[height_labels == l]):6.4g} +- {np.std(w_eod_heights[height_labels == l]):6.4g}')
+                print(f'    {l:2d}: num={len(height_labels[height_labels == l]):5d}, height={np.mean(w_eod_heights[height_labels == l]):7.4g} +- {np.std(w_eod_heights[height_labels == l]):7.4g}')
 
         if plot_level > 0:
             prop_cycle = plt.rcParams['axes.prop_cycle']
@@ -949,18 +980,23 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             all_snippets.append(csnippets)
             all_features.append(cfeatures)
 
-        # for each cluster, save fft + label
-        # so I end up with features for each label, and the masks.
-        # then I can extract e.g. first artefact or wave etc.
-
         # remove artefacts here, based on the mean snippets ffts.
         artefact_masks_p[width_labels == width_label], sdict = \
-          remove_artefacts(p_snippets, wp_labels, rate,
-                           verbose=verbose-1, return_data=return_data)
-        saved_data.update(sdict)
+          remove_artefacts(p_snippets, rate, wp_labels,
+                           threshold=min_power_ratio,
+                           low_freq=low_freq,
+                           verbose=verbose-1,
+                           return_data='artefacts' in return_data)
+        if 'artefacts' in return_data:
+            saved_data[f'artefacts_peaks_{width_label}'] = sdict
         artefact_masks_t[width_labels == width_label], _ = \
-          remove_artefacts(t_snippets, wt_labels, rate,
-                           verbose=verbose-1, return_data=return_data)
+          remove_artefacts(t_snippets, rate, wt_labels,
+                           low_freq=low_freq,
+                           threshold=min_power_ratio,
+                           verbose=verbose-1,
+                           return_data='artefacts' in return_data)
+        if 'artefacts' in return_data:
+            saved_data[f'artefacts_troughs_{width_label}'] = sdict
 
         # update maxlab so that no clusters are overwritten
         all_p_labels[width_labels == width_label] = wp_labels
@@ -1435,58 +1471,68 @@ def subtract_slope(snippets, heights):
     return snippets - slopes.T, np.abs(left_y-right_y)/heights
 
 
-def remove_artefacts(all_snippets, clusters, rate,
-                     freq_low=20000, threshold=0.75,
-                     verbose=0, return_data=[]):
+def remove_artefacts(snippets, rate, clusters, low_freq=10000,
+                     threshold=0.5, verbose=0, return_data=False):
     """ Create a mask for EOD clusters that result from artefacts, based on power in low frequency spectrum.
 
     Parameters
     ----------
-    all_snippets: 2D array
-        EOD snippets. Shape=(nEODs, EOD length)
-    clusters: list of int
-        EOD cluster labels
-    rate : float
-        Sampling rate of original recording data.
-    freq_low: float
-        Frequency up to which low frequency components are summed up. 
-    threshold : float
-        Minimum value for sum of low frequency components relative to
-        sum overa ll spectrl amplitudes that separates artefact from
+    snippets: 2D array of float
+        EOD snippets (each row is an EOD snippet).
+    rate: float
+        Sampling rate of snippets.
+    clusters: array of int
+        EOD cluster labels.
+    low_freq: float
+        Frequency defining low frequencies in Hertz.
+    threshold: float
+        Minimum value for sum of low frequency power relative to
+        sum over full power spectrum that separates artefact from
         clean pulsefish clusters.
-    verbose : int
+    verbose: int
         Verbosity level.
-    return_data : list of str
-        Keys that specify data to be logged. The key that can be used to log data in this function is
-        'eod_deletion' (see extract_pulsefish()).
+    return_data: bool
+        If True log some data into `adict`.
 
     Returns
     -------
-    mask: numpy array of booleans
+    mask: numpy array of bool
         Set to True for every EOD which is an artefact.
-    adict : dictionary
-        Key value pairs of logged data. Data to be logged is specified by return_data.
+    adict: dictionary
+        Key-value pairs of logged data.
     """
     adict = {}
 
     mask = np.zeros(clusters.shape, dtype=bool)
 
-    for cluster in np.unique(clusters[clusters >= 0]):
-        snippets = all_snippets[clusters == cluster]
-        mean_eod = np.mean(snippets, axis=0)
-        mean_eod = mean_eod - np.mean(mean_eod)
-        mean_eod_fft = np.abs(np.fft.rfft(mean_eod))
-        freqs = np.fft.rfftfreq(len(mean_eod), 1/rate)
-        low_frequency_ratio = np.sum(mean_eod_fft[freqs<freq_low])/np.sum(mean_eod_fft)
-        if low_frequency_ratio < threshold:  # TODO: check threshold!
-            mask[clusters == cluster] = True
-            
-            if verbose > 0:
-                print('Deleting cluster %i with low frequency ratio of %.3f (min %.3f)' % (cluster, low_frequency_ratio, threshold))
+    if low_freq > rate/2:
+        return mask, adict
 
-        if 'eod_deletion' in return_data:
-            adict['vals_%d' % cluster] = [mean_eod, mean_eod_fft]
-            adict['mask_%d' % cluster] = [np.any(mask[clusters == cluster])]
+    for cluster in np.unique(clusters):
+        if cluster == -1:
+            continue
+        cluster_snippets = snippets[clusters == cluster]
+        mean_eod = np.mean(cluster_snippets, axis=0)
+        mean_eod -= np.mean(mean_eod)
+        mean_eod_power = np.abs(np.fft.rfft(mean_eod))**2
+        freqs = np.fft.rfftfreq(len(mean_eod), 1/rate)
+        low_power = np.sum(mean_eod_power[freqs < low_freq])
+        total_power = np.sum(mean_eod_power)
+        low_freq_ratio = low_power/total_power
+        if low_freq_ratio < threshold:
+            mask[clusters == cluster] = True
+            if verbose > 0:
+                print(f'  delete cluster {cluster}: low frequency ratio of {low_freq_ratio:4.2f} for frequencies below {low_freq:4.0f}Hz is SMALLER than {threshold:4.2f}')
+        elif verbose > 1:
+            print(f'  keep   cluster {cluster}: low frequency ratio of {low_freq_ratio:4.2f} for frequencies below {low_freq:4.0f}Hz is larger  than {threshold:4.2f}')
+
+        if return_data:
+            adict[f'mean_eod_{cluster}'] = mean_eod
+            adict[f'fft_power_{cluster}'] = mean_eod_power
+            adict[f'fft_freqs_{cluster}'] = freqs
+            adict[f'low_frequency_{cluster}'] = low_freq
+            adict[f'low_frequency_ratio_{cluster}'] = low_freq_ratio
+            adict[f'mask_{cluster}'] = np.any(mask[clusters == cluster])
     
     return mask, adict
 
