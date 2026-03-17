@@ -311,7 +311,7 @@ class FrequenciesPlot(QObject):
         # deltafs:
         ax = self.axs[0]
         ax.set_title('Differences $\\Delta f$')
-        deltafs = self.freqs.reshape(1, -1) - self.freqs.reshape(-1, 1)
+        deltafs = self.freqs.reshape(-1, 1) - self.freqs.reshape(1, -1)
         vmax = np.max(np.abs(deltafs))
         cma = ax.pcolormesh(deltafs[::-1, :], cmap='seismic',
                             vmin=-vmax, vmax=vmax)
@@ -333,7 +333,7 @@ class FrequenciesPlot(QObject):
         # ratios:
         ax = self.axs[1]
         ax.set_title('Ratios $f_1/f_0$')
-        ratios = self.freqs.reshape(1, -1) / self.freqs.reshape(-1, 1)
+        ratios = self.freqs.reshape(-1, 1) / self.freqs.reshape(1, -1)
         cma = ax.pcolormesh(ratios[::-1, :], cmap='seismic', norm='log',
                             vmin=1/5, vmax=5)
         for r in range(ratios.shape[0]):
@@ -364,19 +364,19 @@ class FrequenciesPlot(QObject):
         for r in range(ratios.shape[0]):
             for c in range(ratios.shape[1]):
                 if r != c and 0.5 <= ratios[r, c] < 2.05:
-                    if ratios[r, c] >= 1.0:
+                    if ratios[r, c] >= 0.98:
                         ratio = ratios[r, c]
                     else:
                         ratio = 1/ratios[r, c]
                     intervals[r, c] = np.argmin(np.abs(all_intervals - ratio))
-                    diffs[r, c] = all_intervals[intervals[r, c]] - ratio
+                    diffs[r, c] = ratio - all_intervals[intervals[r, c]]
                     diff_fracs[r, c] = diffs[r, c]/all_intervals[intervals[r, c]]
                 else:
                     intervals[r, c] = -1
                     diffs[r, c] = np.nan
                     diff_fracs[r, c] = np.nan
         cma = ax.pcolormesh(100*np.abs(diff_fracs[::-1, :]), cmap='YlOrRd_r',
-                            vmin=0, vmax=2)
+                            vmin=0, vmax=1)
         for r in range(ratios.shape[0]):
             for c in range(ratios.shape[1]):
                 if -1 - r != c and intervals[-1 - r, c] >= 0:
@@ -396,7 +396,9 @@ class FrequenciesPlot(QObject):
         ax.yaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
         ax.yaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in reversed(self.freqs)]))
         ax.set_xlabel('EOD$f_i$ [Hz]')
-        ax.get_figure().colorbar(cma, ax=ax, label='Deviation from musical interval', format=PercentFormatter())
+        ax.get_figure().colorbar(cma, ax=ax, extend='max',
+                                 format=PercentFormatter(decimals=1),
+                                 label='Deviation from musical interval')
         
     def onrelease(self, event):
         if event.inaxes in self.axs:
