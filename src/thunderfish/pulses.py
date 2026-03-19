@@ -1322,7 +1322,7 @@ def extract_snippets(data, eod_idx, eod_widths, left, right):
     # extract snippets with corresponding width:
     xleft = left + min(10, left//3)
     xright = right + min(10, right//3)
-    snippets = np.zeros((len(eod_idx), xleft +xright))
+    snippets = np.zeros((len(eod_idx), xleft + xright))
     # first snippet:
     l = min(eod_idx[0], xleft)
     snippets[0, xleft - l:] = data[eod_idx[0] - l:eod_idx[0] + xright]
@@ -1627,14 +1627,13 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths,
     """
     mask_wave = np.zeros(clusters.shape, dtype=bool)
     mask_sidepeak = np.zeros(clusters.shape, dtype=bool)
+    sdict = {}
 
     for i, cluster in enumerate(np.unique(clusters[clusters >= 0])):
         mean_width = np.mean(eod_widths[clusters == cluster])
-        cutwidth = mean_width*width_fac
-        current_x = eod_x[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
-        current_clusters = clusters[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
-        snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)]
-                              for x in current_x[current_clusters == cluster]])
+        cutwidth = int(mean_width*width_fac)
+        snippets = extract_snippets(data, eod_x[clusters == cluster],
+                                    mean_width, cutwidth, cutwidth)
         
         # extract information on main peaks and troughs:
         mean_eod = np.mean(snippets, axis=0)
@@ -1642,38 +1641,45 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths,
 
         # detect peaks and troughs on data + some maxima/minima at the
         # end, so that the sides are also considered for peak detection:
-        pk, tr = detect_peaks(np.concatenate(([-10*mean_eod[0]], mean_eod, [10*mean_eod[-1]])),
-                              np.std(mean_eod))
-        pk = pk[(pk>0)&(pk<len(mean_eod))]
-        tr = tr[(tr>0)&(tr<len(mean_eod))]
+        thresh = np.std(mean_eod)
+        peod = np.array(mean_eod)
+        peod[0] += 2*thresh
+        peod[-1] -= 2*thresh
+        pk, tr = detect_peaks(peod, thresh)
+        pk = pk[(pk > 0) & (pk < len(peod))]
+        tr = tr[(tr > 0) & (tr < len(peod))]
 
-        if len(pk)>0 and len(tr)>0:
-            idxs = np.sort(np.concatenate((pk, tr)))
-            slopes = np.abs(np.diff(mean_eod[idxs]))
-            m_slope = np.argmax(slopes)
-            centered = np.min(np.abs(idxs[m_slope:m_slope+2] - len(mean_eod)//2))
+        # no peaks or troughs:
+        if len(pk) == 0 or len(tr) == 0:
+            return mask_wave, mask_sidepeak, sdict
+
+        idxs = np.sort(np.concatenate((pk, tr)))
+        slopes = np.abs(np.diff(mean_eod[idxs]))
+        max_slope = np.argmax(slopes)
+        # check for side peaks:
+        centered = np.min(np.abs(idxs[max_slope:max_slope + 2] - len(mean_eod)//2))
+        if centered > max_slope_deviation*mean_width:  # TODO: check, factor was probably 0.16
+            if verbose > 0:
+                print(f' delete cluster {cluster}, which is a sidepeak')
+            mask_sidepeak[clusters == cluster] = True
+
+
+        # compute all height differences of peaks and troughs within snippets.
+        # if they are all similar, it is probably noise or a wavefish.
+        h_diffs = np.diff(mean_eod[idxs])   # TODO: almost the same as slopes!
+        w_diffs = np.diff(idxs)
+
+        #if np.abs(np.diff(idxs[max_slope:max_slope + 2])) < np.mean(eod_widths[clusters == cluster])*0.5 or len(pk) + len(tr)>max_phases or np.min(w_diffs)>2*cutwidth/width_fac: #or len(h_diffs[np.abs(h_diffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])>max_phases:
+        if w_diffs[max_slope:max_slope + 2][0] < np.mean(eod_widths[clusters == cluster])*0.5 or len(idxs) > max_phases or np.min(w_diffs) > 2*cutwidth/width_fac: #or len(h_diffs[np.abs(h_diffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])>max_phases:  # Jan
+            if verbose > 0:
+                print(f'  delete cluster {cluster}, which is a wavefish')
+            mask_wave[clusters == cluster] = True
             
-            # compute all height differences of peaks and troughs within snippets.
-            # if they are all similar, it is probably noise or a wavefish.
-            idxs = np.sort(np.concatenate((pk, tr)))
-            hdiffs = np.diff(mean_eod[idxs])
-
-            if centered > max_slope_deviation*mean_width:  # TODO: check, factor was probably 0.16
-                if verbose > 0:
-                    print('Deleting cluster %i, which is a sidepeak' % cluster)
-                mask_sidepeak[clusters == cluster] = True
-
-            w_diff = np.abs(np.diff(np.sort(np.concatenate((pk, tr)))))
-
-            if np.abs(np.diff(idxs[m_slope:m_slope+2])) < np.mean(eod_widths[clusters == cluster])*0.5 or len(pk) + len(tr)>max_phases or np.min(w_diff)>2*cutwidth/width_fac: #or len(hdiffs[np.abs(hdiffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])>max_phases:
-                if verbose > 0:
-                    print('Deleting cluster %i, which is a wavefish' % cluster)
-                mask_wave[clusters == cluster] = True
-        if 'vals_%d' % cluster in sdict:
-            sdict['vals_%d' % cluster].append([mean_eod, [pk, tr],
-                                               idxs[m_slope:m_slope+2]])
-            sdict['mask_%d' % cluster].append(any(mask_wave[clusters == cluster]))
-            sdict['mask_%d' % cluster].append(any(mask_sidepeak[clusters == cluster]))
+    if 'vals_%d' % cluster in sdict:
+        sdict['vals_%d' % cluster].append([mean_eod, [pk, tr],
+                                           idxs[max_slope:max_slope + 2]])
+        sdict['mask_%d' % cluster].append(any(mask_wave[clusters == cluster]))
+        sdict['mask_%d' % cluster].append(any(mask_sidepeak[clusters == cluster]))
 
     return mask_wave, mask_sidepeak, sdict
 
