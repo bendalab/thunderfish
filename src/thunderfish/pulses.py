@@ -378,6 +378,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
         shape_eps = 0.3
         low_freq = 5000
         min_power_ratio = 0.5
+        pulse_thresh = 0.2      
         clusters, x_merge, c_log_dict = \
             cluster(i_data, i_rate, x_peak, x_trough, eod_heights, eod_widths,
                     width_factor_shape, width_factor_wave,
@@ -388,6 +389,7 @@ def extract_pulsefish(data, rate, frate=0.5e6, width_factor_shape=3,
                     merge_thresh_height=merge_thresh_height,
                     n_pca=n_pca, shape_eps=shape_eps,
                     low_freq=low_freq, min_power_ratio=min_power_ratio,
+                    pulse_thresh=pulse_thresh,
                     verbose=verbose, plot_level=plot_level-1,
                     return_data=return_data) 
 
@@ -677,6 +679,7 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
             n_gaus_height=10, merge_thresh_height=0.1,
             n_pca=5, shape_eps=0.05,
             low_freq=10000, min_power_ratio=0.5,
+            pulse_thresh=0.2,            
             verbose=0, plot_level=0, return_data=[]):
     """Cluster EODs.
     
@@ -729,6 +732,8 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
     min_power_ratio: float
         Minimum ratio of low-frequency power to total power
         for mean EOD snippets not being an artefact.
+    pulse_thresh: float
+        Maximum ratio of pulse width relative to inter-pulse interval.
     verbose : int
         Verbosity level.
     plot_level : int
@@ -1008,10 +1013,13 @@ def cluster(data, rate, eod_xp, eod_xt, eod_heights, eod_widths,
     
     # remove all non-reliable clusters
     unreliable_fish_mask_p, saved_data = \
-      delete_unreliable_fish(all_p_labels, eod_widths, eod_xp,
-                             verbose=verbose-1, sdict=saved_data)
+      delete_unreliable_fish(all_p_labels, eod_xp, eod_widths,
+                             pulse_thresh=pulse_thresh,
+                             verbose=verbose - 1, sdict=saved_data)
     unreliable_fish_mask_t, _ = \
-      delete_unreliable_fish(all_t_labels, eod_widths, eod_xt, verbose=verbose-1)
+      delete_unreliable_fish(all_t_labels, eod_xt, eod_widths,
+                             pulse_thresh=pulse_thresh,
+                             verbose=verbose - 1)
     
     wave_mask_p, sidepeak_mask_p, saved_data = \
       delete_wavefish_and_sidepeaks(data, all_p_labels, eod_xp, eod_widths,
@@ -1538,20 +1546,22 @@ def remove_artefacts(snippets, rate, clusters, low_freq=10000,
     return mask, adict
 
 
-def delete_unreliable_fish(clusters, eod_widths, eod_x, verbose=0, sdict={}):
+def delete_unreliable_fish(clusters, eod_x, eod_widths, pulse_thresh=0.2,
+                           verbose=0, sdict={}):
     """ Create a mask for EOD clusters that are either mixed with noise or other fish, or wavefish.
     
     This is the case when the ration between the EOD width and the ISI is too large.
 
     Parameters
     ----------
-    clusters : list of int
+    clusters : array of int
         Cluster labels.
-    eod_widths : list of float or int
-        EOD widths in samples or seconds.
-    eod_x : list of int or floats
+    eod_x : array of int or float
         EOD times in samples or seconds.
-
+    eod_widths : array of int or float
+        EOD widths in samples or seconds.
+    pulse_thresh: float
+        Maximum ratio of pulse width relative to inter-pulse interval.
     verbose : int
         Verbosity level.
     sdict : dictionary
@@ -1570,16 +1580,21 @@ def delete_unreliable_fish(clusters, eod_widths, eod_x, verbose=0, sdict={}):
     """
     mask = np.zeros(clusters.shape, dtype=bool)
     for cluster in np.unique(clusters[clusters >= 0]):
-        if len(eod_x[cluster == clusters]) < 2:
+        # we need more than two samples for diff:
+        if len(eod_x[clusters == cluster]) < 2:
             mask[clusters == cluster] = True
             if verbose > 0:
-                print('deleting unreliable cluster %i, number of EOD times %d < 2' % (cluster, len(eod_x[cluster == clusters])))
-        elif np.max(np.median(eod_widths[clusters == cluster])/np.diff(eod_x[cluster == clusters])) > 0.5:
+                print(f'delete unreliable cluster {cluster}: number of EOD times {len(eod_x[clusters == cluster])} less than 2')
+            continue
+        median_width = np.median(eod_widths[clusters == cluster])
+        ipis = np.diff(eod_x[clusters == cluster])
+        score = np.max(median_width/ipis)
+        if score > pulse_thresh:
             if verbose > 0:
-                print('deleting unreliable cluster %i, score=%f' % (cluster, np.max(np.median(eod_widths[clusters == cluster])/np.diff(eod_x[cluster == clusters]))))
+                print(f'delete unreliable cluster {cluster}:maximum width over ipi ratio {score:4.2f} greater than {pulse_thresh:4.2f}')
             mask[clusters == cluster] = True
         if 'vals_%d' % cluster in sdict:
-            sdict['vals_%d' % cluster].append(np.median(eod_widths[clusters == cluster])/np.diff(eod_x[cluster == clusters]))
+            sdict['vals_%d' % cluster].append(np.median(eod_widths[clusters == cluster])/np.diff(eod_x[clusters == cluster]))
             sdict['mask_%d' % cluster].append(any(mask[clusters == cluster]))
     return mask, sdict
 
@@ -1660,7 +1675,7 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths,
         centered = np.min(np.abs(idxs[max_slope:max_slope + 2] - len(mean_eod)//2))
         if centered > max_slope_deviation*mean_width:  # TODO: check, factor was probably 0.16
             if verbose > 0:
-                print(f' delete cluster {cluster}, which is a sidepeak')
+                print(f'delete cluster {cluster}, which is a sidepeak')
             mask_sidepeak[clusters == cluster] = True
 
 
@@ -1672,14 +1687,14 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths,
         #if np.abs(np.diff(idxs[max_slope:max_slope + 2])) < np.mean(eod_widths[clusters == cluster])*0.5 or len(pk) + len(tr)>max_phases or np.min(w_diffs)>2*cutwidth/width_fac: #or len(h_diffs[np.abs(h_diffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])>max_phases:
         if w_diffs[max_slope:max_slope + 2][0] < np.mean(eod_widths[clusters == cluster])*0.5 or len(idxs) > max_phases or np.min(w_diffs) > 2*cutwidth/width_fac: #or len(h_diffs[np.abs(h_diffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])>max_phases:  # Jan
             if verbose > 0:
-                print(f'  delete cluster {cluster}, which is a wavefish')
+                print(f'delete cluster {cluster}, which is a wavefish')
             mask_wave[clusters == cluster] = True
-            
-    if 'vals_%d' % cluster in sdict:
-        sdict['vals_%d' % cluster].append([mean_eod, [pk, tr],
-                                           idxs[max_slope:max_slope + 2]])
-        sdict['mask_%d' % cluster].append(any(mask_wave[clusters == cluster]))
-        sdict['mask_%d' % cluster].append(any(mask_sidepeak[clusters == cluster]))
+
+        if 'vals_%d' % cluster in sdict:
+            sdict['vals_%d' % cluster].append([mean_eod, [pk, tr],
+                                               idxs[max_slope:max_slope + 2]])
+            sdict['mask_%d' % cluster].append(any(mask_wave[clusters == cluster]))
+            sdict['mask_%d' % cluster].append(any(mask_sidepeak[clusters == cluster]))
 
     return mask_wave, mask_sidepeak, sdict
 
