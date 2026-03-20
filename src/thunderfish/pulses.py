@@ -1331,16 +1331,29 @@ def extract_snippets(data, eod_idx, eod_widths, left, right):
     xleft = left + min(10, left//3)
     xright = right + min(10, right//3)
     snippets = np.zeros((len(eod_idx), xleft + xright))
-    # first snippet:
-    l = min(eod_idx[0], xleft)
-    snippets[0, xleft - l:] = data[eod_idx[0] - l:eod_idx[0] + xright]
+    mask = np.ones(len(eod_idx),  dtype=bool)
+    # first snippets:
+    k0 = 0
+    for idx in eod_idx:
+        if idx >= xleft or len(data) - idx < xright:
+            break
+        l = min(idx, xleft)
+        snippets[k0, xleft - l:] = data[idx - l:idx + xright]
+        mask[k0] = False
+        k0 += 1
+    # last snippets:
+    k1 = len(eod_idx)
+    for idx in eod_idx[::-1]:
+        if k1 < k0 or len(data) - idx >= xright:
+            break
+        k1 -= 1
+        r = min(len(data) - idx, xright)
+        snippets[k1, :xleft + r] = data[idx - xleft:idx + r]
+        mask[k1] = False
     # middle snippets:
-    for k, idx in enumerate(eod_idx[1:-1]):
-        snippets[k + 1, :] = data[idx - xleft:idx + xright]
-    # last snippet:
-    if len(eod_idx) > 1:
-        r = min(len(data) - eod_idx[-1], xright)
-        snippets[-1, :xleft + r] = data[eod_idx[-1] - xleft:eod_idx[-1] + r]
+    for k, idx in enumerate(eod_idx[k0:k1]):
+        snippets[k0 + k, :] = data[idx - xleft:idx + xright]
+        mask[k0 + k] = False
 
     # align snippets on phase of first Fourier coefficient:
     # (aligning on maximum of higher harmonics is much less robust)
