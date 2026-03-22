@@ -413,25 +413,32 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, max_freq_tol,
         peaksum = decibel(np.sum(all_freqs[new_group, 1])*min_group_size/len(new_group))
         diff = np.std(np.diff(decibel(all_freqs[new_group, 1])))
         new_group_value = peaksum - diff
-        counts = np.sum(all_freqs[new_group, 2])
+        counts = int(np.sum(all_freqs[new_group, 2]))
         if verbose > 0:
-            print('  new group:                 fzero=%7.2fHz, nharmonics=%d, value=%6.1fdB, peaksum=%5.1fdB, diff=%6.1fdB, use count=%2d, peaks:'
-                  % (fzero, len(new_group), new_group_value, peaksum, diff, counts), new_group)
-            if verbose > 1:
-                print('  best group:     divisor=%d, fzero=%7.2fHz, nharmonics=%d, value=%6.1fdB, peaks:'
-                      % (best_divisor, best_fzero, len(best_group), best_value), best_group)
+            print(f'  new group:                 fzero={fzero:7.2f}Hz, nharmonics={len(new_group)}, value={new_group_value:6.1f}dB, peaksum={peaksum:5.1f}dB, diff={diff:6.1f}dB, use count={counts:2d}, peaks:', new_group)
+            if verbose > 1 and len(best_group) > 0:
+                print(f'  best group:     divisor={best_divisor}, fzero={best_fzero:7.2f}Hz, nharmonics={len(best_group)}, value={best_value:6.1f}dB, peaks:', best_group)
         # select new group if sum of peak power minus diff is larger:
-        if len(new_group) >= len(best_group) and new_group_value >= best_value:
+        if (len(new_group) >= min_group_size and len(best_group) < min_group_size) or \
+           (len(new_group) >= len(best_group) and new_group_value >= best_value):
             best_value = new_group_value
             best_group = new_group
             best_divisor = divisor
             best_fzero = fzero
             best_fzero_harmonics = fzero_harmonics
             if verbose > 1:
-                print('  new best group: divisor=%d, fzero=%7.2fHz, value=%6.1fdB, peaks:'
-                      % (best_divisor, best_fzero, best_value), best_group)
+                print(f'  new best group: divisor={best_divisor}, fzero={best_fzero:7.2f}Hz, nharmonics={len(best_group)}, value={best_value:6.1f}dB, peaks:', best_group)
             elif verbose > 0:
                 print('  took as new best group')
+        elif verbose > 0:
+            if not (len(new_group) >= min_group_size and len(best_group) < min_group_size):
+                s = f', number of harmonics {len(new_group)} not greater than minimum group size {min_group_size}'
+            if len(new_group) < len(best_group):
+                print(f'  keep best group: number of harmonics {len(new_group)} is SMALLER than in best group {len(best_group)}{s}')
+            elif new_group_value < best_value:
+                print(f'  keep best group: value {new_group_value:6.1f}dB is SMALLER than in best group {best_value:6.1f}dB{s}')
+            else:
+                print(f'  keep best group: {s[2:]}')
                 
     # no group found:
     if len(best_group) == 0:
@@ -960,9 +967,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
             high_threshold = high_th
         if verbose > 1:
             print('')
-            print('low_threshold =%4.1fdB, center+low_threshold =%6.1fdB' % (low_threshold, center + low_threshold))
-            print('high_threshold=%4.1fdB, center+high_threshold=%6.1fdB' % (high_threshold, center + high_threshold))
-            print('                                       center=%6.1fdB' % center)
+            print(f'low_threshold ={low_threshold:4.1f}dB, center+low_threshold ={center + low_threshold:6.1f}dB')
+            print(f'high_threshold={high_threshold:4.1f}dB, center+high_threshold={center + high_threshold:6.1f}dB')
+            print(f'                                      center={center:6.1f}dB')
 
     # detect peaks in decibel power spectrum:
     peaks, troughs = detect_peaks(log_psd, low_threshold)
