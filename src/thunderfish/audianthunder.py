@@ -40,13 +40,13 @@ from thunderlab.eventdetection import minmax_threshold, detect_peaks
 from thunderlab.powerspectrum import decibel, plot_decibel_psd
 from thunderlab.tabledata import write_table_args
 
-from .thunderfish import configuration, detect_eods
+from .thunderfish import configuration
 from .thunderfish import rec_style, spectrum_style
 from .thunderfish import wave_eod_styles, pulse_eod_styles, snippet_style
 from .thunderfish import wave_spec_styles, pulse_spec_styles
 from .bestwindow import clip_args, clip_amplitudes
 from .harmonics import colors_markers, plot_harmonic_groups
-from .eodanalysis import plot_eod_snippets
+from .eodanalysis import detect_eods, plot_eod_snippets
 from .eodanalysis import plot_eod_recording, zoom_eod_recording, save_analysis
 from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_eod
 from .pulseanalysis import pulsetrain, plot_pulse_spectrum

@@ -52,22 +52,352 @@ from zipfile import ZipFile
 from audioio import get_str
 from thunderlab.eventdetection import detect_peaks, snippets
 from thunderlab.fourier import normalize_fourier_coeffs
-from thunderlab.powerspectrum import decibel
+from thunderlab.powerspectrum import decibel, spectrogram, spectrum_args
 from thunderlab.tabledata import TableData
 from thunderlab.dataloader import DataLoader
 
 from .files import parse_filename, open_from_zip, close_zip
+from .fakefish import pulsefish_spectrum
 from .fakefish import normalize_pulsefish, export_pulsefish
 from .fakefish import normalize_wavefish, export_wavefish
-from .waveanalysis import save_wave_eodfs, load_wave_eodfs
-from .waveanalysis import save_wave_fish, load_wave_fish
-from .waveanalysis import save_wave_phases, load_wave_phases
-from .waveanalysis import save_wave_spectrum, load_wave_spectrum
+from .harmonics import harmonic_groups_args, psd_peak_detection_args
+from .harmonics import harmonic_groups, closest, consistent
+from .pulses import extract_pulsefish
+from .pulseanalysis import analyze_pulse, analyze_pulse_args
+from .pulseanalysis import pulsetrain_spectrum
+from .pulseanalysis import pulse_quality, pulse_quality_args
 from .pulseanalysis import save_pulse_fish, load_pulse_fish
 from .pulseanalysis import save_pulse_spectrum, load_pulse_spectrum
 from .pulseanalysis import save_pulse_phases, load_pulse_phases
 from .pulseanalysis import save_pulse_gaussians, load_pulse_gaussians
 from .pulseanalysis import save_pulse_times, load_pulse_times
+from .waveanalysis import extract_wave, analyze_wave, wave_quality
+from .waveanalysis import extract_wave_args, analyze_wave_args
+from .waveanalysis import wave_quality_args 
+from .waveanalysis import save_wave_eodfs, load_wave_eodfs
+from .waveanalysis import save_wave_fish, load_wave_fish
+from .waveanalysis import save_wave_phases, load_wave_phases
+from .waveanalysis import save_wave_spectrum, load_wave_spectrum
+
+
+def detect_eods(data, rate, power_freqs, power_times, powers,
+                min_clip, max_clip, name, mode, verbose, plot_level, cfg):
+    """Detect EODs of all fish present in the data.
+
+    Parameters
+    ----------
+    data: array of floats
+        The recording in which to detect EODs.
+    rate: float
+        Sampling rate of the dataset.
+    power_freqs: 1D array of float or None
+        Frequencies for `powers`. Can be empty.
+    power_times: 1D array of float
+        Times for `powers`. Can be empty.
+    powers: 2D array of float or None
+        Spectrogram of the data, if available. First column are
+        frequencies, second column times.
+    min_clip: float
+        Minimum amplitude that is not clipped.
+    max_clip: float
+        Maximum amplitude that is not clipped.
+    name: string
+        Name of the recording (e.g. its filename).
+    mode: string
+        Characters in the string indicate what and how to analyze:
+        - 'w': analyze wavefish
+        - 'p': analyze pulsefish
+        - 'P': analyze only the pulsefish with the largest amplitude (not implemented yet) 
+    verbose: int
+        Print out information about EOD detection if greater than zero.
+    plot_level : int
+        Similar to verbosity levels, but with plots. 
+    cfg: ConfigFile
+        Configuration parameters.
+
+    Returns
+    -------
+    power_freqs: 1D array of float
+        Frequencies for `powers`. Can be empty.
+    powers: 1D array of float
+        Power spectrum of the data.
+    wave_eodfs: list of 2D arrays
+        Frequency and power of fundamental frequency/harmonics of all wave fish.
+    wave_indices: array of int
+        Indices of wave fish mapping from wave_eodfs to eod_props.
+        If negative, then that EOD frequency has no waveform described in eod_props.
+    eod_props: list of dict
+        Lists of EOD properties as returned by analyze_pulse() and analyze_wave()
+        for each waveform in mean_eods.
+    mean_eods: list of 2-D arrays with time, mean, sem, and fit.
+        Averaged EOD waveforms of pulse and wave fish.
+    spec_data: list of 2_D arrays
+        For each pulsefish a power spectrum of the single pulse and for
+        each wavefish the relative amplitudes and phases of the harmonics.
+    phase_data: list of dict
+        For each pulse fish a dictionary with phase properties
+        (indices, times, amplitudes, relamplitudes, widths, areas, relareas, zeros),
+        empty dict for wave fish.
+    pulse_data: list of dict
+        For each pulse fish a dictionary with phase times, amplitudes and standard
+        deviations of Gaussians fitted to the pulse waveform.  Use the
+        functions provided in thunderfish.fakefish to simulate pulse
+        fish EODs from this data.
+    power_thresh:  2 D array or None
+        Frequency (first column) and power (second column) of threshold
+        derived from single pulse spectra to discard false wave fish.
+        None if no pulse fish was detected.
+    skip_reason: list of string
+        Reasons, why an EOD was discarded.
+
+    """
+    dfreq = np.nan
+    nfft = 0
+    wave_eodfs = []
+    wave_indices = []
+    if 'w' in mode:
+        # detect wave fish:
+        if power_freqs is None or power_times is None or powers is None or \
+           power_freqs[1] > cfg.value('frequencyResolution'):
+            power_freqs, power_times, powers = \
+                spectrogram(data, rate, **spectrum_args(cfg))
+        dfreq = np.mean(np.diff(power_freqs))
+        nfft = int(rate/dfreq)
+        h_kwargs = psd_peak_detection_args(cfg)
+        h_kwargs.update(harmonic_groups_args(cfg))
+        wave_eodfs_list = []
+        for i, psd in enumerate(powers.T):
+            wave_eodfs = harmonic_groups(power_freqs, psd, verbose - 1,
+                                         **h_kwargs)[0]
+            if verbose > 0 and powers.shape[1] > 1:
+                print(f'{len(wave_eodfs)} fundamental frequencies detected in spectrum of window {i}:')
+                if len(wave_eodfs) > 0:
+                    print('  ' + ' '.join([f'{freq[0, 0]:.1f}' for freq in wave_eodfs]))
+                else:
+                    print('  none')
+            wave_eodfs_list.append(wave_eodfs)
+        min_closest = (len(wave_eodfs_list) + 1) // 2
+        wave_eodfs, wave_windows = \
+            closest(wave_eodfs_list,
+                    df_thresh=cfg.value('frequencyThreshold'),
+                    close_thresh=1*cfg.value('frequencyThreshold'),
+                    min_closest=min_closest)
+        if len(wave_windows) > 0:
+            p0 = np.min(wave_windows[:, 0])
+            p1 = np.max(wave_windows[:, 1])
+            powers = np.mean(powers[:, p0:p1 + 1], 1)
+        else:
+            powers = np.mean(powers, 1)
+        if verbose > 0:
+            if verbose > 1:
+                print()
+            if len(wave_eodfs) > 0:
+                fstr = 'ies' if len(wave_eodfs) > 1 else 'y'
+                print(f'found {len(wave_eodfs):2d} EOD frequenc{fstr} sufficiently close in all spectra:')
+                if verbose > 1:
+                    for freq, win in zip(wave_eodfs, wave_windows):
+                        print(f'  {freq[0, 0]:6.1f}Hz in spectra {win[0]} - {win[1]}')
+                else:
+                    print('  ' + ' '.join([f'{freq[0, 0]:.1f}' for freq in wave_eodfs]))
+            else:
+                print('no fundamental frequencies are sufficiently close in all spectra')
+        if plot_level > 0:
+            fig, ax = plt.subplots(layout='constrained')
+            ax.set_title(f'{len(wave_eodfs)} closest EOD frequencies')
+            plot_selected_groups(ax, wave_eodfs_list, wave_eodfs, wave_windows)
+            ax.set_xlabel('index of spectrum segment')
+            plt.show()
+
+    # analysis results:
+    eod_props = []
+    mean_eods = []
+    spec_data = []
+    phase_data = []
+    pulseeod_data = []
+    power_thresh = None
+    skip_reason = []
+    max_pulse_amplitude = 0.0
+
+    if 'p' in mode:
+        # detect pulse fish:
+        frate = 0.5e6  # TODO: make parameter
+        eods, eod_times, eod_peaktimes, _ = \
+            extract_pulsefish(data, rate, frate,
+                              verbose=verbose - 1,
+                              plot_level=plot_level)
+        if verbose > 0:
+            if len(eod_times) > 0:
+                print(f'found {len(eod_times):2d} pulsefish EODs')
+            else:
+                print('no pulsefish EODs found')
+
+        # analyse eod waveform of pulse-fish:
+        for mean_eod, eod_ts, eod_pts in zip(eods, eod_times, eod_peaktimes):
+            """
+            mean_eod, eod_times0 = \
+                eod_waveform(data, rate, eod_ts, win_fac=0.8,
+                             min_win=cfg.value('eodMinPulseSnippet'),
+                             min_sem=False, **eod_waveform_args(cfg))
+            """
+            unfilter_cutoff = cfg.value('unfilterCutoff')
+            if unfilter_cutoff and unfilter_cutoff > 0:
+                unfilter(mean_eod[:, 1], frate, unfilter_cutoff)
+            mean_eod, props, phases, pulse, power = \
+                analyze_pulse(mean_eod, None, eod_ts, verbose=verbose-1,
+                              **analyze_pulse_args(cfg))
+            if len(phases) == 0:
+                if verbose > 0:
+                    print('no phases in pulse EOD detected')
+                continue
+            clipped_frac = clipped_fraction(data, rate, eod_ts,
+                                            mean_eod, min_clip, max_clip)
+            props['peaktimes'] = eod_pts  # XXX that should go into analyze pulse
+            props['index'] = len(eod_props)
+            props['clipped'] = clipped_frac
+            props['samplerate'] = rate
+            props['nfft'] = nfft
+            props['dfreq'] = dfreq
+
+            # add good waveforms only:
+            skips, msg, skipped_clipped = pulse_quality(props, **pulse_quality_args(cfg))
+
+            if len(skips) == 0:
+                eod_props.append(props)
+                mean_eods.append(mean_eod)
+                spec_data.append(power)
+                phase_data.append(phases)
+                pulseeod_data.append(pulse)
+                if verbose > 0:
+                    print(f'take    {props['EODf']:7.2f}Hz pulse fish: {msg}')
+            else:
+                skip_reason += [f'{props['EODf']:.2f}Hz pulse fish {skips}']
+                if verbose > 0:
+                    print(f'skip    {props['EODf']:7.2f}Hz pulse fish: {skips} ({msg})')
+
+            # threshold for wave fish peaks based on single pulse spectra:
+            if len(skips) == 0 or skipped_clipped:
+                if max_pulse_amplitude < props['ppampl']:
+                    max_pulse_amplitude = props['ppampl']
+                    
+                pulse_freqs, pulse_power = \
+                    pulsetrain_spectrum(eod_pts, mean_eod, None, len(data)/rate, rate,
+                                        fade_frac=0.05, **spectrum_args(cfg))
+                pulse_power *= len(data)/rate/props['period']/len(props['peaktimes'])
+                pulse_power *= 5
+                if power_thresh is None:
+                    power_thresh = np.zeros((len(pulse_freqs), 2))
+                    power_thresh[:, 0] = pulse_freqs
+                    power_thresh[:, 1] = pulse_power
+                else:
+                    power_thresh[:, 1] += pulse_power
+
+        # remove wavefish below pulse fish power:
+        if 'w' in mode and power_thresh is not None:
+            n = len(wave_eodfs)
+            maxh = 3  # XXX TODO make parameter
+            df = power_thresh[1,0] - power_thresh[0,0]
+            for k, fish in enumerate(reversed(wave_eodfs)):
+                idx = np.array(fish[:maxh,0]//df, dtype=int)
+                for offs in range(-2, 3):
+                    nbelow = np.sum(fish[:maxh,1] < power_thresh[idx+offs,1])
+                    if nbelow > 0:
+                        wave_eodfs.pop(n-1-k)
+                        if verbose > 0:
+                            print(f'skip    {fish[0,0]:7.2f}Hz wave  fish: {nbelow:2d} harmonics are below pulsefish threshold')
+                        break
+
+    if 'w' in mode:
+        # analyse EOD waveform of all wavefish:
+        if verbose > 1:
+            print()
+        fish_powers = np.array([np.sum(fish[:,1]) for fish in wave_eodfs])
+        power_indices = np.argsort(-fish_powers)
+        wave_indices = np.zeros(len(wave_eodfs), dtype=int) - 3
+        for k, idx in enumerate(power_indices):
+            fish = wave_eodfs[idx]
+            window = wave_windows[idx]
+            iw = int(rate/power_freqs[1])//2
+            i0 = int(power_times[window[0]]*rate) - iw
+            i1 = int(power_times[window[1]]*rate) + iw
+            coeffs, mean_eod, eod_freq, times, n_eods, skips = \
+                extract_wave(data[i0:i1], rate, fish[0, 0],
+                             power_freqs[1], verbose=verbose - 1,
+                             plot_level=plot_level,
+                             **extract_wave_args(cfg))
+            if len(mean_eod) == 0 or len(skips) > 0:
+                if verbose > 0:
+                    print(f'skip    {fish[0, 0]:7.2f}Hz wave  fish:', skips)
+                    if verbose > 1:
+                        print()
+                continue
+            for h in range(len(fish)):
+                fish[h, 0] = (h + 1)*eod_freq
+            unfilter_cutoff = cfg.value('unfilterCutoff')
+            if unfilter_cutoff:
+                coeffs = unfilter_coeff(eod_freq, coeffs, unfilter_cutoff)
+                if plot_level > 0:
+                    w = fourier_synthesis(eod_freq, coeffs,
+                                          1/mean_eod[1, 0], len(mean_eod))
+                    fig, ax = plt.subplots(layout='constrained')
+                    ax.set_title(f'EODf={eod_freq:.1f}Hz, unfilter high-pass filter $f_{{cutoff}}={unfilter_cutoff:.0f}$Hz')
+                    ax.plot(1000*mean_eod[:, 0], mean_eod[:, 1],
+                            label='original')
+                    ax.plot(1000*mean_eod[:, 0], w, label='unfiltered')
+                    ax.set_xlabel('time [ms]')
+                    ax.legend()
+                    plt.show()
+            mean_eod, props, phases, sdata = \
+                analyze_wave(mean_eod, None, fish, coeffs,
+                             **analyze_wave_args(cfg))
+            eod_times = np.arange(i0/rate, i1/rate, 1/fish[0, 0])
+            clipped_frac = clipped_fraction(data[i0:i1], rate, eod_times,
+                                            mean_eod, min_clip, max_clip)
+            props['n'] = n_eods
+            props['nsegments'] = len(times)
+            props['index'] = len(eod_props)
+            props['clipped'] = clipped_frac
+            props['samplerate'] = rate
+            props['nfft'] = nfft
+            props['dfreq'] = dfreq
+            # remove wave fish that are smaller than the largest pulse fish:
+            if props['ppampl'] < 0.01*max_pulse_amplitude:
+                rm_indices = power_indices[k:]
+                if verbose > 0:
+                    print(f'skip    {props['EODf']:7.2f}Hz wave  fish: power={decibel(fish_powers[idx]):5.1f}dB, p-p amplitude={decibel(props['ppampl']):5.1f}dB smaller than pulse fish={decibel(max_pulse_amplitude):5.1f}dB - 20dB')
+                    for idx in rm_indices[1:]:
+                        print(f'skip    {wave_eodfs[idx][0,0]:7.2f}Hz wave  fish: power={decibel(fish_powers[idx]):5.1f}dB even smaller')
+                if verbose > 1:
+                    print()
+                wave_eodfs = [eodfs for idx, eodfs in enumerate(wave_eodfs)
+                              if idx not in rm_indices]
+                wave_indices = np.array([idcs for idx, idcs in enumerate(wave_indices)
+                                        if idx not in rm_indices], dtype=int)
+                break
+            # add good waveforms only:
+            remove, skips, msg = wave_quality(props, sdata[1:, 3],
+                                              **wave_quality_args(cfg))
+            if len(skips) == 0:
+                wave_indices[idx] = props['index']
+                eod_props.append(props)
+                mean_eods.append(mean_eod)
+                spec_data.append(sdata)
+                phase_data.append(phases)
+                pulseeod_data.append(dict())
+                if verbose > 0:
+                    print(f'take    {props['EODf']:7.2f}Hz wave  fish:', msg)
+            else:
+                wave_indices[idx] = -2 if remove else -1
+                skip_reason += [f'{props["EODf"]:.1f}Hz wave fish {skips}']
+                if verbose > 0:
+                    rstr = 'remove' if remove else 'skip'
+                    print(f'{rstr:<7s} {props["EODf"]:7.2f}Hz wave  fish: {skips} ({msg})')
+            if verbose > 1:
+                print()
+        wave_eodfs = [eodfs for idx, eodfs in zip(wave_indices, wave_eodfs) if idx > -2]
+        wave_indices = np.array([idx for idx in wave_indices if idx > -2], dtype=int)
+    return (power_freqs, powers, wave_eodfs, wave_indices, eod_props,
+            mean_eods, spec_data, phase_data, pulseeod_data,
+            power_thresh, skip_reason)
 
 
 def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,

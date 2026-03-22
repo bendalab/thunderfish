@@ -26,12 +26,12 @@ from thunderlab.powerspectrum import decibel
 
 from .version import __version__, __year__
 from .harmonics import add_harmonic_groups_config
+from .eodanalysis import detect_eods, add_eod_quality_config
 from .eodanalysis import add_species_config
-from .eodanalysis import add_eod_quality_config
 from .pulseanalysis import pulse_quality, pulse_quality_args
 from .waveanalysis import wave_quality, wave_quality_args
 from .bestwindow import analysis_window
-from .thunderfish import configuration, detect_eods, plot_eods
+from .thunderfish import configuration, plot_eods
 
 
 basename = ''
