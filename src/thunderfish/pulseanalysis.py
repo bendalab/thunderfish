@@ -29,6 +29,7 @@ Calls all the functions listed above:
 ## Visualization
 
 - `plot_pulse_eodtimes()`: mark pulse EODs in a plot of an EOD recording.
+- `plot_pulse_rate()`: plot pulse rates.
 - `plot_pulse_eod()`: plot and annotate a pulse-type EOD waveform.
 - `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
 
@@ -1496,62 +1497,122 @@ def plot_pulse_eodtimes(ax, data, rate, width, eod_props,
     width: float
        Minimum width of the data to be plotted in seconds.
     eod_props: list of dictionaries
-            Lists of EOD properties as returned by `analyze_pulse()`
-            and `analyze_wave()`.  From the entries with 'type' ==
-            'pulse' the properties 'EODf' and 'times' are used. 'EODf'
-            is the averaged EOD frequency, and 'times' is a list of
-            detected EOD pulse times.
+        Lists of EOD properties as returned by `analyze_pulse()`
+        and `analyze_wave()`.  From the entries with 'type' ==
+        'pulse' the properties 'EODf' and 'peaktimes' are used. 'EODf'
+        is the averaged EOD frequency, and 'peaktimes' is a list of
+        detected EOD pulse times.
     toffs: float
         Time of first data value in seconds that will be added
         to the pulse times in `eod_props`.
     colors: list of colors or None
-            If not None list of colors for plotting each cluster
+        If not None list of colors for plotting each cluster.
     markers: list of markers or None
-            If not None list of markers for plotting each cluster
+        If not None list of markers for plotting each cluster.
     marker_size: float
-            Size of markers used to mark the pulses.
+        Size of markers used to mark the pulses.
     legend_rows: int
-            Maximum number of rows to be used for the legend.
+        Maximum number of rows to be used for the legend.
     kwargs: 
-            Key word arguments for the legend of the plot.
+        Key word arguments for the legend of the plot.
     """
     k = 0
     for eod in eod_props:
         if eod['type'] != 'pulse':
             continue
-        if 'times' not in eod:
+        if 'peaktimes' not in eod:
             continue
         x = eod['peaktimes'] + toffs
         pidx = np.round(eod['peaktimes']*rate).astype(int)
         mask = (pidx > 0) & (pidx < len(data))
         y = data[pidx[mask]]
         x = x[mask]
-        color_kwargs = {}
-        #if colors is not None:
-        #    color_kwargs['color'] = colors[k%len(colors)]
-        if marker_size is not None:
-            color_kwargs['ms'] = marker_size
-        label = f'{eod["EODf"]:6.1f} Hz'
-        if legend_rows > 5 and k >= legend_rows:
-            label = None
+        style = dict(mec=None, mew=0)
+        if colors is not None:
+            style['color'] = colors[k%len(colors)]
         if markers is None:
-            ax.plot(x, y, 'o', label=label, zorder=-1, **color_kwargs)
+            style['marker'] = 'o'
         else:
-            ax.plot(x, y, linestyle='none', label=label,
-                    marker=markers[k%len(markers)], mec=None, mew=0.0,
-                    zorder=-1, **color_kwargs)
+            style['marker'] = markers[k%len(markers)]
+        if marker_size is not None:
+            style['ms'] = marker_size
+        label = f'{eod["EODf"]:6.1f} Hz'
+        ax.plot(x, y, linestyle='none', label=label,
+                zorder=-1, **style)
         k += 1
-
     # legend:
     if k > 1:
-        if legend_rows > 0:
-            if legend_rows > 5:
-                ncol = 1
-            else:
-                ncol = (len(idx)-1) // legend_rows + 1
-            ax.legend(numpoints=1, ncol=ncol, **kwargs)
+        if not 'ncol' in kwargs and legend_rows > 0:
+            ncol = (k - 1) // legend_rows + 1
+            kwargs['ncol'] = ncol
+        if not 'numpoints' in kwargs:
+            kwargs['numpoints'] = 1
+        ax.legend(**kwargs)
+
+
+def plot_pulse_rate(ax, eod_props, toffs=0, colors=None,
+                    markers=None, marker_size=10,
+                    legend_rows=8, **kwargs):
+    """Plot pulse rates.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes used for plotting.
+    eod_props: list of dictionaries
+        Lists of EOD properties as returned by `analyze_pulse()`
+        and `analyze_wave()`.  From the entries with 'type' ==
+        'pulse' the properties 'EODf' and 'peaktimes' are used. 'EODf'
+        is the averaged EOD frequency, and 'peaktimes' is a list of
+        detected EOD pulse times.
+    toffs: float
+        Time of first data value in seconds that will be added
+        to the pulse times in `eod_props`.
+    colors: list of colors or None
+        If not None list of colors for plotting the rate of each cluster.
+    markers: list of markers or None
+        If not None list of markers for plotting each cluster.
+    marker_size: float
+        Size of markers used to mark the pulses.
+    legend_rows: int
+        Maximum number of rows to be used for the legend.
+    kwargs: 
+        Key word arguments for the legend of the plot.
+    """
+    k = 0
+    for props in eod_props:
+        if props['type'] != 'pulse':
+            continue
+        if 'peaktimes' not in props:
+            continue
+        times = props['peaktimes'] + toffs
+        rate = 1/np.diff(times)
+        mask = np.append(True, np.abs(np.diff(rate))/rate[:-1] < 0.1)
+        style = dict(mec=None, mew=0)
+        if colors is not None:
+            style['color'] = colors[k%len(colors)]
+        if markers is None:
+            style['marker'] = 'o'
         else:
-            ax.legend(numpoints=1, **kwargs)
+            style['marker'] = markers[k%len(markers)]
+        if marker_size is not None:
+            style['ms'] = marker_size
+        label = f'{props["EODf"]:6.1f} Hz'
+        ax.plot(times[:-1][mask], rate[mask], label=label,
+                linestyle='-', **style)
+        ax.plot(times[:-1][~mask], rate[~mask], linestyle='none', **style)
+        k += 1
+    ax.set_xlabel('Time [s]')
+    ax.set_ylim(bottom=0)
+    ax.set_ylabel('Rate [Hz]')
+    # legend:
+    if k > 1:
+        if not 'ncol' in kwargs and legend_rows > 0:
+            ncol = (k - 1) // legend_rows + 1
+            kwargs['ncol'] = ncol
+        if not 'numpoints' in kwargs:
+            kwargs['numpoints'] = 1
+        ax.legend(**kwargs)
 
         
 def plot_pulse_eod(ax, eod_waveform, props, phases=None,

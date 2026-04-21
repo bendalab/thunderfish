@@ -48,7 +48,7 @@ from .bestwindow import clip_args, clip_amplitudes
 from .harmonics import colors_markers, plot_harmonic_groups
 from .eodanalysis import detect_eods, plot_eod_snippets
 from .eodanalysis import plot_eod_recording, zoom_eod_recording, save_analysis
-from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_eod
+from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_rate, plot_pulse_eod
 from .pulseanalysis import pulsetrain, plot_pulse_spectrum
 from .waveanalysis import plot_wave_eod, plot_wave_spectrum 
 from .harmonics import annotate_harmonic_group
@@ -149,31 +149,10 @@ class TracePlot(TimePlot):
 
 class RatePlot(TimePlot):
     
-    def __init__(self, time, eod_props, pulse_colors):
+    def __init__(self, time, eod_props, pulse_colors, pulse_markers):
         super().__init__(time)
-        prop_cycle = plt.rcParams['axes.prop_cycle']
-        colors = prop_cycle.by_key()['color']
-        k = 0
-        for props in eod_props:
-            if props['type'] != 'pulse':
-                continue
-            if 'times' not in props:
-                continue
-            times = props['peaktimes'] + self.full_time_range[0]
-            rate = 1/np.diff(times)
-            mask = np.append(True, np.abs(np.diff(rate))/rate[:-1] < 0.1)
-            #color = pulse_colors[k % len(pulse_colors)]
-            color = colors[k % len(colors)]
-            label = f'{props["EODf"]:6.1f} Hz'
-            self.ax.plot(times[:-1][mask], rate[mask], '-o',
-                         color=color, label=label)
-            self.ax.plot(times[:-1][~mask], rate[~mask], 'o',
-                         color=color)
-            self.ax.set_xlabel('Time [s]')
-            self.ax.set_ylim(bottom=0)
-            self.ax.set_ylabel('Rate [Hz]')
-            self.ax.legend()
-            k += 1
+        plot_pulse_rate(self.ax, eod_props, toffs=self.full_time_range[0],
+                        colors=pulse_colors, markers=pulse_markers)
         if self.ax.get_legend() is not None:
             self.ax.get_legend().get_frame().set_color('white')
             
@@ -562,7 +541,8 @@ class ThunderfishDialog(QDialog):
         
         # tab with pulse rates:
         if self.npulse > 0:
-            self.rate_plot = RatePlot(self.time, self.eod_props, self.pulse_colors)
+            self.rate_plot = RatePlot(self.time, self.eod_props,
+                                      self.pulse_colors, self.pulse_markers)
             self.rate_plot.ax.set_xlim(*self.trace_plot.ax.get_xlim())
             self.navis.append(self.rate_plot.navi)
             self.rate_idx = self.tabs.addTab(self.rate_plot.canvas, 'Rate')
