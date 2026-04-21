@@ -23,7 +23,6 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backend_bases import MouseButton
-from matplotlib.ticker import PercentFormatter
 
 try:
     from PyQt5.QtCore import Signal
@@ -50,9 +49,10 @@ from .eodanalysis import detect_eods, plot_eod_snippets
 from .eodanalysis import plot_eod_recording, zoom_eod_recording, save_analysis
 from .pulseanalysis import plot_pulse_eodtimes, plot_pulse_rate, plot_pulse_eod
 from .pulseanalysis import pulsetrain, plot_pulse_spectrum
-from .waveanalysis import plot_wave_eod, plot_wave_spectrum 
+from .waveanalysis import plot_wave_eod, plot_wave_spectrum
+from .freqanalysis import plot_freq_diffs, plot_freq_ratios, plot_musical_intervals
 from .harmonics import annotate_harmonic_group
-from .fakefish import wavefish_eods, musical_intervals, musical_intervals_short
+from .fakefish import wavefish_eods
 
 
 class TimePlot():
@@ -287,97 +287,9 @@ class FrequenciesPlot(QObject):
         self.navi.hide()
         self.axs = self.canvas.figure.subplots(1, 3, sharex=True, sharey=True)
         self.freqs = np.sort(freqs)
-        # deltafs:
-        ax = self.axs[0]
-        ax.set_title('Differences $\\Delta f$')
-        deltafs = self.freqs.reshape(-1, 1) - self.freqs.reshape(1, -1)
-        vmax = np.max(np.abs(deltafs))
-        cma = ax.pcolormesh(deltafs[::-1, :], cmap='seismic',
-                            vmin=-vmax, vmax=vmax)
-        for r in range(deltafs.shape[0]):
-            for c in range(deltafs.shape[1]):
-                ax.text(c + 0.5, r + 0.5, f'{deltafs[-1 - r, c]:.1f}',
-                        ha='center', va='center',
-                        fontsize='large', clip_on=True,
-                        bbox=dict(boxstyle='round,pad=0.1', ec='none',
-                                  fc='white', alpha=0.8))
-        ax.set_aspect('equal')
-        ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
-        ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in self.freqs]))
-        ax.yaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
-        ax.yaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in reversed(self.freqs)]))
-        ax.set_xlabel('EOD$f_i$ [Hz]')
-        ax.set_ylabel('EOD$f_j$ [Hz]')
-        ax.get_figure().colorbar(cma, ax=ax, label='$\\Delta f$ [Hz]')
-        # ratios:
-        ax = self.axs[1]
-        ax.set_title('Ratios $f_1/f_0$')
-        ratios = self.freqs.reshape(-1, 1) / self.freqs.reshape(1, -1)
-        cma = ax.pcolormesh(ratios[::-1, :], cmap='seismic', norm='log',
-                            vmin=1/5, vmax=5)
-        for r in range(ratios.shape[0]):
-            for c in range(ratios.shape[1]):
-                ax.text(c + 0.5, r + 0.5, f'{ratios[-1 - r, c]:.3f}',
-                        ha='center', va='center',
-                        fontsize='large', clip_on=True,
-                        bbox=dict(boxstyle='round,pad=0.1', ec='none',
-                                  fc='white', alpha=0.8))
-        ax.set_aspect('equal')
-        ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
-        ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in self.freqs]))
-        ax.yaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
-        ax.yaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in reversed(self.freqs)]))
-        ax.set_xlabel('EOD$f_i$ [Hz]')
-        ax.get_figure().colorbar(cma, ax=ax, label='Ratio', ticks=[1/5, 1/2, 1, 2, 5], format='%g')
-        # musical intervals:
-        ax = self.axs[2]
-        ax.set_title('Musical intervals')
-        all_intervals = np.array([musical_intervals[k][0] for k in musical_intervals])
-        if len(self.freqs) < 6:
-            all_names = list(musical_intervals.keys())
-        else:
-            all_names = [musical_intervals_short[k] for k in musical_intervals]
-        intervals = np.zeros(ratios.shape, dtype=int)
-        diffs = np.zeros(ratios.shape)
-        diff_fracs = np.zeros(ratios.shape)
-        for r in range(ratios.shape[0]):
-            for c in range(ratios.shape[1]):
-                if r != c and 0.5 <= ratios[r, c] < 2.05:
-                    if ratios[r, c] >= 0.98:
-                        ratio = ratios[r, c]
-                    else:
-                        ratio = 1/ratios[r, c]
-                    intervals[r, c] = np.argmin(np.abs(all_intervals - ratio))
-                    diffs[r, c] = ratio - all_intervals[intervals[r, c]]
-                    diff_fracs[r, c] = diffs[r, c]/all_intervals[intervals[r, c]]
-                else:
-                    intervals[r, c] = -1
-                    diffs[r, c] = np.nan
-                    diff_fracs[r, c] = np.nan
-        cma = ax.pcolormesh(100*np.abs(diff_fracs[::-1, :]), cmap='YlOrRd_r',
-                            vmin=0, vmax=1)
-        for r in range(ratios.shape[0]):
-            for c in range(ratios.shape[1]):
-                if -1 - r != c and intervals[-1 - r, c] >= 0:
-                    idx = intervals[-1 - r, c]
-                    if len(self.freqs) < 6:
-                        label = f'{all_intervals[idx]:.4f}\n{all_names[idx]}\n$\\Delta$={diffs[-1 - r, c]:.4f}\n{100*diff_fracs[-1 - r, c]:.1f}%'
-                    else:
-                        label = f'{all_names[idx]}\n{100*diff_fracs[-1 - r, c]:.1f}%'
-                    ax.text(c + 0.5, r + 0.5, label,
-                            ha='center', va='center',
-                            fontsize='large', clip_on=True,
-                            bbox=dict(boxstyle='round,pad=0.1', ec='none',
-                                      fc='white', alpha=0.8))
-        ax.set_aspect('equal')
-        ax.xaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
-        ax.xaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in self.freqs]))
-        ax.yaxis.set_major_locator(plt.FixedLocator(np.arange(len(self.freqs)) + 0.5))
-        ax.yaxis.set_major_formatter(plt.FixedFormatter([f'{f:.1f}' for f in reversed(self.freqs)]))
-        ax.set_xlabel('EOD$f_i$ [Hz]')
-        ax.get_figure().colorbar(cma, ax=ax, extend='max',
-                                 format=PercentFormatter(decimals=1),
-                                 label='Deviation from musical interval')
+        plot_freq_diffs(self.axs[0], self.freqs)
+        plot_freq_ratios(self.axs[1], self.freqs)
+        plot_musical_intervals(self.axs[2], self.freqs)
         
     def onrelease(self, event):
         if event.inaxes in self.axs:

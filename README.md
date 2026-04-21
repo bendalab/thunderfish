@@ -92,6 +92,7 @@ Look into the modules for more information.
 - [`pulseanalysis`](https://bendalab.github.io/thunderfish/api/pulseanalysis.html): Analysis of pulse-type EOD waveforms.
 - [`waveanalysis`](https://bendalab.github.io/thunderfish/api/waveanalysis.html): Analysis of wave-type EOD waveforms.
 - [`eodanalysis`](https://bendalab.github.io/thunderfish/api/eodanalysis.html): Analyse EOD waveforms.
+- [`freqanalysis`](https://bendalab.github.io/thunderfish/api/freqanalysis.html): Analysis of EOD frequencies.
 - [`harmonics`](https://bendalab.github.io/thunderfish/api/harmonics.html): Extract and analyze harmonic frequencies from power spectra.
 - [`pulses`](https://bendalab.github.io/thunderfish/api/pulses.html): Extract and cluster EOD waverforms of pulse-type electric fish.
 

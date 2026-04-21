@@ -7,11 +7,6 @@
 - `abbrv_genus()`: abbreviate genus in a species name.
 
 
-## Muscial intervals
-
-- `musical_intervals`: names and frequency ratios of musical intervals
-- `musical_intervals_short`: short names for musical intervals
-
 ## Wavefish
 
 - `wavefish_spectrum()`: amplitudes and phases of a wavefish EOD.
@@ -69,45 +64,6 @@ def abbrv_genus(name):
     """
     ns = name.split()
     return ns[0][0] + '. ' + ' '.join(ns[1:])
-
-
-musical_intervals = {
-    'unison': (1/1, 1, 1, 0),             # 1
-    'minor second': (16/15, 16, 15, 1),   # 1.0667
-    'major second': (9/8, 9, 8, 2),       # 1.125
-    'minor third': (6/5, 6, 5, 3),        # 1.2
-    'major third': (5/4, 5, 4, 4),        # 1.25
-    'forth': (4/3, 4, 3, 5),              # 1.3333
-    'tritone': (45/32, 45, 32, 6),        # 1.4063, half way between forth and fifth: 17/6/2=1.4167, sqrt(2)=1.4142
-    'fifth': (3/2, 3, 2, 7),              # 1.5
-    'minor sixth': (8/5, 8, 5, 8),        # 1.6
-    'major sixth': (5/3, 5, 3, 9),        # 1.6667
-    'subminor seventh': (7/4, 7, 4, 9.5), # 1.75
-    'minor seventh': (9/5, 9, 5, 10),     # 1.8
-    'major seventh': (15/8, 15, 8, 11),   # 1.875
-    'octave': (2/1, 2, 1, 12)             # 2
-}
-"""Name, frequency ratio, nominator, denominator, and index of musical intervals
-"""
-
-musical_intervals_short =  {
-    'unison': 'P1',
-    'minor second': 'm2',
-    'major second': 'M2',
-    'minor third': 'm3',
-    'major third': 'M3',
-    'forth': 'P4',
-    'tritone': 'd5',
-    'fifth': 'P5',
-    'minor sixth': 'm6',
-    'major sixth': 'M6',
-    'subminor seventh': 'd7',
-    'minor seventh': 'm7',
-    'major seventh': 'M7',
-    'octave': 'P8'
-}
-"""Short names for musical intervals
-"""
 
 
 # EODs of various wavefish species:
